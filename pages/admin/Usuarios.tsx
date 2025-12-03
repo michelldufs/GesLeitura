@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { adminService, CreateUserData } from '../../services/adminService';
 import { UserRole, UserProfile } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
+import { UserProfile } from '../../types';
 
 const Usuarios: React.FC = () => {
     const { userProfile } = useAuth();
@@ -19,6 +20,8 @@ const Usuarios: React.FC = () => {
     const [users, setUsers] = useState<UserProfile[]>([]);
     const [bulkText, setBulkText] = useState('');
     const [bulkResult, setBulkResult] = useState<string>('');
+    const [authUsers, setAuthUsers] = useState<Array<{ uid: string; email: string | null; displayName?: string | null; disabled?: boolean; creationTime?: string | null; lastSignInTime?: string | null }>>([]);
+    const [source, setSource] = useState<'auth' | 'firestore'>('auth');
 
     useEffect(() => {
         fetchUsers();
@@ -30,6 +33,15 @@ const Usuarios: React.FC = () => {
             setUsers(fetchedUsers);
         } catch (error) {
             console.error("Erro ao buscar usuários:", error);
+        }
+    };
+
+    const fetchAuthUsers = async () => {
+        try {
+            const fetched = await adminService.getAuthUsers();
+            setAuthUsers(fetched);
+        } catch (error) {
+            console.warn('Não foi possível carregar usuários do Auth. Verifique se a Cloud Function "listAuthUsers" está implantada e se você é admin.', error);
         }
     };
 
@@ -172,6 +184,15 @@ const Usuarios: React.FC = () => {
                                     name="existingUid"
                                     value={formData.existingUid}
                                     onChange={handleChange}
+                                <div className="flex items-center justify-between mb-3">
+                                    <div className="flex gap-2">
+                                        <button onClick={() => setSource('auth')} className={`px-3 py-1 rounded ${source==='auth' ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}>Auth</button>
+                                        <button onClick={() => setSource('firestore')} className={`px-3 py-1 rounded ${source==='firestore' ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}>Perfis</button>
+                                    </div>
+                                    <div className="flex gap-2 text-sm">
+                                        <button className="px-2 py-1 border rounded" onClick={() => (source==='auth'? fetchAuthUsers():fetchUsers())}>Atualizar</button>
+                                    </div>
+                                </div>
                                     placeholder="Cole o UID do usuário do Auth"
                                     disabled={!formData.existsInAuth}
                                     className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
@@ -183,29 +204,41 @@ const Usuarios: React.FC = () => {
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 mb-1">Função (Role)</label>
-                                <select
-                                    name="role"
-                                    value={formData.role}
-                                    onChange={handleChange}
-                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
-                                >
-                                    <option value="admin">Administrador</option>
-                                    <option value="gerente">Gerente</option>
-                                    <option value="socio">Sócio</option>
-                                    <option value="coleta">Coleta (Operacional)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">
-                                    Serial do Dispositivo
-                                    <span className="text-xs text-gray-500 ml-1">(Opcional)</span>
-                                </label>
-                                <input
-                                    type="text"
-                                    name="allowedDeviceSerial"
-                                    value={formData.allowedDeviceSerial}
-                                    onChange={handleChange}
-                                    placeholder="UUID do aparelho"
+                                            {source === 'auth' ? (
+                                                authUsers.length === 0 ? (
+                                                    <tr><td colSpan={4} className="px-4 py-3 text-center">Nenhum usuário do Auth encontrado ou função não implantada.</td></tr>
+                                                ) : (
+                                                    authUsers.map(u => (
+                                                        <tr key={u.uid} className="bg-white border-b hover:bg-gray-50">
+                                                            <td className="px-4 py-3 font-medium text-gray-900">{u.displayName || '-'}</td>
+                                                            <td className="px-4 py-3">{u.email || '-'}</td>
+                                                            <td className="px-4 py-3">-</td>
+                                                            <td className="px-4 py-3 text-xs font-mono text-gray-400">-</td>
+                                                        </tr>
+                                                    ))
+                                                )
+                                            ) : (
+                                                users.length === 0 ? (
+                                                    <tr>
+                                                        <td colSpan={4} className="px-4 py-3 text-center">Nenhum perfil encontrado no Firestore.</td>
+                                                    </tr>
+                                                ) : (
+                                                    users.map((user) => (
+                                                        <tr key={user.uid} className="bg-white border-b hover:bg-gray-50">
+                                                            <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
+                                                            <td className="px-4 py-3">{user.email}</td>
+                                                            <td className="px-4 py-3">
+                                                                <span className={`px-2 py-1 rounded text-xs font-semibold ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : user.role === 'gerente' ? 'bg-blue-100 text-blue-800' : user.role === 'socio' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                                                    {user.role}
+                                                                </span>
+                                                            </td>
+                                                            <td className="px-4 py-3 text-xs font-mono text-gray-400">
+                                                                {user.allowedDeviceSerial ? user.allowedDeviceSerial.substring(0, 8) + '...' : '-'}
+                                                            </td>
+                                                        </tr>
+                                                    ))
+                                                )
+                                            )}
                                     className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
                                 <p className="text-xs text-gray-500 mt-1">Para vincular login a um aparelho específico.</p>

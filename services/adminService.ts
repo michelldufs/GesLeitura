@@ -1,6 +1,7 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs } from "firebase/firestore";
-import { auth, db } from "./firebaseConfig";
+import { auth, db, functions } from "./firebaseConfig";
+import { httpsCallable } from "firebase/functions";
 import { UserRole, UserProfile } from "../types";
 
 export interface CreateUserData {
@@ -56,6 +57,19 @@ export const adminService = {
         const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => doc.data() as UserProfile);
+    },
+
+    async getAuthUsers() {
+        const callable = httpsCallable(functions, 'listAuthUsers');
+        const res: any = await callable();
+        return (res.data?.users || []) as Array<{
+            uid: string;
+            email: string | null;
+            displayName?: string | null;
+            disabled?: boolean;
+            creationTime?: string | null;
+            lastSignInTime?: string | null;
+        }>;
     }
 ,
     async bulkSyncProfiles(items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string }>) {
