@@ -86,6 +86,14 @@ const Localidades: React.FC = () => {
           Gestão de Localidades
         </h1>
 
+        {/* Aviso de permissão */}
+        {userProfile && !['admin','gerente'].includes(userProfile.role) && (
+          <div className="mb-4 p-3 rounded-lg bg-yellow-50 border border-yellow-200 text-yellow-800 text-sm">
+            Seu perfil ({userProfile.role}) não possui permissão para cadastrar localidades.
+            Solicite a um administrador ou ajuste as regras do Firestore conforme o arquivo FIRESTORE_STRUCTURE.md.
+          </div>
+        )}
+
         <form onSubmit={handleSubmit} className="mb-6">
           <div className="flex gap-3">
             <input
@@ -107,7 +115,7 @@ const Localidades: React.FC = () => {
             )}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !userProfile || !['admin','gerente'].includes(userProfile.role)}
               className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:bg-gray-400"
             >
               <Plus size={20} />
