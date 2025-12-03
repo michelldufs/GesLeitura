@@ -115,8 +115,18 @@ const Localidades: React.FC = () => {
             )}
             <button
               type="submit"
-              disabled={loading || !userProfile || !['admin','gerente'].includes(userProfile.role)}
-              className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition flex items-center gap-2 disabled:bg-gray-400"
+              className={`px-6 py-2 rounded-lg transition flex items-center gap-2 ${
+                (loading || !userProfile || !['admin','gerente'].includes(userProfile.role))
+                  ? 'bg-gray-400 text-white cursor-not-allowed'
+                  : 'bg-blue-600 text-white hover:bg-blue-700'
+              }`}
+              onClick={(e) => {
+                const canWrite = !!userProfile && ['admin','gerente'].includes(userProfile.role);
+                if (!canWrite) {
+                  e.preventDefault();
+                  alert('Seu perfil não possui permissão para cadastrar localidades. (role: ' + (userProfile?.role || 'desconhecido') + ')');
+                }
+              }}
             >
               <Plus size={20} />
               {editingId ? 'Atualizar' : 'Adicionar'}
