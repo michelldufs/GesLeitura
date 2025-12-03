@@ -20,6 +20,7 @@ const Secoes: React.FC = () => {
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
   const [nome, setNome] = useState('');
   const [localidadeId, setLocalidadeId] = useState('');
+  const [filterLocalidadeId, setFilterLocalidadeId] = useState('');
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
@@ -145,11 +146,26 @@ const Secoes: React.FC = () => {
           </div>
         </form>
 
+        {/* Filtro por localidade para a listagem */}
+        <div className="flex items-center gap-3 mb-3">
+          <label className="text-sm text-gray-600">Filtrar por localidade:</label>
+          <select
+            value={filterLocalidadeId}
+            onChange={(e) => setFilterLocalidadeId(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg"
+          >
+            <option value="">Todas</option>
+            {localidades.map(loc => (
+              <option key={loc.id} value={loc.id}>{loc.nome}</option>
+            ))}
+          </select>
+        </div>
+
         <div className="space-y-2">
-          {secoes.length === 0 ? (
+          {(filterLocalidadeId ? secoes.filter(s => s.localidadeId === filterLocalidadeId) : secoes).length === 0 ? (
             <p className="text-gray-500 text-center py-8">Nenhuma seção cadastrada</p>
           ) : (
-            secoes.map(secao => (
+            (filterLocalidadeId ? secoes.filter(s => s.localidadeId === filterLocalidadeId) : secoes).map(secao => (
               <div
                 key={secao.id}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
