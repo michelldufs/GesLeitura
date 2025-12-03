@@ -63,16 +63,20 @@ export const adminService = {
     async getUsers(localidadeId?: string) {
         let q;
         if (localidadeId) {
+            console.log('Buscando usuários com filtro de localidade:', localidadeId);
             q = query(
                 collection(db, "users"),
                 where("allowedLocalidades", "array-contains", localidadeId)
             );
         } else {
+            console.log('Buscando TODOS os usuários sem filtro');
             // Get all users - no orderBy to avoid issues with missing createdAt field
             q = query(collection(db, "users"));
         }
         const querySnapshot = await getDocs(q);
+        console.log('Documentos encontrados:', querySnapshot.docs.length);
         const users = querySnapshot.docs.map(doc => {
+            console.log('Usuário:', doc.id, doc.data());
             return doc.data() as UserProfile;
         });
         // Sort in memory by createdAt if available, otherwise by name
