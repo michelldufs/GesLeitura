@@ -27,10 +27,10 @@ const Usuarios: React.FC = () => {
 
     const fetchUsers = async () => {
         try {
-            // Filter by current admin's first allowed localidade if available
-            const localidadeId = userProfile?.allowedLocalidades?.[0];
-            const fetchedUsers = await adminService.getUsers(localidadeId);
+            // Show all users (no filter for now - adjust when localidades are properly configured)
+            const fetchedUsers = await adminService.getUsers();
             setUsers(fetchedUsers as UserProfileWithSerial[]);
+            console.log('Usuários carregados:', fetchedUsers);
         } catch (error) {
             console.error('Erro ao buscar usuários:', error);
         }
