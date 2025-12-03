@@ -1,5 +1,5 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs, where } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, getDocs, where, DocumentData, orderBy } from "firebase/firestore";
 import { auth, db, functions, getSecondaryAuth } from "./firebaseConfig";
 import { httpsCallable } from "firebase/functions";
 import { UserRole, UserProfile } from "../types";
@@ -65,14 +65,23 @@ export const adminService = {
         if (localidadeId) {
             q = query(
                 collection(db, "users"),
-                where("allowedLocalidades", "array-contains", localidadeId),
-                orderBy("createdAt", "desc")
+                where("allowedLocalidades", "array-contains", localidadeId)
             );
         } else {
-            q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+            // Get all users - no orderBy to avoid issues with missing createdAt field
+            q = query(collection(db, "users"));
         }
         const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => doc.data() as UserProfile);
+        const users = querySnapshot.docs.map(doc => {
+            return doc.data() as UserProfile;
+        });
+        // Sort in memory by createdAt if available, otherwise by name
+        return users.sort((a: any, b: any) => {
+            if (a.createdAt && b.createdAt) {
+                return b.createdAt.seconds - a.createdAt.seconds;
+            }
+            return (a.name || '').localeCompare(b.name || '');
+        });
     },
 
     async getAuthUsers() {
