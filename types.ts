@@ -51,6 +51,8 @@ export interface Venda {
   data: string; // YYYY-MM-DD
   timestamp: any;
   operadorId: string;
+  pontoId: string;
+  rotaId: string;
   localidadeId: string;
   
   // Readings

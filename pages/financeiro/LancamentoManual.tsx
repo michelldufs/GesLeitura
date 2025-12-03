@@ -58,17 +58,22 @@ const LancamentoManual: React.FC = () => {
   const onSubmit = async (data: Venda) => {
     if (!userProfile) return;
     try {
+      const operador = operadores.find(o => o.id === data.operadorId);
+      
       // Enrich data with calculations
       const payload = {
         ...data,
+        pontoId: operador?.pontoId || '',
+        rotaId: operador?.rotaId || '',
         totalEntrada,
         totalSaida,
         totalGeral,
         valorComissao,
         totalFinal,
         status_conferencia: 'pendente' as const,
+        fotoUrl: '', // TODO: Implementar upload de foto
         userId: userProfile.uid,
-        localidadeId: operadores.find(o => o.id === data.operadorId)?.localidadeId || ''
+        localidadeId: operador?.localidadeId || ''
       };
 
       await saveVenda(payload, userProfile.uid);
