@@ -61,26 +61,24 @@ export const adminService = {
     },
 
     async getUsers(localidadeId?: string) {
-        let q;
-        if (localidadeId) {
-            console.log('Buscando usuários com filtro de localidade:', localidadeId);
-            q = query(
-                collection(db, "users"),
-                where("allowedLocalidades", "array-contains", localidadeId)
-            );
-        } else {
-            console.log('Buscando TODOS os usuários sem filtro');
-            // Get all users - no orderBy to avoid issues with missing createdAt field
-            q = query(collection(db, "users"));
-        }
+        // Always fetch all users to avoid Firestore index requirements
+        console.log('Buscando TODOS os usuários (filtro de localidade desabilitado)');
+        const q = query(collection(db, "users"));
         const querySnapshot = await getDocs(q);
         console.log('Documentos encontrados:', querySnapshot.docs.length);
         const users = querySnapshot.docs.map(doc => {
             console.log('Usuário:', doc.id, doc.data());
             return doc.data() as UserProfile;
         });
+        
+        // Filter by localidade in memory if needed
+        let filteredUsers = users;
+        if (localidadeId) {
+            filteredUsers = users.filter(u => u.allowedLocalidades?.includes(localidadeId));
+        }
+        
         // Sort in memory by createdAt if available, otherwise by name
-        return users.sort((a: any, b: any) => {
+        return filteredUsers.sort((a: any, b: any) => {
             if (a.createdAt && b.createdAt) {
                 return b.createdAt.seconds - a.createdAt.seconds;
             }
