@@ -1,6 +1,6 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
 import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs, where } from "firebase/firestore";
-import { auth, db, functions } from "./firebaseConfig";
+import { auth, db, functions, getSecondaryAuth } from "./firebaseConfig";
 import { httpsCallable } from "firebase/functions";
 import { UserRole, UserProfile } from "../types";
 
@@ -15,12 +15,12 @@ export interface CreateUserData {
 
 export const adminService = {
     async createUser(data: CreateUserData) {
-        // Save current admin for re-login attempt
         const currentUser = auth.currentUser;
         if (!currentUser) throw new Error('Você precisa estar logado para criar usuários.');
         
-        // Create new user (this will log them in automatically - Firebase limitation)
-        const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
+        // Use secondary auth instance to create user without affecting admin session
+        const secondaryAuth = getSecondaryAuth();
+        const userCredential = await createUserWithEmailAndPassword(secondaryAuth, data.email, data.password);
         const newUser = userCredential.user;
 
         // Create Firestore profile for new user
@@ -35,9 +35,8 @@ export const adminService = {
             createdAt: serverTimestamp()
         });
 
-        // CRITICAL: Sign out to prevent auto-redirect to new user's role-based route
-        // Admin will need to re-login (Firebase client SDK limitation)
-        await auth.signOut();
+        // Sign out from secondary auth to clean up
+        await secondaryAuth.signOut();
         
         return newUser;
     },
@@ -109,5 +108,21 @@ export const adminService = {
             }
         }
         return results;
+    },
+
+    async updateUser(uid: string, data: { name?: string; role?: UserRole; allowedLocalidades?: string[]; allowedDeviceSerial?: string }) {
+        await setDoc(doc(db, "users", uid), data, { merge: true });
+    },
+
+    async updateUserPassword(email: string, newPassword: string) {
+        // Note: Changing password via client SDK requires re-authentication
+        // This is a limitation - ideally use Cloud Function with Admin SDK
+        throw new Error('Alteração de senha requer Cloud Function. Use o console Firebase por enquanto.');
+    },
+
+    async getLocalidades() {
+        const q = query(collection(db, "localidades"), where("active", "==", true), orderBy("nome", "asc"));
+        const querySnapshot = await getDocs(q);
+        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     }
 };

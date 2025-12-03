@@ -4,6 +4,7 @@ import { UserRole, UserProfile } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 
 type UserProfileWithSerial = UserProfile & { allowedDeviceSerial?: string | null };
+type Localidade = { id: string; nome: string; active: boolean };
 
 const Usuarios: React.FC = () => {
     const { userProfile } = useAuth();
@@ -24,6 +25,14 @@ const Usuarios: React.FC = () => {
     const [source, setSource] = useState<'auth' | 'firestore'>('auth');
     const [bulkText, setBulkText] = useState('');
     const [bulkResult, setBulkResult] = useState('');
+    const [localidades, setLocalidades] = useState<Localidade[]>([]);
+    const [editingUser, setEditingUser] = useState<UserProfileWithSerial | null>(null);
+    const [editForm, setEditForm] = useState({
+        name: '',
+        role: 'coleta' as UserRole,
+        allowedDeviceSerial: '',
+        allowedLocalidades: [] as string[]
+    });
 
     const fetchUsers = async () => {
         try {
@@ -48,7 +57,17 @@ const Usuarios: React.FC = () => {
     useEffect(() => {
         fetchUsers();
         fetchAuthUsers();
+        fetchLocalidades();
     }, []);
+
+    const fetchLocalidades = async () => {
+        try {
+            const locs = await adminService.getLocalidades();
+            setLocalidades(locs as Localidade[]);
+        } catch (error) {
+            console.error('Erro ao buscar localidades:', error);
+        }
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -84,7 +103,7 @@ const Usuarios: React.FC = () => {
                     allowedLocalidades
                 };
                 await adminService.createUser(createData);
-                setMessage('Usuário criado com sucesso! Por favor, faça login novamente.');
+                setMessage('Usuário criado com sucesso!');
             }
             setFormData({ name: '', username: '', password: '', role: 'coleta', allowedDeviceSerial: '', existsInAuth: false, existingUid: '' });
             fetchUsers();
@@ -101,6 +120,51 @@ const Usuarios: React.FC = () => {
     };
 
     const isAdmin = userProfile?.role === 'admin';
+
+    const openEditModal = (user: UserProfileWithSerial) => {
+        setEditingUser(user);
+        setEditForm({
+            name: user.name,
+            role: user.role,
+            allowedDeviceSerial: user.allowedDeviceSerial || '',
+            allowedLocalidades: user.allowedLocalidades || []
+        });
+    };
+
+    const closeEditModal = () => {
+        setEditingUser(null);
+        setEditForm({ name: '', role: 'coleta', allowedDeviceSerial: '', allowedLocalidades: [] });
+    };
+
+    const handleEditSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!editingUser) return;
+        setLoading(true);
+        try {
+            await adminService.updateUser(editingUser.uid, {
+                name: editForm.name,
+                role: editForm.role,
+                allowedDeviceSerial: editForm.allowedDeviceSerial,
+                allowedLocalidades: editForm.allowedLocalidades
+            });
+            setMessage('Usuário atualizado com sucesso!');
+            closeEditModal();
+            fetchUsers();
+        } catch (error: any) {
+            setMessage('Erro ao atualizar usuário: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const toggleLocalidade = (localidadeId: string) => {
+        setEditForm(prev => ({
+            ...prev,
+            allowedLocalidades: prev.allowedLocalidades.includes(localidadeId)
+                ? prev.allowedLocalidades.filter(id => id !== localidadeId)
+                : [...prev.allowedLocalidades, localidadeId]
+        }));
+    };
 
     return (
         <div className="p-6">
@@ -183,6 +247,7 @@ const Usuarios: React.FC = () => {
                                     <th className="px-4 py-3">Email / Usuário</th>
                                     <th className="px-4 py-3">Função</th>
                                     <th className="px-4 py-3">Serial</th>
+                                    <th className="px-4 py-3">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -200,7 +265,7 @@ const Usuarios: React.FC = () => {
                                         ))
                                     )
                                 ) : users.length === 0 ? (
-                                    <tr><td colSpan={4} className="px-4 py-3 text-center">Nenhum perfil encontrado no Firestore.</td></tr>
+                                    <tr><td colSpan={5} className="px-4 py-3 text-center">Nenhum perfil encontrado no Firestore.</td></tr>
                                 ) : (
                                     users.map((user) => (
                                         <tr key={user.uid} className="bg-white border-b hover:bg-gray-50">
@@ -208,6 +273,9 @@ const Usuarios: React.FC = () => {
                                             <td className="px-4 py-3">{user.email}</td>
                                             <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-semibold ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : user.role === 'gerente' ? 'bg-blue-100 text-blue-800' : user.role === 'socio' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{user.role}</span></td>
                                             <td className="px-4 py-3 text-xs font-mono text-gray-400">{user.allowedDeviceSerial ? (user.allowedDeviceSerial as string).substring(0, 8) + '...' : '-'}</td>
+                                            <td className="px-4 py-3">
+                                                <button onClick={() => openEditModal(user)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">Editar</button>
+                                            </td>
                                         </tr>
                                     ))
                                 )}
@@ -248,6 +316,62 @@ const Usuarios: React.FC = () => {
                     </div>
                 </div>
             </div>
+
+            {/* Modal de Edição */}
+            {editingUser && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                        <div className="p-6">
+                            <h2 className="text-xl font-bold mb-4 text-gray-800">Editar Usuário</h2>
+                            <form onSubmit={handleEditSubmit} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                                    <input type="text" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Email (somente leitura)</label>
+                                    <input type="text" value={editingUser.email} disabled className="w-full p-2 border rounded bg-gray-100 text-gray-600" />
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Função (Role)</label>
+                                        <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
+                                            <option value="admin">Administrador</option>
+                                            <option value="gerente">Gerente</option>
+                                            <option value="socio">Sócio</option>
+                                            <option value="coleta">Coleta (Operacional)</option>
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-1">Serial do Dispositivo</label>
+                                        <input type="text" value={editForm.allowedDeviceSerial} onChange={(e) => setEditForm({ ...editForm, allowedDeviceSerial: e.target.value })} placeholder="UUID do aparelho" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    </div>
+                                </div>
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-2">Localidades Permitidas</label>
+                                    <div className="border rounded p-3 max-h-48 overflow-y-auto space-y-2">
+                                        {localidades.length === 0 ? (
+                                            <p className="text-sm text-gray-500">Nenhuma localidade cadastrada. Crie localidades primeiro.</p>
+                                        ) : (
+                                            localidades.map((loc) => (
+                                                <label key={loc.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
+                                                    <input type="checkbox" checked={editForm.allowedLocalidades.includes(loc.id)} onChange={() => toggleLocalidade(loc.id)} className="h-4 w-4 text-blue-600 rounded" />
+                                                    <span className="text-sm text-gray-700">{loc.nome}</span>
+                                                </label>
+                                            ))
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1">Selecione as localidades que este usuário pode acessar.</p>
+                                </div>
+                                <div className="flex gap-3 pt-4">
+                                    <button type="submit" disabled={loading} className={`flex-1 py-2 px-4 rounded text-white font-bold transition-colors ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>{loading ? 'Salvando...' : 'Salvar Alterações'}</button>
+                                    <button type="button" onClick={closeEditModal} className="flex-1 py-2 px-4 rounded border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancelar</button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

@@ -1,31 +1,118 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { User, Lock, Eye, EyeOff } from 'lucide-react';
+import { User, Lock, Eye, EyeOff, MapPin } from 'lucide-react';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../services/firebaseConfig';
+
+type Localidade = { id: string; nome: string };
 
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
-    const { login } = useAuth();
+    const [step, setStep] = useState<'credentials' | 'localidade'>('credentials');
+    const [localidades, setLocalidades] = useState<Localidade[]>([]);
+    const [selectedLoc, setSelectedLoc] = useState('');
+    const { login, setSelectedLocalidade } = useAuth();
     const navigate = useNavigate();
 
-    const handleSubmit = async (e: React.FormEvent) => {
+    const handleCredentialsSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError('');
         try {
-            // Construct email from username
             const email = `${username}@sistema.local`;
             await login(email, password);
-            navigate('/');
+            
+            // Fetch user profile to check allowedLocalidades
+            const userDoc = await getDoc(doc(db, "users", email.replace('@sistema.local', '')));
+            if (!userDoc.exists()) {
+                // Try with UID - need to get current auth user
+                const { auth } = await import('../services/firebaseConfig');
+                const currentUser = auth.currentUser;
+                if (currentUser) {
+                    const profileDoc = await getDoc(doc(db, "users", currentUser.uid));
+                    if (profileDoc.exists()) {
+                        const allowedLocs = profileDoc.data().allowedLocalidades || [];
+                        if (allowedLocs.length === 0) {
+                            // No localidades configured - proceed directly
+                            navigate('/');
+                            return;
+                        }
+                        // Fetch localidade names
+                        const locPromises = allowedLocs.map(async (locId: string) => {
+                            const locDoc = await getDoc(doc(db, "localidades", locId));
+                            return locDoc.exists() ? { id: locId, nome: locDoc.data().nome } : null;
+                        });
+                        const locs = (await Promise.all(locPromises)).filter(Boolean) as Localidade[];
+                        setLocalidades(locs);
+                        if (locs.length === 1) {
+                            // Auto-select if only one
+                            setSelectedLocalidade(locs[0].id);
+                            navigate('/');
+                        } else {
+                            setStep('localidade');
+                        }
+                    } else {
+                        navigate('/');
+                    }
+                }
+            } else {
+                navigate('/');
+            }
         } catch (err: any) {
             console.error(err);
-            // Show specific error message if available, otherwise generic
-            const errorMessage = err.message || 'Falha ao entrar. Verifique suas credenciais.';
-            setError(errorMessage);
+            setError(err.message || 'Falha ao entrar. Verifique suas credenciais.');
         }
     };
+
+    const handleLocalidadeSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedLoc) {
+            setError('Selecione uma localidade.');
+            return;
+        }
+        setSelectedLocalidade(selectedLoc);
+        navigate('/');
+    };
+
+    if (step === 'localidade') {
+        return (
+            <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 font-sans">
+                <div className="bg-gray-100 p-8 rounded-2xl shadow-xl w-full max-w-sm flex flex-col items-center">
+                    <div className="mb-8 text-gray-500">
+                        <MapPin size={80} />
+                    </div>
+                    <h2 className="text-xl font-bold text-gray-800 mb-6">Selecione a Localidade</h2>
+                    <form onSubmit={handleLocalidadeSubmit} className="w-full space-y-4">
+                        <select
+                            value={selectedLoc}
+                            onChange={(e) => setSelectedLoc(e.target.value)}
+                            className="w-full p-3 bg-blue-50/50 border-none rounded-lg text-gray-700 focus:ring-2 focus:ring-blue-200 focus:outline-none transition-all"
+                            required
+                        >
+                            <option value="">Escolha uma localidade...</option>
+                            {localidades.map((loc) => (
+                                <option key={loc.id} value={loc.id}>{loc.nome}</option>
+                            ))}
+                        </select>
+                        {error && (
+                            <div className="text-red-500 text-sm text-center bg-red-50 p-2 rounded">
+                                {error}
+                            </div>
+                        )}
+                        <button
+                            type="submit"
+                            className="w-full bg-slate-500 hover:bg-slate-600 text-white font-bold py-3 rounded-lg shadow-md transition-colors uppercase tracking-wider"
+                        >
+                            CONTINUAR
+                        </button>
+                    </form>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen bg-gray-200 flex items-center justify-center p-4 font-sans">
@@ -49,7 +136,7 @@ const Login: React.FC = () => {
                     </svg>
                 </div>
 
-                <form onSubmit={handleSubmit} className="w-full space-y-4">
+                <form onSubmit={handleCredentialsSubmit} className="w-full space-y-4">
 
                     {/* Username Input */}
                     <div className="relative">

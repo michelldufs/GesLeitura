@@ -8,8 +8,10 @@ interface AuthContextType {
   user: User | null;
   userProfile: UserProfile | null;
   loading: boolean;
+  selectedLocalidade: string | null;
   login: (email: string, pass: string) => Promise<void>;
   logout: () => Promise<void>;
+  setSelectedLocalidade: (localidadeId: string) => void;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
@@ -20,6 +22,14 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [userProfile, setUserProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
+  const [selectedLocalidade, setSelectedLocalidadeState] = useState<string | null>(
+    localStorage.getItem('selectedLocalidade')
+  );
+
+  const setSelectedLocalidade = (localidadeId: string) => {
+    setSelectedLocalidadeState(localidadeId);
+    localStorage.setItem('selectedLocalidade', localidadeId);
+  };
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
@@ -96,10 +106,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const logout = async () => {
     await signOut(auth);
+    localStorage.removeItem('selectedLocalidade');
+    setSelectedLocalidadeState(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, userProfile, loading, login, logout }}>
+    <AuthContext.Provider value={{ user, userProfile, loading, selectedLocalidade, login, logout, setSelectedLocalidade }}>
       {!loading && children}
     </AuthContext.Provider>
   );
