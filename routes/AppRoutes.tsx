@@ -28,6 +28,13 @@ const Placeholder: React.FC<{ title: string }> = ({ title }) => (
 const AppRoutes: React.FC = () => {
   const { user, userProfile, loading } = useAuth();
 
+  const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (userProfile?.role !== 'admin') {
+      return <Navigate to="/" replace />;
+    }
+    return <>{children}</>;
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -83,7 +90,7 @@ const AppRoutes: React.FC = () => {
         
         {/* Administração */}
         <Route path="/localidades" element={<Localidades />} />
-        <Route path="/usuarios" element={<Usuarios />} />
+        <Route path="/usuarios" element={<RequireAdmin><Usuarios /></RequireAdmin>} />
         
         {/* Financeiro */}
         <Route path="/caixa-geral" element={<CaixaGeral />} />
