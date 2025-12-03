@@ -6,12 +6,16 @@ import AdminLayout from '../layouts/AdminLayout';
 
 // Pages
 import Login from '../pages/Login';
+import Dashboard from '../pages/Dashboard';
 import ConfiguracaoTerminal from '../pages/mobile/ConfiguracaoTerminal';
 import NovaLeituraMobile from '../pages/mobile/NovaLeituraMobile';
 import LancamentoManual from '../pages/financeiro/LancamentoManual';
 import CaixaGeral from '../pages/financeiro/CaixaGeral';
 import ConfiguracaoCotas from '../pages/financeiro/ConfiguracaoCotas';
 import Usuarios from '../pages/admin/Usuarios';
+import Localidades from '../pages/operacional/Localidades';
+import Secoes from '../pages/operacional/Secoes';
+import Rotas from '../pages/operacional/Rotas';
 
 // Placeholder component
 const Placeholder: React.FC<{ title: string }> = ({ title }) => (
@@ -64,11 +68,11 @@ const AppRoutes: React.FC = () => {
   return (
     <AdminLayout>
       <Routes>
-        <Route path="/" element={<Placeholder title="Dashboard" />} />
+        <Route path="/" element={<Dashboard />} />
         
         {/* Operacional */}
-        <Route path="/secao" element={<Placeholder title="Gestão de Seções" />} />
-        <Route path="/rota" element={<Placeholder title="Gestão de Rotas" />} />
+        <Route path="/secao" element={<Secoes />} />
+        <Route path="/rota" element={<Rotas />} />
         <Route path="/ponto" element={<Placeholder title="Gestão de Pontos" />} />
         <Route path="/operador" element={<Placeholder title="Gestão de Operadores" />} />
         <Route path="/lancamento" element={<LancamentoManual />} />
@@ -78,7 +82,7 @@ const AppRoutes: React.FC = () => {
         <Route path="/relatorios/mes" element={<Placeholder title="Relatório por Mês" />} />
         
         {/* Administração */}
-        <Route path="/localidades" element={<Placeholder title="Gestão de Localidades" />} />
+        <Route path="/localidades" element={<Localidades />} />
         <Route path="/usuarios" element={<Usuarios />} />
         
         {/* Financeiro */}
