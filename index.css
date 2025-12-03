@@ -1,0 +1,11 @@
+/* Custom styles */
+@font-face {
+    font-family: 'Peace';
+    src: url('/Peace.ttf') format('truetype');
+    font-weight: normal;
+    font-style: normal;
+}
+
+body {
+    font-family: 'Peace', sans-serif;
+}

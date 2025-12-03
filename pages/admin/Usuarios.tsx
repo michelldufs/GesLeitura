@@ -1,0 +1,220 @@
+import React, { useState, useEffect } from 'react';
+import { adminService, CreateUserData } from '../../services/adminService';
+import { UserRole, UserProfile } from '../../types';
+
+const Usuarios: React.FC = () => {
+    const [formData, setFormData] = useState({
+        name: '',
+        username: '',
+        password: '',
+        role: 'coleta' as UserRole,
+        allowedDeviceSerial: ''
+    });
+    const [loading, setLoading] = useState(false);
+    const [message, setMessage] = useState('');
+    const [users, setUsers] = useState<UserProfile[]>([]);
+
+    useEffect(() => {
+        fetchUsers();
+    }, []);
+
+    const fetchUsers = async () => {
+        try {
+            const fetchedUsers = await adminService.getUsers();
+            setUsers(fetchedUsers);
+        } catch (error) {
+            console.error("Erro ao buscar usuários:", error);
+        }
+    };
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setFormData({
+            ...formData,
+            [e.target.name]: e.target.value
+        });
+    };
+
+    const handleSubmit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        setLoading(true);
+        setMessage('');
+
+        try {
+            // Construct email from username
+            const email = `${formData.username}@sistema.local`;
+
+            const createData: CreateUserData = {
+                name: formData.name,
+                email: email,
+                password: formData.password,
+                role: formData.role,
+                allowedDeviceSerial: formData.allowedDeviceSerial
+            };
+
+            await adminService.createUser(createData);
+            setMessage('Usuário criado com sucesso! (Atenção: Você foi logado como o novo usuário)');
+            setFormData({
+                name: '',
+                username: '',
+                password: '',
+                role: 'coleta',
+                allowedDeviceSerial: ''
+            });
+            fetchUsers(); // Refresh list
+        } catch (error: any) {
+            console.error(error);
+            if (error.code === 'auth/email-already-in-use' || (error.message && error.message.includes('email-already-in-use'))) {
+                setMessage('Erro: Este nome de usuário já está em uso. Tente outro.');
+            } else {
+                setMessage('Erro ao criar usuário: ' + error.message);
+            }
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    return (
+        <div className="p-6">
+            <h1 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Usuários</h1>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Form Section */}
+                <div className="bg-white p-6 rounded-lg shadow-md h-fit">
+                    <h2 className="text-lg font-semibold mb-4 text-gray-700">Novo Usuário</h2>
+
+                    <form onSubmit={handleSubmit} className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                            <input
+                                type="text"
+                                name="name"
+                                value={formData.name}
+                                onChange={handleChange}
+                                required
+                                className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                            />
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome de Usuário (Login)</label>
+                                <input
+                                    type="text"
+                                    name="username"
+                                    value={formData.username}
+                                    onChange={handleChange}
+                                    required
+                                    placeholder="ex: coleta"
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                                <input
+                                    type="password"
+                                    name="password"
+                                    value={formData.password}
+                                    onChange={handleChange}
+                                    required
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">Função (Role)</label>
+                                <select
+                                    name="role"
+                                    value={formData.role}
+                                    onChange={handleChange}
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                >
+                                    <option value="admin">Administrador</option>
+                                    <option value="gerente">Gerente</option>
+                                    <option value="socio">Sócio</option>
+                                    <option value="coleta">Coleta (Operacional)</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">
+                                    Serial do Dispositivo
+                                    <span className="text-xs text-gray-500 ml-1">(Opcional)</span>
+                                </label>
+                                <input
+                                    type="text"
+                                    name="allowedDeviceSerial"
+                                    value={formData.allowedDeviceSerial}
+                                    onChange={handleChange}
+                                    placeholder="UUID do aparelho"
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Para vincular login a um aparelho específico.</p>
+                            </div>
+                        </div>
+
+                        <div className="pt-4">
+                            <button
+                                type="submit"
+                                disabled={loading}
+                                className={`w-full py-2 px-4 rounded text-white font-bold transition-colors ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}
+                            >
+                                {loading ? 'Criando...' : 'Cadastrar Usuário'}
+                            </button>
+                        </div>
+
+                        {message && (
+                            <div className={`mt-4 p-3 rounded text-sm ${message.includes('sucesso') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                {message}
+                            </div>
+                        )}
+                    </form>
+                </div>
+
+                {/* List Section */}
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <h2 className="text-lg font-semibold mb-4 text-gray-700">Usuários Cadastrados</h2>
+                    <div className="overflow-x-auto">
+                        <table className="min-w-full text-sm text-left text-gray-500">
+                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
+                                <tr>
+                                    <th className="px-4 py-3">Nome</th>
+                                    <th className="px-4 py-3">Email / Usuário</th>
+                                    <th className="px-4 py-3">Função</th>
+                                    <th className="px-4 py-3">Serial</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {users.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} className="px-4 py-3 text-center">Nenhum usuário encontrado.</td>
+                                    </tr>
+                                ) : (
+                                    users.map((user) => (
+                                        <tr key={user.uid} className="bg-white border-b hover:bg-gray-50">
+                                            <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
+                                            <td className="px-4 py-3">{user.email}</td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 rounded text-xs font-semibold 
+                          ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                                                        user.role === 'gerente' ? 'bg-blue-100 text-blue-800' :
+                                                            user.role === 'socio' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>
+                                                    {user.role}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 text-xs font-mono text-gray-400">
+                                                {user.allowedDeviceSerial ? user.allowedDeviceSerial.substring(0, 8) + '...' : '-'}
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
+
+export default Usuarios;
