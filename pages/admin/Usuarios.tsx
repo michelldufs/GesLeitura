@@ -8,7 +8,9 @@ const Usuarios: React.FC = () => {
         username: '',
         password: '',
         role: 'coleta' as UserRole,
-        allowedDeviceSerial: ''
+        allowedDeviceSerial: '',
+        existsInAuth: false,
+        existingUid: ''
     });
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
@@ -43,22 +45,38 @@ const Usuarios: React.FC = () => {
             // Construct email from username
             const email = `${formData.username}@sistema.local`;
 
-            const createData: CreateUserData = {
-                name: formData.name,
-                email: email,
-                password: formData.password,
-                role: formData.role,
-                allowedDeviceSerial: formData.allowedDeviceSerial
-            };
-
-            await adminService.createUser(createData);
-            setMessage('Usuário criado com sucesso! (Atenção: Você foi logado como o novo usuário)');
+            if (formData.existsInAuth) {
+                // Create only Firestore profile for an existing Auth user
+                if (!formData.existingUid) {
+                    throw new Error('Informe o UID do usuário já existente no Auth.');
+                }
+                await adminService.createUserProfileOnly({
+                    name: formData.name,
+                    email: email,
+                    role: formData.role,
+                    allowedDeviceSerial: formData.allowedDeviceSerial,
+                    uid: formData.existingUid
+                });
+                setMessage('Perfil no Firestore sincronizado com sucesso para usuário existente.');
+            } else {
+                const createData: CreateUserData = {
+                    name: formData.name,
+                    email: email,
+                    password: formData.password,
+                    role: formData.role,
+                    allowedDeviceSerial: formData.allowedDeviceSerial
+                };
+                await adminService.createUser(createData);
+                setMessage('Usuário criado com sucesso! (Atenção: Você foi logado como o novo usuário)');
+            }
             setFormData({
                 name: '',
                 username: '',
                 password: '',
                 role: 'coleta',
-                allowedDeviceSerial: ''
+                allowedDeviceSerial: '',
+                existsInAuth: false,
+                existingUid: ''
             });
             fetchUsers(); // Refresh list
         } catch (error: any) {
@@ -115,9 +133,37 @@ const Usuarios: React.FC = () => {
                                     name="password"
                                     value={formData.password}
                                     onChange={handleChange}
-                                    required
+                                    required={!formData.existsInAuth}
+                                    disabled={formData.existsInAuth}
                                     className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
                                 />
+                            </div>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="flex items-center space-x-2">
+                                <input
+                                    id="existsInAuth"
+                                    type="checkbox"
+                                    name="existsInAuth"
+                                    checked={formData.existsInAuth}
+                                    onChange={(e) => setFormData({ ...formData, existsInAuth: e.target.checked })}
+                                    className="h-4 w-4"
+                                />
+                                <label htmlFor="existsInAuth" className="text-sm text-gray-700">Usuário já existe no Auth</label>
+                            </div>
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1">UID (Auth)</label>
+                                <input
+                                    type="text"
+                                    name="existingUid"
+                                    value={formData.existingUid}
+                                    onChange={handleChange}
+                                    placeholder="Cole o UID do usuário do Auth"
+                                    disabled={!formData.existsInAuth}
+                                    className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                />
+                                <p className="text-xs text-gray-500 mt-1">Use para sincronizar perfis já criados em Authentication.</p>
                             </div>
                         </div>
 

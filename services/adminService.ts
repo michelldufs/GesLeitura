@@ -31,6 +31,27 @@ export const adminService = {
         return user;
     },
 
+    async createUserProfileOnly(data: Omit<CreateUserData, 'password'> & { uid?: string }) {
+        // Creates or updates only the Firestore profile document without creating Auth user.
+        // If uid is provided, it will be used; otherwise, it will create a doc with a generated id (not ideal).
+        // Prefer passing the real Firebase Auth UID when available.
+        const targetUid = data.uid || undefined;
+        if (!targetUid) {
+            throw new Error('UID do usuário é obrigatório para sincronizar perfil existente.');
+        }
+
+        await setDoc(doc(db, "users", targetUid), {
+            uid: targetUid,
+            name: data.name,
+            email: data.email,
+            role: data.role,
+            allowedDeviceSerial: data.allowedDeviceSerial || null,
+            active: true,
+            createdAt: serverTimestamp()
+        });
+        return { uid: targetUid } as { uid: string };
+    },
+
     async getUsers() {
         const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
         const querySnapshot = await getDocs(q);
