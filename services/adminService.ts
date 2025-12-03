@@ -57,4 +57,25 @@ export const adminService = {
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => doc.data() as UserProfile);
     }
+,
+    async bulkSyncProfiles(items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string }>) {
+        const results: Array<{ uid: string; ok: boolean; error?: string }> = [];
+        for (const item of items) {
+            try {
+                await setDoc(doc(db, "users", item.uid), {
+                    uid: item.uid,
+                    name: item.name,
+                    email: item.email,
+                    role: item.role,
+                    allowedDeviceSerial: item.allowedDeviceSerial || null,
+                    active: true,
+                    createdAt: serverTimestamp()
+                });
+                results.push({ uid: item.uid, ok: true });
+            } catch (e: any) {
+                results.push({ uid: item.uid, ok: false, error: e?.message || String(e) });
+            }
+        }
+        return results;
+    }
 };

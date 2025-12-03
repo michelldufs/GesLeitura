@@ -15,6 +15,8 @@ const Usuarios: React.FC = () => {
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
     const [users, setUsers] = useState<UserProfile[]>([]);
+    const [bulkText, setBulkText] = useState('');
+    const [bulkResult, setBulkResult] = useState<string>('');
 
     useEffect(() => {
         fetchUsers();
@@ -256,6 +258,50 @@ const Usuarios: React.FC = () => {
                                 )}
                             </tbody>
                         </table>
+                    </div>
+                    <div className="mt-6 border-t pt-4">
+                        <h3 className="text-md font-semibold mb-2 text-gray-700">Sincronização em Massa (Usuarios já no Auth)</h3>
+                        <p className="text-xs text-gray-500 mb-2">Formato por linha: <code>uid;username;name;role;serial</code> — role: admin|gerente|socio|coleta; serial opcional.</p>
+                        <textarea
+                            className="w-full p-2 border rounded min-h-[120px] font-mono text-xs"
+                            placeholder="Exemplo:\nYJdExxlRIONPG...;daniel;Daniel Silva;gerente;ABC-UUID\nCT4p2fVPbbt...;coleta1;Coleta 1;coleta;"
+                            value={bulkText}
+                            onChange={(e) => setBulkText(e.target.value)}
+                        />
+                        <div className="flex items-center gap-2 mt-2">
+                            <button
+                                className="py-2 px-4 rounded text-white font-bold bg-indigo-600 hover:bg-indigo-700"
+                                onClick={async () => {
+                                    setBulkResult('');
+                                    const lines = bulkText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                                    const items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string }> = [];
+                                    for (const line of lines) {
+                                        const parts = line.split(';');
+                                        const [uid, username, name, role, serial] = parts.map(p => (p || '').trim());
+                                        if (!uid || !username || !name || !role) {
+                                            items.push({ uid: uid || 'N/A', email: 'N/A', name: name || 'N/A', role: 'coleta', allowedDeviceSerial: undefined });
+                                            continue;
+                                        }
+                                        const email = `${username}@sistema.local`;
+                                        const finalRole = (['admin','gerente','socio','coleta'] as UserRole[]).includes(role as UserRole) ? role as UserRole : 'coleta';
+                                        items.push({ uid, email, name, role: finalRole, allowedDeviceSerial: serial || undefined });
+                                    }
+                                    const res = await adminService.bulkSyncProfiles(items);
+                                    const okCount = res.filter(r => r.ok).length;
+                                    const fail = res.filter(r => !r.ok);
+                                    let summary = `Sincronizados: ${okCount}/${res.length}`;
+                                    if (fail.length) {
+                                        summary += `\nFalhas (${fail.length}):\n` + fail.map(f => `- ${f.uid}: ${f.error}`).join('\n');
+                                    }
+                                    setBulkResult(summary);
+                                    fetchUsers();
+                                }}
+                            >Sincronizar</button>
+                            <button className="py-2 px-4 rounded border" onClick={() => { setBulkText(''); setBulkResult(''); }}>Limpar</button>
+                        </div>
+                        {bulkResult && (
+                            <pre className="mt-2 p-2 bg-gray-50 border rounded text-xs whitespace-pre-wrap">{bulkResult}</pre>
+                        )}
                     </div>
                 </div>
             </div>
