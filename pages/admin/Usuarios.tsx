@@ -274,22 +274,33 @@ const Usuarios: React.FC = () => {
                                 onClick={async () => {
                                     setBulkResult('');
                                     const lines = bulkText.split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+                                    if (lines.length === 0) {
+                                        setBulkResult('Nenhuma linha encontrada. Cole os dados no formato: uid;username|email;name;role;serial');
+                                        return;
+                                    }
+                                    let parsed = 0;
+                                    let skipped = 0;
                                     const items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string }> = [];
                                     for (const line of lines) {
                                         const parts = line.split(';');
-                                        const [uid, username, name, role, serial] = parts.map(p => (p || '').trim());
-                                        if (!uid || !username || !name || !role) {
-                                            items.push({ uid: uid || 'N/A', email: 'N/A', name: name || 'N/A', role: 'coleta', allowedDeviceSerial: undefined });
-                                            continue;
+                                        const [uid, usernameOrEmail, name, role, serial] = parts.map(p => (p || '').trim());
+                                        if (!uid || !usernameOrEmail || !name || !role) { skipped++; continue; }
+                                        let email = usernameOrEmail;
+                                        if (!email.includes('@')) {
+                                            email = `${usernameOrEmail}@sistema.local`;
                                         }
-                                        const email = `${username}@sistema.local`;
                                         const finalRole = (['admin','gerente','socio','coleta'] as UserRole[]).includes(role as UserRole) ? role as UserRole : 'coleta';
                                         items.push({ uid, email, name, role: finalRole, allowedDeviceSerial: serial || undefined });
+                                        parsed++;
+                                    }
+                                    if (items.length === 0) {
+                                        setBulkResult(`Nada para sincronizar. Linhas inválidas: ${skipped}`);
+                                        return;
                                     }
                                     const res = await adminService.bulkSyncProfiles(items);
                                     const okCount = res.filter(r => r.ok).length;
                                     const fail = res.filter(r => !r.ok);
-                                    let summary = `Sincronizados: ${okCount}/${res.length}`;
+                                    let summary = `Processadas: ${parsed} | Ignoradas: ${skipped}\nSincronizados: ${okCount}/${res.length}`;
                                     if (fail.length) {
                                         summary += `\nFalhas (${fail.length}):\n` + fail.map(f => `- ${f.uid}: ${f.error}`).join('\n');
                                     }
