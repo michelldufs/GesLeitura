@@ -11,12 +11,17 @@
   "dependencies": {
     "@capacitor/device": "^7.0.2",
     "@capacitor/preferences": "^7.0.2",
+    "date-fns": "^4.1.0",
     "firebase": "^12.6.0",
+    "jspdf": "^3.0.4",
     "lucide-react": "^0.555.0",
     "react": "^19.2.1",
     "react-dom": "^19.2.1",
     "react-hook-form": "^7.67.0",
-    "react-router-dom": "^7.10.0"
+    "react-router-dom": "^7.10.0",
+    "recharts": "^3.5.1",
+    "vite-plugin-pwa": "^1.2.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",

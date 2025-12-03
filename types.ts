@@ -71,6 +71,7 @@ export interface Venda {
   totalFinal: number; // Net cash to company
   
   status_conferencia: 'pendente' | 'conferido';
+  fotoUrl: string; // URL da foto no Firebase Storage
   userId: string;
   active: boolean;
 }
