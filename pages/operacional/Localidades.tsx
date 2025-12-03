@@ -46,9 +46,10 @@ const Localidades: React.FC = () => {
       }
       setNome('');
       loadLocalidades();
-    } catch (error) {
-      console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar localidade');
+    } catch (error: any) {
+      console.error('Erro ao salvar localidade:', error);
+      const message = error?.message || 'Erro ao salvar localidade';
+      alert(message);
     } finally {
       setLoading(false);
     }
@@ -65,9 +66,10 @@ const Localidades: React.FC = () => {
     try {
       await updateDoc(doc(db, 'localidades', id), { active: false });
       loadLocalidades();
-    } catch (error) {
-      console.error('Erro ao desativar:', error);
-      alert('Erro ao desativar localidade');
+    } catch (error: any) {
+      console.error('Erro ao desativar localidade:', error);
+      const message = error?.message || 'Erro ao desativar localidade';
+      alert(message);
     }
   };
 
