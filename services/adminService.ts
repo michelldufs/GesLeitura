@@ -1,5 +1,5 @@
 import { createUserWithEmailAndPassword } from "firebase/auth";
-import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs } from "firebase/firestore";
+import { doc, setDoc, serverTimestamp, collection, query, orderBy, getDocs, where } from "firebase/firestore";
 import { auth, db, functions } from "./firebaseConfig";
 import { httpsCallable } from "firebase/functions";
 import { UserRole, UserProfile } from "../types";
@@ -10,32 +10,39 @@ export interface CreateUserData {
     name: string;
     role: UserRole;
     allowedDeviceSerial?: string;
+    allowedLocalidades?: string[];
 }
 
 export const adminService = {
     async createUser(data: CreateUserData) {
-        // WARNING: This will sign in the new user immediately in the client SDK.
-        // In a real production app, use Firebase Admin SDK via Cloud Functions.
+        // Save current admin for re-login attempt
+        const currentUser = auth.currentUser;
+        if (!currentUser) throw new Error('Você precisa estar logado para criar usuários.');
+        
+        // Create new user (this will log them in automatically - Firebase limitation)
         const userCredential = await createUserWithEmailAndPassword(auth, data.email, data.password);
-        const user = userCredential.user;
+        const newUser = userCredential.user;
 
-        await setDoc(doc(db, "users", user.uid), {
-            uid: user.uid,
+        // Create Firestore profile for new user
+        await setDoc(doc(db, "users", newUser.uid), {
+            uid: newUser.uid,
             name: data.name,
             email: data.email,
             role: data.role,
             allowedDeviceSerial: data.allowedDeviceSerial || null,
+            allowedLocalidades: data.allowedLocalidades || [],
             active: true,
             createdAt: serverTimestamp()
         });
 
-        return user;
+        // CRITICAL: Sign out to prevent auto-redirect to new user's role-based route
+        // Admin will need to re-login (Firebase client SDK limitation)
+        await auth.signOut();
+        
+        return newUser;
     },
 
     async createUserProfileOnly(data: Omit<CreateUserData, 'password'> & { uid?: string }) {
-        // Creates or updates only the Firestore profile document without creating Auth user.
-        // If uid is provided, it will be used; otherwise, it will create a doc with a generated id (not ideal).
-        // Prefer passing the real Firebase Auth UID when available.
         const targetUid = data.uid || undefined;
         if (!targetUid) {
             throw new Error('UID do usuário é obrigatório para sincronizar perfil existente.');
@@ -47,14 +54,24 @@ export const adminService = {
             email: data.email,
             role: data.role,
             allowedDeviceSerial: data.allowedDeviceSerial || null,
+            allowedLocalidades: data.allowedLocalidades || [],
             active: true,
             createdAt: serverTimestamp()
         });
         return { uid: targetUid } as { uid: string };
     },
 
-    async getUsers() {
-        const q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+    async getUsers(localidadeId?: string) {
+        let q;
+        if (localidadeId) {
+            q = query(
+                collection(db, "users"),
+                where("allowedLocalidades", "array-contains", localidadeId),
+                orderBy("createdAt", "desc")
+            );
+        } else {
+            q = query(collection(db, "users"), orderBy("createdAt", "desc"));
+        }
         const querySnapshot = await getDocs(q);
         return querySnapshot.docs.map(doc => doc.data() as UserProfile);
     },
@@ -72,7 +89,7 @@ export const adminService = {
         }>;
     }
 ,
-    async bulkSyncProfiles(items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string }>) {
+    async bulkSyncProfiles(items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string; allowedLocalidades?: string[] }>) {
         const results: Array<{ uid: string; ok: boolean; error?: string }> = [];
         for (const item of items) {
             try {
@@ -82,6 +99,7 @@ export const adminService = {
                     email: item.email,
                     role: item.role,
                     allowedDeviceSerial: item.allowedDeviceSerial || null,
+                    allowedLocalidades: item.allowedLocalidades || [],
                     active: true,
                     createdAt: serverTimestamp()
                 });
