@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { adminService, CreateUserData } from '../../services/adminService';
 import { UserRole, UserProfile } from '../../types';
+import { useAuth } from '../../contexts/AuthContext';
 
 const Usuarios: React.FC = () => {
+    const { userProfile } = useAuth();
     const [formData, setFormData] = useState({
         name: '',
         username: '',
@@ -93,13 +95,22 @@ const Usuarios: React.FC = () => {
         }
     };
 
+    // Guard: somente admin pode acessar criação/sincronização de usuários
+    const isAdmin = userProfile?.role === 'admin';
+
     return (
         <div className="p-6">
             <h1 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Usuários</h1>
 
+            {!isAdmin && (
+                <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded mb-6">
+                    Apenas administradores podem criar e sincronizar usuários. Solicite acesso ao administrador do sistema.
+                </div>
+            )}
+
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Form Section */}
-                <div className="bg-white p-6 rounded-lg shadow-md h-fit">
+                <div className={`bg-white p-6 rounded-lg shadow-md h-fit ${!isAdmin ? 'opacity-60 pointer-events-none' : ''}`}>
                     <h2 className="text-lg font-semibold mb-4 text-gray-700">Novo Usuário</h2>
 
                     <form onSubmit={handleSubmit} className="space-y-4">
@@ -220,7 +231,7 @@ const Usuarios: React.FC = () => {
                 </div>
 
                 {/* List Section */}
-                <div className="bg-white p-6 rounded-lg shadow-md">
+                <div className={`bg-white p-6 rounded-lg shadow-md ${!isAdmin ? 'opacity-60 pointer-events-none' : ''}`}>
                     <h2 className="text-lg font-semibold mb-4 text-gray-700">Usuários Cadastrados</h2>
                     <div className="overflow-x-auto">
                         <table className="min-w-full text-sm text-left text-gray-500">
