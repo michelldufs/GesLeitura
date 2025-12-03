@@ -107,7 +107,7 @@ const Secoes: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
             <select
               value={localidadeId}
-              onChange={(e) => setLocalidadeId(e.target.value)}
+              onChange={(e) => { setLocalidadeId(e.target.value); setFilterLocalidadeId(e.target.value); }}
               className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
               required
             >
@@ -154,7 +154,8 @@ const Secoes: React.FC = () => {
             onChange={(e) => setFilterLocalidadeId(e.target.value)}
             className="px-3 py-2 border border-gray-300 rounded-lg"
           >
-            <option value="">Todas</option>
+            <option value="">Selecione</option>
+            <option value="ALL">Todas</option>
             {localidades.map(loc => (
               <option key={loc.id} value={loc.id}>{loc.nome}</option>
             ))}
@@ -162,10 +163,15 @@ const Secoes: React.FC = () => {
         </div>
 
         <div className="space-y-2">
-          {(filterLocalidadeId ? secoes.filter(s => s.localidadeId === filterLocalidadeId) : secoes).length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Nenhuma seção cadastrada</p>
-          ) : (
-            (filterLocalidadeId ? secoes.filter(s => s.localidadeId === filterLocalidadeId) : secoes).map(secao => (
+          {(() => {
+            const visibleSecoes =
+              filterLocalidadeId === '' ? [] :
+              filterLocalidadeId === 'ALL' ? secoes :
+              secoes.filter(s => s.localidadeId === filterLocalidadeId);
+            if (visibleSecoes.length === 0) {
+              return <p className="text-gray-500 text-center py-8">{filterLocalidadeId === '' ? 'Selecione uma localidade para listar as seções' : 'Nenhuma seção cadastrada'}</p>;
+            }
+            return visibleSecoes.map(secao => (
               <div
                 key={secao.id}
                 className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
@@ -192,8 +198,8 @@ const Secoes: React.FC = () => {
                   </button>
                 </div>
               </div>
-            ))
-          )}
+            ));
+          })()}
         </div>
       </div>
     </div>
