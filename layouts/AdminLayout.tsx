@@ -72,6 +72,7 @@ const Sidebar = () => {
             {canAccessAdmin && <NavItem icon={MapPin} label="Localidades" path="/localidades" />}
             <NavItem icon={Layers} label="Seções" path="/secao" />
             <NavItem icon={Route} label="Rotas" path="/rota" />
+            <NavItem icon={MapPin} label="Pontos" path="/ponto" />
             <NavItem icon={Users} label="Operadores" path="/operador" />
             <NavItem icon={FileText} label="Leitura Manual" path="/lancamento" />
           </>

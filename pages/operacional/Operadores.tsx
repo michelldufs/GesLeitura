@@ -254,7 +254,7 @@ const Operadores: React.FC = () => {
     }
   };
 
-  const isAuthorized = userProfile && ['admin', 'operacional'].includes(userProfile.role);
+  const isAuthorized = userProfile && ['admin', 'gerente'].includes(userProfile.role);
   const getPontoNome = (id: string) => pontos.find(p => p.id === id)?.nome || 'N/A';
   const getPontoCodigo = (id: string) => pontos.find(p => p.id === id)?.codigo || '';
 
