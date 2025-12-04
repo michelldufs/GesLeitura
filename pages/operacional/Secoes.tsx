@@ -58,22 +58,17 @@ const Secoes: React.FC = () => {
       console.log('Localidades carregadas:', locData);
       setLocalidades(locData);
 
-      // Se usuário é admin, carrega todas as seções de todas as localidades
-      // Se não é admin, carrega apenas seções da localidade selecionada
-      let secQuery;
-      if (userProfile?.role === 'admin') {
-        secQuery = query(collection(db, 'secoes'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        secQuery = query(
-          collection(db, 'secoes'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
-        // Se não tem localidade selecionada (não deveria acontecer), mostra vazio
+      // Todos os usuários (inclusive admin) veem apenas dados da localidade logada
+      if (!selectedLocalidade) {
         setSecoes([]);
         return;
       }
+
+      const secQuery = query(
+        collection(db, 'secoes'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const secSnapshot = await getDocs(secQuery);
       console.log('Documentos de seções encontrados:', secSnapshot.size);
@@ -113,9 +108,8 @@ const Secoes: React.FC = () => {
   };
 
   const handleOpenModal = () => {
-    // Pré-selecionar a localidade em que o usuário está logado
-    const localidadeInicial = userProfile?.role === 'admin' ? '' : (selectedLocalidade || '');
-    setFormData({ nome: '', localidadeId: localidadeInicial });
+    // Pré-selecionar a localidade em que o usuário está logado (para todos, inclusive admin)
+    setFormData({ nome: '', localidadeId: selectedLocalidade || '' });
     setEditingId(null);
     setShowModal(true);
   };
@@ -302,7 +296,7 @@ const Secoes: React.FC = () => {
             <select
               value={formData.localidadeId}
               onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
-              disabled={!isAuthorized || (userProfile?.role !== 'admin' && !!selectedLocalidade)}
+              disabled={true}
               required
               className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 disabled:bg-slate-100"
             >
