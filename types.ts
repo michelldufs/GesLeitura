@@ -87,7 +87,16 @@ export interface DespesaGeral {
   userId: string;
   localidadeId: string;
   tipo: 'operacional' | 'adiantamento';
+  centroCustoId?: string; // ID do centro de custo
   cotaId?: string; // Required if adiantamento
+  active: boolean;
+}
+
+export interface CentroCusto {
+  id?: string;
+  nome: string;
+  descricao?: string;
+  localidadeId: string;
   active: boolean;
 }
 
