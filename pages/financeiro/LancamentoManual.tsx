@@ -14,20 +14,30 @@ interface Ponto {
   codigo: string;
   nome: string;
   localidadeId: string;
+  comissao?: number;
 }
 
 const LancamentoManual: React.FC = () => {
   const { userProfile } = useAuth();
   const { selectedLocalidade } = useLocalidade();
   const [pontos, setPontos] = useState<Ponto[]>([]);
-  const [operadores, setOperadores] = useState<Operador[]>([]);
+  const [operadores, setOperadores] = useState<any[]>([]);
   const [selectedPontoId, setSelectedPontoId] = useState<string>('');
+  const [selectedOperadorId, setSelectedOperadorId] = useState<string>('');
+  const [selectedPonto, setSelectedPonto] = useState<Ponto | null>(null);
+  const [selectedOperador, setSelectedOperador] = useState<any | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
   
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<Venda>();
+  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<Venda>({
+    defaultValues: {
+      data: new Date().toISOString().split('T')[0],
+      comissaoPorcentagem: 0,
+      despesa: 0
+    }
+  });
 
   // Calculations state
   const entradaAtual = watch('entradaAtual', 0);
@@ -41,8 +51,10 @@ const LancamentoManual: React.FC = () => {
   const totalSaida = saidaAtual - saidaAnterior;
   const totalGeral = totalEntrada - totalSaida;
   
-  const valorComissao = totalGeral > 0 ? (totalGeral * (comissaoPorcentagem / 100)) : 0;
-  const totalFinal = totalGeral - valorComissao - despesa;
+  // Aplicar fator de conversão do operador
+  const fatorConversao = selectedOperador?.fatorConversao || 1;
+  const valorComissao = totalGeral > 0 ? (totalGeral * fatorConversao * (comissaoPorcentagem / 100)) : 0;
+  const totalFinal = (totalGeral * fatorConversao) - valorComissao - despesa;
 
   useEffect(() => {
     loadPontos();
@@ -72,7 +84,10 @@ const LancamentoManual: React.FC = () => {
       const snapshot = await getDocs(pontosQuery);
       const pontosData = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
+        codigo: doc.data().codigo,
+        nome: doc.data().nome,
+        localidadeId: doc.data().localidadeId,
+        comissao: doc.data().comissao || 0
       } as Ponto));
       setPontos(pontosData);
     } catch (error) {
@@ -90,20 +105,45 @@ const LancamentoManual: React.FC = () => {
       const snapshot = await getDocs(operadoresQuery);
       const operadoresData = snapshot.docs.map(doc => ({
         id: doc.id,
-        ...doc.data()
-      } as Operador));
+        codigo: doc.data().codigo,
+        nome: doc.data().nome,
+        pontoId: doc.data().pontoId,
+        fatorConversao: doc.data().fatorConversao || 0.01
+      }));
       setOperadores(operadoresData);
     } catch (error) {
       console.error('Erro ao carregar operadores:', error);
     }
   };
 
+  const handlePontoChange = (pontoId: string) => {
+    setSelectedPontoId(pontoId);
+    setSelectedOperadorId('');
+    setSelectedOperador(null);
+    setValue('operadorId', '');
+    
+    const ponto = pontos.find(p => p.id === pontoId);
+    setSelectedPonto(ponto || null);
+    
+    if (ponto && ponto.comissao !== undefined) {
+      setValue('comissaoPorcentagem', ponto.comissao);
+    }
+  };
+
   const handleOperadorChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const opId = e.target.value;
-    if (!opId) return;
+    setSelectedOperadorId(opId);
+    
+    if (!opId) {
+      setSelectedOperador(null);
+      return;
+    }
 
     setLoadingHistory(true);
     try {
+      const operador = operadores.find(op => op.id === opId);
+      setSelectedOperador(operador);
+      
       const last = await getUltimaLeitura(opId);
       if (last) {
         setValue('entradaAnterior', last.entradaAtual);
@@ -206,7 +246,7 @@ const LancamentoManual: React.FC = () => {
               </label>
               <select 
                 value={selectedPontoId}
-                onChange={(e) => setSelectedPontoId(e.target.value)}
+                onChange={(e) => handlePontoChange(e.target.value)}
                 disabled={!isAuthorized}
                 className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
               >
