@@ -34,6 +34,12 @@ const Localidades: React.FC = () => {
     }
   };
 
+  const gerarCodigoLocalidade = (): string => {
+    // Encontrar próximo ID de localidade
+    const proximoId = localidades.length + 1;
+    return String(proximoId).padStart(2, '0');
+  };
+
   const handleOpenModal = () => {
     setFormData({ nome: '' });
     setEditingId(null);
@@ -60,7 +66,9 @@ const Localidades: React.FC = () => {
         setMessageType('success');
         setMessage('Localidade atualizada com sucesso!');
       } else {
+        const codigo = gerarCodigoLocalidade();
         await addDoc(collection(db, 'localidades'), {
+          codigo,
           nome: formData.nome,
           active: true
         });
