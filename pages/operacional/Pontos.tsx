@@ -82,22 +82,20 @@ const Pontos: React.FC = () => {
       });
       setLocalidades(locData);
 
-      // Carregar seções
-      let secQuery;
-      if (userProfile?.role === 'admin') {
-        secQuery = query(collection(db, 'secoes'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        secQuery = query(
-          collection(db, 'secoes'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
+      // Todos os usuários (inclusive admin) veem apenas dados da localidade logada
+      if (!selectedLocalidade) {
         setPontos([]);
         setRotas([]);
         setSecoes([]);
         return;
       }
+
+      // Carregar seções
+      const secQuery = query(
+        collection(db, 'secoes'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const secSnapshot = await getDocs(secQuery);
       const secoesData = secSnapshot.docs.map(doc => {
@@ -112,20 +110,11 @@ const Pontos: React.FC = () => {
       setSecoes(secoesData);
 
       // Carregar rotas
-      let rotQuery;
-      if (userProfile?.role === 'admin') {
-        rotQuery = query(collection(db, 'rotas'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        rotQuery = query(
-          collection(db, 'rotas'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
-        setPontos([]);
-        setRotas([]);
-        return;
-      }
+      const rotQuery = query(
+        collection(db, 'rotas'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const rotSnapshot = await getDocs(rotQuery);
       const rotasData = rotSnapshot.docs.map(doc => {
@@ -141,19 +130,11 @@ const Pontos: React.FC = () => {
       setRotas(rotasData);
 
       // Carregar pontos
-      let pontosQuery;
-      if (userProfile?.role === 'admin') {
-        pontosQuery = query(collection(db, 'pontos'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        pontosQuery = query(
-          collection(db, 'pontos'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
-        setPontos([]);
-        return;
-      }
+      const pontosQuery = query(
+        collection(db, 'pontos'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const pontosSnapshot = await getDocs(pontosQuery);
       const pontosData = pontosSnapshot.docs.map(doc => {
@@ -215,10 +196,10 @@ const Pontos: React.FC = () => {
       
       if (editingId) {
         await updateDoc(doc(db, 'pontos', editingId), {
-          nome: formData.nome,
+          nome: formData.nome.toUpperCase(),
           rotaId: formData.rotaId,
           comissao: formData.comissao,
-          endereco: formData.endereco,
+          endereco: formData.endereco.toUpperCase(),
           telefone: formData.telefone
         });
         setMessageType('success');
@@ -229,11 +210,11 @@ const Pontos: React.FC = () => {
 
         await addDoc(collection(db, 'pontos'), {
           codigo,
-          nome: formData.nome,
+          nome: formData.nome.toUpperCase(),
           rotaId: formData.rotaId,
           localidadeId: rota.localidadeId,
           comissao: formData.comissao,
-          endereco: formData.endereco || '',
+          endereco: (formData.endereco || '').toUpperCase(),
           telefone: formData.telefone || '',
           qtdEquipamentos: 0,
           active: true
@@ -418,9 +399,9 @@ const Pontos: React.FC = () => {
 
           <InputField
             label="Nome do Ponto"
-            placeholder="Ex: Senador Canedo"
+            placeholder="Ex: SENADOR CANEDO"
             value={formData.nome}
-            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value.toUpperCase() })}
             disabled={!isAuthorized}
             required
           />
@@ -439,9 +420,9 @@ const Pontos: React.FC = () => {
 
           <InputField
             label="Endereço (opcional)"
-            placeholder="Ex: Rua X, 123"
+            placeholder="Ex: RUA X, 123"
             value={formData.endereco}
-            onChange={(e) => setFormData({ ...formData, endereco: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, endereco: e.target.value.toUpperCase() })}
             disabled={!isAuthorized}
           />
 

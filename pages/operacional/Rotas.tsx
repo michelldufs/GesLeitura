@@ -8,6 +8,7 @@ import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, Ale
 
 interface Rota {
   id: string;
+  codigo?: string;
   nome: string;
   secaoId: string;
   localidadeId: string;
@@ -16,12 +17,14 @@ interface Rota {
 
 interface Secao {
   id: string;
+  codigo?: string;
   nome: string;
   localidadeId: string;
 }
 
 interface Localidade {
   id: string;
+  codigo?: string;
   nome: string;
 }
 
@@ -47,59 +50,62 @@ const Rotas: React.FC = () => {
     loadData();
   }, [selectedLocalidade]);
 
+  const gerarCodigoRota = (): string => {
+    if (!formData.secaoId || !formData.localidadeId) return '';
+    
+    const secao = secoes.find(s => s.id === formData.secaoId);
+    const localidade = localidades.find(l => l.id === formData.localidadeId);
+    
+    if (!secao || !localidade) return '';
+    if (!secao.codigo || !localidade.codigo) return '';
+    
+    return `${localidade.codigo}${secao.codigo}`;
+  };
+
   const loadData = async () => {
     try {
       const locQuery = query(collection(db, 'localidades'), where('active', '==', true));
       const locSnapshot = await getDocs(locQuery);
       setLocalidades(locSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Localidade)));
 
-      // Se admin, carrega todas as seções; se não, apenas da localidade selecionada
-      let secQuery;
-      if (userProfile?.role === 'admin') {
-        secQuery = query(collection(db, 'secoes'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        secQuery = query(
-          collection(db, 'secoes'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
+      // Carregar seções da localidade selecionada
+      if (!selectedLocalidade) {
         setSecoes([]);
         setRotas([]);
         return;
       }
+
+      const secQuery = query(
+        collection(db, 'secoes'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const secSnapshot = await getDocs(secQuery);
       const secoesData = secSnapshot.docs.map(doc => {
         const data = doc.data() as any;
         return {
           id: doc.id,
+          codigo: data.codigo,
           nome: data.nome,
           localidadeId: data.localidadeId
         } as Secao;
       });
       setSecoes(secoesData);
 
-      // Se admin, carrega todas as rotas; se não, apenas da localidade selecionada
-      let rotQuery;
-      if (userProfile?.role === 'admin') {
-        rotQuery = query(collection(db, 'rotas'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        rotQuery = query(
-          collection(db, 'rotas'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
-        setRotas([]);
-        return;
-      }
+      // Carregar rotas da localidade selecionada
+      const rotQuery = query(
+        collection(db, 'rotas'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const rotSnapshot = await getDocs(rotQuery);
       const rotasData = rotSnapshot.docs.map(doc => {
         const data = doc.data() as any;
         return {
           id: doc.id,
+          codigo: data.codigo,
           nome: data.nome,
           secaoId: data.secaoId,
           localidadeId: data.localidadeId,
@@ -113,7 +119,7 @@ const Rotas: React.FC = () => {
   };
 
   const handleOpenModal = () => {
-    setFormData({ nome: '', localidadeId: '', secaoId: '' });
+    setFormData({ nome: '', localidadeId: selectedLocalidade || '', secaoId: '' });
     setEditingId(null);
     setShowModal(true);
   };
@@ -135,15 +141,17 @@ const Rotas: React.FC = () => {
     try {
       if (editingId) {
         await updateDoc(doc(db, 'rotas', editingId), {
-          nome: formData.nome,
+          nome: formData.nome.toUpperCase(),
           secaoId: formData.secaoId,
           localidadeId: formData.localidadeId
         });
         setMessageType('success');
         setMessage('Rota atualizada com sucesso!');
       } else {
+        const codigo = gerarCodigoRota();
         await addDoc(collection(db, 'rotas'), {
-          nome: formData.nome,
+          codigo,
+          nome: formData.nome.toUpperCase(),
           secaoId: formData.secaoId,
           localidadeId: formData.localidadeId,
           active: true
@@ -234,6 +242,7 @@ const Rotas: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
                   <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
                   <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
                   <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Seção</th>
@@ -243,6 +252,7 @@ const Rotas: React.FC = () => {
               <tbody>
                 {rotas.map((rota) => (
                   <tr key={rota.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-2.5 font-mono font-semibold text-slate-900">{rota.codigo || 'sem código'}</td>
                     <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
                       <div className="p-2 bg-green-100/50 rounded-lg">
                         <RouteIcon className="text-green-600" size={18} />
@@ -296,7 +306,7 @@ const Rotas: React.FC = () => {
             label="Localidade"
             value={formData.localidadeId}
             onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value, secaoId: '' })}
-            disabled={!isAuthorized}
+            disabled={true}
             required
           >
             <option value="">Selecione a localidade</option>
@@ -318,11 +328,19 @@ const Rotas: React.FC = () => {
             ))}
           </SelectField>
 
+          {formData.secaoId && formData.localidadeId && (
+            <div className="p-3 bg-green-50 rounded-lg border border-green-200">
+              <p className="text-sm text-green-900">
+                <span className="font-semibold">Código que será gerado:</span> {gerarCodigoRota()}
+              </p>
+            </div>
+          )}
+
           <InputField
             label="Nome da Rota"
-            placeholder="Ex: Rota 01"
+            placeholder="Ex: ROTA 01"
             value={formData.nome}
-            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value.toUpperCase() })}
             disabled={!isAuthorized}
             required
           />

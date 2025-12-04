@@ -66,23 +66,20 @@ const Operadores: React.FC = () => {
 
   const loadData = async () => {
     try {
-      // Carregar seções
-      let secQuery;
-      if (userProfile?.role === 'admin') {
-        secQuery = query(collection(db, 'secoes'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        secQuery = query(
-          collection(db, 'secoes'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
+      // Carregar seções da localidade selecionada
+      if (!selectedLocalidade) {
         setOperadores([]);
         setPontos([]);
         setRotas([]);
         setSecoes([]);
         return;
       }
+
+      const secQuery = query(
+        collection(db, 'secoes'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const secSnapshot = await getDocs(secQuery);
       const secoesData = secSnapshot.docs.map(doc => {
@@ -96,22 +93,12 @@ const Operadores: React.FC = () => {
       });
       setSecoes(secoesData);
 
-      // Carregar rotas
-      let rotQuery;
-      if (userProfile?.role === 'admin') {
-        rotQuery = query(collection(db, 'rotas'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        rotQuery = query(
-          collection(db, 'rotas'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
-        setOperadores([]);
-        setPontos([]);
-        setRotas([]);
-        return;
-      }
+      // Carregar rotas da localidade selecionada
+      const rotQuery = query(
+        collection(db, 'rotas'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const rotSnapshot = await getDocs(rotQuery);
       const rotasData = rotSnapshot.docs.map(doc => {
@@ -126,21 +113,12 @@ const Operadores: React.FC = () => {
       });
       setRotas(rotasData);
 
-      // Carregar pontos
-      let pontosQuery;
-      if (userProfile?.role === 'admin') {
-        pontosQuery = query(collection(db, 'pontos'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        pontosQuery = query(
-          collection(db, 'pontos'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
-        setOperadores([]);
-        setPontos([]);
-        return;
-      }
+      // Carregar pontos da localidade selecionada
+      const pontosQuery = query(
+        collection(db, 'pontos'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const pontosSnapshot = await getDocs(pontosQuery);
       const pontosData = pontosSnapshot.docs.map(doc => {
@@ -155,20 +133,12 @@ const Operadores: React.FC = () => {
       });
       setPontos(pontosData);
 
-      // Carregar operadores
-      let opQuery;
-      if (userProfile?.role === 'admin') {
-        opQuery = query(collection(db, 'operadores'), where('active', '==', true));
-      } else if (selectedLocalidade) {
-        opQuery = query(
-          collection(db, 'operadores'),
-          where('active', '==', true),
-          where('localidadeId', '==', selectedLocalidade)
-        );
-      } else {
-        setOperadores([]);
-        return;
-      }
+      // Carregar operadores da localidade selecionada
+      const opQuery = query(
+        collection(db, 'operadores'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
 
       const opSnapshot = await getDocs(opQuery);
       const operadoresData = opSnapshot.docs.map(doc => {
@@ -227,7 +197,7 @@ const Operadores: React.FC = () => {
       
       if (editingId) {
         await updateDoc(doc(db, 'operadores', editingId), {
-          nome: formData.nome,
+          nome: formData.nome.toUpperCase(),
           pontoId: formData.pontoId,
           fatorConversao: formData.fatorConversao
         });
@@ -239,7 +209,7 @@ const Operadores: React.FC = () => {
 
         await addDoc(collection(db, 'operadores'), {
           codigo,
-          nome: formData.nome,
+          nome: formData.nome.toUpperCase(),
           pontoId: formData.pontoId,
           localidadeId: ponto.localidadeId,
           fatorConversao: formData.fatorConversao,
@@ -423,7 +393,7 @@ const Operadores: React.FC = () => {
             label="Nome do Operador"
             placeholder="Ex: POS-01"
             value={formData.nome}
-            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value.toUpperCase() })}
             disabled={!isAuthorized}
             required
           />
