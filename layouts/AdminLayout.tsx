@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
+import ModalTrocarLocalidade from '../components/ModalTrocarLocalidade';
 import { 
   Home, Layers, Route, MapPin, Users, FileText, BarChart3, Settings, LogOut, Clock,
   ChevronRight, Circle
@@ -100,6 +101,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { selectedLocalidade, selectedLocalidadeName } = useLocalidade();
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState<string>('');
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   // Atualizar relógio a cada segundo
   useEffect(() => {
@@ -144,13 +146,16 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
               
               {/* Localidade Selecionada */}
               {selectedLocalidade && selectedLocalidadeName && (
-                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
+                <button
+                  onClick={() => setIsModalOpen(true)}
+                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors cursor-pointer"
+                >
                   <MapPin size={16} className="text-blue-600" />
-                  <div>
+                  <div className="text-left">
                     <p className="text-xs text-blue-600 font-medium">Localidade</p>
                     <p className="text-sm text-blue-900 font-semibold">{selectedLocalidadeName}</p>
                   </div>
-                </div>
+                </button>
               )}
             </div>
 
@@ -183,6 +188,12 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         <div className="p-8">
           {children}
         </div>
+
+        {/* Modal de Trocar Localidade */}
+        <ModalTrocarLocalidade 
+          isOpen={isModalOpen} 
+          onClose={() => setIsModalOpen(false)} 
+        />
       </main>
     </div>
   );
