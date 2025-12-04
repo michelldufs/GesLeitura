@@ -62,12 +62,9 @@ export const adminService = {
 
     async getUsers(localidadeId?: string) {
         // Always fetch all users to avoid Firestore index requirements
-        console.log('Buscando TODOS os usuários (filtro de localidade desabilitado)');
         const q = query(collection(db, "users"));
         const querySnapshot = await getDocs(q);
-        console.log('Documentos encontrados:', querySnapshot.docs.length);
         const users = querySnapshot.docs.map(doc => {
-            console.log('Usuário:', doc.id, doc.data());
             return doc.data() as UserProfile;
         });
         
@@ -121,7 +118,7 @@ export const adminService = {
         return results;
     },
 
-    async updateUser(uid: string, data: { name?: string; role?: UserRole; allowedLocalidades?: string[]; allowedDeviceSerial?: string }) {
+    async updateUser(uid: string, data: { name?: string; role?: UserRole; allowedLocalidades?: string[]; allowedDeviceSerial?: string; active?: boolean }) {
         await setDoc(doc(db, "users", uid), data, { merge: true });
     },
 
