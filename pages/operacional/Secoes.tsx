@@ -8,7 +8,7 @@ import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, Ale
 
 interface Secao {
   id: string;
-  codigo: string;
+  codigo?: string;
   nome: string;
   localidadeId: string;
   active: boolean;
@@ -43,6 +43,7 @@ const Secoes: React.FC = () => {
 
   const loadData = async () => {
     try {
+      console.log('Carregando dados de seções...');
       // Carregar localidades permitidas do usuário
       const locQuery = query(collection(db, 'localidades'), where('active', '==', true));
       const locSnapshot = await getDocs(locQuery);
@@ -50,10 +51,11 @@ const Secoes: React.FC = () => {
         const data = doc.data();
         return { 
           id: doc.id, 
-          codigo: data.codigo,
-          nome: data.nome
+          codigo: data.codigo || '',
+          nome: data.nome || ''
         } as Localidade;
       });
+      console.log('Localidades carregadas:', locData);
       setLocalidades(locData);
 
       // Se usuário é admin, carrega todas as seções de todas as localidades
@@ -74,19 +76,23 @@ const Secoes: React.FC = () => {
       }
 
       const secSnapshot = await getDocs(secQuery);
+      console.log('Documentos de seções encontrados:', secSnapshot.size);
       const secData = secSnapshot.docs.map(doc => {
         const data = doc.data() as any;
         return {
           id: doc.id,
-          codigo: data.codigo,
-          nome: data.nome,
-          localidadeId: data.localidadeId,
-          active: data.active
+          codigo: data.codigo || '',
+          nome: data.nome || '',
+          localidadeId: data.localidadeId || '',
+          active: data.active !== false
         } as Secao;
       });
+      console.log('Seções carregadas:', secData);
       setSecoes(secData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
+      setSecoes([]);
+      setLocalidades([]);
     }
   };
 
