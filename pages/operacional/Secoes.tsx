@@ -46,7 +46,14 @@ const Secoes: React.FC = () => {
       // Carregar localidades permitidas do usuário
       const locQuery = query(collection(db, 'localidades'), where('active', '==', true));
       const locSnapshot = await getDocs(locQuery);
-      const locData = locSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Localidade));
+      const locData = locSnapshot.docs.map(doc => {
+        const data = doc.data();
+        return { 
+          id: doc.id, 
+          codigo: data.codigo,
+          nome: data.nome
+        } as Localidade;
+      });
       setLocalidades(locData);
 
       // Se usuário é admin, carrega todas as seções de todas as localidades
@@ -128,12 +135,18 @@ const Secoes: React.FC = () => {
         setMessage('Seção atualizada com sucesso!');
       } else {
         const codigo = gerarCodigoSecao();
-        await addDoc(collection(db, 'secoes'), {
-          codigo,
+        const secaoData: any = {
           nome: formData.nome,
           localidadeId: formData.localidadeId,
           active: true
-        });
+        };
+        
+        // Só adiciona código se foi gerado (localidade tem código)
+        if (codigo) {
+          secaoData.codigo = codigo;
+        }
+        
+        await addDoc(collection(db, 'secoes'), secaoData);
         setMessageType('success');
         setMessage('Seção criada com sucesso!');
       }
@@ -293,13 +306,33 @@ const Secoes: React.FC = () => {
             ))}
           </SelectField>
 
-          {!editingId && formData.localidadeId && gerarCodigoSecao() && (
-            <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-              <p className="text-sm text-purple-900">
-                <span className="font-semibold">Código que será gerado:</span> {gerarCodigoSecao()}
-              </p>
-            </div>
-          )}
+          {!editingId && formData.localidadeId && (() => {
+            const localidade = localidades.find(l => l.id === formData.localidadeId);
+            if (!localidade) return null;
+            
+            if (!localidade.codigo) {
+              return (
+                <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+                  <p className="text-sm text-yellow-900">
+                    ⚠️ <span className="font-semibold">Atenção:</span> Esta localidade não possui código cadastrado. 
+                    Adicione o campo "codigo" no Firebase para gerar códigos automáticos.
+                  </p>
+                </div>
+              );
+            }
+            
+            const codigoGerado = gerarCodigoSecao();
+            if (codigoGerado) {
+              return (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-sm text-purple-900">
+                    <span className="font-semibold">Código que será gerado:</span> {codigoGerado}
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           <InputField
             label="Nome da Seção"
