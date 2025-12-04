@@ -14,6 +14,7 @@ interface AdminLayoutProps {
 
 const Sidebar = () => {
   const location = useLocation();
+  const { userProfile } = useAuth();
   
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
   
@@ -38,6 +39,11 @@ const Sidebar = () => {
     </div>
   );
 
+  // Funções auxiliares para verificar permissões
+  const canAccessOperacional = ['admin', 'gerente', 'supervisor', 'operacional'].includes(userProfile?.role || '');
+  const canAccessFinanceiro = ['admin', 'financeiro'].includes(userProfile?.role || '');
+  const canAccessAdmin = userProfile?.role === 'admin';
+
   return (
     <aside className="w-64 bg-gradient-to-b from-white/95 to-slate-50/95 backdrop-blur-xl border-r border-slate-200/30 min-h-screen p-4 flex flex-col shadow-sm">
       {/* Logo */}
@@ -59,27 +65,38 @@ const Sidebar = () => {
         <SectionTitle title="Menu" />
         <NavItem icon={Home} label="Dashboard" path="/" />
 
-        {/* Operacional */}
-        <SectionTitle title="Operacional" />
-        <NavItem icon={MapPin} label="Localidades" path="/localidades" />
-        <NavItem icon={Layers} label="Seções" path="/secao" />
-        <NavItem icon={Route} label="Rotas" path="/rota" />
-        <NavItem icon={Users} label="Operadores" path="/operador" />
-        <NavItem icon={FileText} label="Leitura Manual" path="/lancamento" />
+        {/* Operacional - Apenas para admin, gerente, supervisor, operacional */}
+        {canAccessOperacional && (
+          <>
+            <SectionTitle title="Operacional" />
+            {canAccessAdmin && <NavItem icon={MapPin} label="Localidades" path="/localidades" />}
+            <NavItem icon={Layers} label="Seções" path="/secao" />
+            <NavItem icon={Route} label="Rotas" path="/rota" />
+            <NavItem icon={Users} label="Operadores" path="/operador" />
+            <NavItem icon={FileText} label="Leitura Manual" path="/lancamento" />
+          </>
+        )}
 
-        {/* Financeiro */}
-        <SectionTitle title="Financeiro" />
-        <NavItem icon={BarChart3} label="Caixa Geral" path="/caixa-geral" />
-        <NavItem icon={Settings} label="Cotas & Sócios" path="/cotas" />
+        {/* Financeiro - Apenas para admin e financeiro */}
+        {canAccessFinanceiro && (
+          <>
+            <SectionTitle title="Financeiro" />
+            <NavItem icon={BarChart3} label="Caixa Geral" path="/caixa-geral" />
+            <NavItem icon={Settings} label="Cotas & Sócios" path="/cotas" />
 
-        {/* Relatórios */}
-        <SectionTitle title="Relatórios" />
-        <NavItem icon={FileText} label="Vendas/Data" path="/relatorios/data" />
-        <NavItem icon={FileText} label="Vendas/Mês" path="/relatorios/mes" />
+            <SectionTitle title="Relatórios" />
+            <NavItem icon={FileText} label="Vendas/Data" path="/relatorios/data" />
+            <NavItem icon={FileText} label="Vendas/Mês" path="/relatorios/mes" />
+          </>
+        )}
 
-        {/* Admin */}
-        <SectionTitle title="Administração" />
-        <NavItem icon={Users} label="Usuários" path="/usuarios" />
+        {/* Admin - Apenas para admin */}
+        {canAccessAdmin && (
+          <>
+            <SectionTitle title="Administração" />
+            <NavItem icon={Users} label="Usuários" path="/usuarios" />
+          </>
+        )}
       </nav>
 
       {/* Divider */}

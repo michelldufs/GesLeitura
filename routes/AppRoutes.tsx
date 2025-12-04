@@ -32,8 +32,23 @@ const AppRoutes: React.FC = () => {
   const { user, userProfile, loading } = useAuth();
   const { localidadeSelecionada } = useLocalidade();
 
+  // Componentes para restrição de acesso por perfil
   const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (userProfile?.role !== 'admin') {
+      return <Navigate to="/" replace />;
+    }
+    return <>{children}</>;
+  };
+
+  const RequireFinanceiro: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (!['admin', 'financeiro'].includes(userProfile?.role || '')) {
+      return <Navigate to="/" replace />;
+    }
+    return <>{children}</>;
+  };
+
+  const RequireOperacional: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+    if (!['admin', 'gerente', 'supervisor', 'operacional'].includes(userProfile?.role || '')) {
       return <Navigate to="/" replace />;
     }
     return <>{children}</>;
@@ -92,25 +107,25 @@ const AppRoutes: React.FC = () => {
       <Routes>
         <Route path="/" element={<Dashboard />} />
         
-        {/* Operacional */}
-        <Route path="/secao" element={<Secoes />} />
-        <Route path="/rota" element={<Rotas />} />
-        <Route path="/ponto" element={<Placeholder title="Gestão de Pontos" />} />
-        <Route path="/operador" element={<Placeholder title="Gestão de Operadores" />} />
-        <Route path="/lancamento" element={<LancamentoManual />} />
+        {/* Operacional - Restrito a Admin, Gerente, Supervisor, Operacional */}
+        <Route path="/secao" element={<RequireOperacional><Secoes /></RequireOperacional>} />
+        <Route path="/rota" element={<RequireOperacional><Rotas /></RequireOperacional>} />
+        <Route path="/ponto" element={<RequireOperacional><Placeholder title="Gestão de Pontos" /></RequireOperacional>} />
+        <Route path="/operador" element={<RequireOperacional><Placeholder title="Gestão de Operadores" /></RequireOperacional>} />
+        <Route path="/lancamento" element={<RequireOperacional><LancamentoManual /></RequireOperacional>} />
         
-        {/* Relatórios */}
-        <Route path="/relatorios/data" element={<Placeholder title="Relatório por Data" />} />
-        <Route path="/relatorios/mes" element={<Placeholder title="Relatório por Mês" />} />
+        {/* Relatórios - Restrito a Admin e Financeiro */}
+        <Route path="/relatorios/data" element={<RequireFinanceiro><Placeholder title="Relatório por Data" /></RequireFinanceiro>} />
+        <Route path="/relatorios/mes" element={<RequireFinanceiro><Placeholder title="Relatório por Mês" /></RequireFinanceiro>} />
         
-        {/* Administração */}
-        <Route path="/localidades" element={<Localidades />} />
+        {/* Administração - Restrito a Admin */}
+        <Route path="/localidades" element={<RequireAdmin><Localidades /></RequireAdmin>} />
         <Route path="/usuarios" element={<RequireAdmin><Usuarios /></RequireAdmin>} />
         <Route path="/admin/editar-usuario-localidades" element={<RequireAdmin><EditarUsuarioLocalidades /></RequireAdmin>} />
         
-        {/* Financeiro */}
-        <Route path="/caixa-geral" element={<CaixaGeral />} />
-        <Route path="/cotas" element={<ConfiguracaoCotas />} />
+        {/* Financeiro - Restrito a Admin e Financeiro */}
+        <Route path="/caixa-geral" element={<RequireFinanceiro><CaixaGeral /></RequireFinanceiro>} />
+        <Route path="/cotas" element={<RequireFinanceiro><ConfiguracaoCotas /></RequireFinanceiro>} />
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
