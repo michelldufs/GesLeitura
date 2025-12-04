@@ -84,16 +84,21 @@ const Secoes: React.FC = () => {
   };
 
   const gerarCodigoSecao = (): string => {
-    if (!formData.localidadeId) return '';
-    
-    const localidade = localidades.find(l => l.id === formData.localidadeId);
-    if (!localidade || !localidade.codigo) return '';
+    try {
+      if (!formData.localidadeId) return '';
+      
+      const localidade = localidades.find(l => l.id === formData.localidadeId);
+      if (!localidade || !localidade.codigo) return '';
 
-    // Encontrar seções desta localidade
-    const secoesLocalidade = secoes.filter(s => s.localidadeId === formData.localidadeId);
-    const proximoId = String(secoesLocalidade.length + 1).padStart(2, '0');
-    
-    return `${localidade.codigo}${proximoId}`;
+      // Encontrar seções desta localidade
+      const secoesLocalidade = secoes.filter(s => s.localidadeId === formData.localidadeId);
+      const proximoId = String(secoesLocalidade.length + 1).padStart(2, '0');
+      
+      return `${localidade.codigo}${proximoId}`;
+    } catch (error) {
+      console.error('Erro ao gerar código:', error);
+      return '';
+    }
   };
 
   const handleOpenModal = () => {
@@ -288,7 +293,7 @@ const Secoes: React.FC = () => {
             ))}
           </SelectField>
 
-          {!editingId && formData.localidadeId && (
+          {!editingId && formData.localidadeId && gerarCodigoSecao() && (
             <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
               <p className="text-sm text-purple-900">
                 <span className="font-semibold">Código que será gerado:</span> {gerarCodigoSecao()}
