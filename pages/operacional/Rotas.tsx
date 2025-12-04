@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { Route as RouteIcon, Plus, Edit2, Trash2 } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
 
@@ -26,6 +27,7 @@ interface Localidade {
 
 const Rotas: React.FC = () => {
   const { userProfile } = useAuth();
+  const { selectedLocalidade } = useLocalidade();
   const [rotas, setRotas] = useState<Rota[]>([]);
   const [secoes, setSecoes] = useState<Secao[]>([]);
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
@@ -43,7 +45,7 @@ const Rotas: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedLocalidade]);
 
   const loadData = async () => {
     try {
@@ -51,13 +53,60 @@ const Rotas: React.FC = () => {
       const locSnapshot = await getDocs(locQuery);
       setLocalidades(locSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Localidade)));
 
-      const secQuery = query(collection(db, 'secoes'), where('active', '==', true));
-      const secSnapshot = await getDocs(secQuery);
-      setSecoes(secSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Secao)));
+      // Se admin, carrega todas as seções; se não, apenas da localidade selecionada
+      let secQuery;
+      if (userProfile?.role === 'admin') {
+        secQuery = query(collection(db, 'secoes'), where('active', '==', true));
+      } else if (selectedLocalidade) {
+        secQuery = query(
+          collection(db, 'secoes'),
+          where('active', '==', true),
+          where('localidadeId', '==', selectedLocalidade)
+        );
+      } else {
+        setSecoes([]);
+        setRotas([]);
+        return;
+      }
 
-      const rotQuery = query(collection(db, 'rotas'), where('active', '==', true));
+      const secSnapshot = await getDocs(secQuery);
+      const secoesData = secSnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          nome: data.nome,
+          localidadeId: data.localidadeId
+        } as Secao;
+      });
+      setSecoes(secoesData);
+
+      // Se admin, carrega todas as rotas; se não, apenas da localidade selecionada
+      let rotQuery;
+      if (userProfile?.role === 'admin') {
+        rotQuery = query(collection(db, 'rotas'), where('active', '==', true));
+      } else if (selectedLocalidade) {
+        rotQuery = query(
+          collection(db, 'rotas'),
+          where('active', '==', true),
+          where('localidadeId', '==', selectedLocalidade)
+        );
+      } else {
+        setRotas([]);
+        return;
+      }
+
       const rotSnapshot = await getDocs(rotQuery);
-      setRotas(rotSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Rota)));
+      const rotasData = rotSnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          nome: data.nome,
+          secaoId: data.secaoId,
+          localidadeId: data.localidadeId,
+          active: data.active
+        } as Rota;
+      });
+      setRotas(rotasData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     }
