@@ -41,7 +41,7 @@ const Sidebar = () => {
 
   // Funções auxiliares para verificar permissões
   const canAccessOperacional = ['admin', 'gerente', 'supervisor', 'operacional'].includes(userProfile?.role || '');
-  const canAccessFinanceiro = ['admin', 'financeiro'].includes(userProfile?.role || '');
+  const canAccessFinanceiro = ['admin', 'gerente', 'financeiro'].includes(userProfile?.role || '');
   const canAccessAdmin = userProfile?.role === 'admin';
 
   return (
