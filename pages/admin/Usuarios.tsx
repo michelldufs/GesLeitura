@@ -35,7 +35,8 @@ const Usuarios: React.FC = () => {
         password: '',
         confirmPassword: '',
         role: 'coleta' as UserRole,
-        active: true
+        active: true,
+        allowedLocalidades: [] as string[]
     });
 
     const fetchUsers = async () => {
@@ -176,13 +177,14 @@ const Usuarios: React.FC = () => {
             password: '',
             confirmPassword: '',
             role: user.role,
-            active: user.active !== false
+            active: user.active !== false,
+            allowedLocalidades: user.allowedLocalidades || []
         });
     };
 
     const closeEditModal = () => {
         setEditingUser(null);
-        setEditForm({ name: '', password: '', confirmPassword: '', role: 'coleta', active: true });
+        setEditForm({ name: '', password: '', confirmPassword: '', role: 'coleta', active: true, allowedLocalidades: [] });
     };
 
     const handleEditSubmit = async (e: React.FormEvent) => {
@@ -198,7 +200,8 @@ const Usuarios: React.FC = () => {
             await adminService.updateUser(editingUser.uid, {
                 name: editForm.name,
                 role: editForm.role,
-                active: editForm.active
+                active: editForm.active,
+                allowedLocalidades: editForm.allowedLocalidades
             });
 
             if (editForm.password && editForm.password.length >= 6) {
@@ -242,6 +245,29 @@ const Usuarios: React.FC = () => {
             coleta: 'secondary'
         };
         return colors[role] || 'secondary';
+    };
+
+    const handleToggleLocalidade = (localidadeId: string) => {
+        setEditForm(prev => {
+            const currentLocalidades = prev.allowedLocalidades || [];
+            const isSelected = currentLocalidades.includes(localidadeId);
+            
+            return {
+                ...prev,
+                allowedLocalidades: isSelected
+                    ? currentLocalidades.filter(id => id !== localidadeId)
+                    : [...currentLocalidades, localidadeId]
+            };
+        });
+    };
+
+    const handleSelectAllLocalidades = () => {
+        const allIds = localidades.filter(loc => loc.active).map(loc => loc.id);
+        setEditForm(prev => ({ ...prev, allowedLocalidades: allIds }));
+    };
+
+    const handleDeselectAllLocalidades = () => {
+        setEditForm(prev => ({ ...prev, allowedLocalidades: [] }));
     };
 
     return (
@@ -474,6 +500,70 @@ const Usuarios: React.FC = () => {
                             value={editForm.role}
                             onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
                         />
+
+                        {/* Seleção de Localidades */}
+                        <div className="space-y-3">
+                            <div className="flex items-center justify-between">
+                                <label className="block text-sm font-semibold text-slate-700">
+                                    Localidades Permitidas
+                                </label>
+                                <div className="flex gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleSelectAllLocalidades}
+                                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                                    >
+                                        Selecionar Todas
+                                    </button>
+                                    <span className="text-slate-300">|</span>
+                                    <button
+                                        type="button"
+                                        onClick={handleDeselectAllLocalidades}
+                                        className="text-xs text-slate-600 hover:text-slate-700 font-medium"
+                                    >
+                                        Limpar
+                                    </button>
+                                </div>
+                            </div>
+
+                            {localidades.length === 0 ? (
+                                <div className="text-center py-4 text-slate-500 text-sm">
+                                    Nenhuma localidade cadastrada
+                                </div>
+                            ) : (
+                                <div className="max-h-64 overflow-y-auto space-y-2 border border-slate-200/50 rounded-xl p-4 bg-slate-50/30">
+                                    {localidades
+                                        .filter(loc => loc.active)
+                                        .map((localidade) => {
+                                            const isSelected = editForm.allowedLocalidades?.includes(localidade.id);
+                                            return (
+                                                <label
+                                                    key={localidade.id}
+                                                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
+                                                        isSelected
+                                                            ? 'bg-blue-50 border-2 border-blue-300'
+                                                            : 'bg-white border-2 border-slate-200/50 hover:border-slate-300'
+                                                    }`}
+                                                >
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={isSelected}
+                                                        onChange={() => handleToggleLocalidade(localidade.id)}
+                                                        className="h-5 w-5 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
+                                                    />
+                                                    <span className={`font-medium ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
+                                                        {localidade.nome}
+                                                    </span>
+                                                </label>
+                                            );
+                                        })}
+                                </div>
+                            )}
+
+                            <p className="text-xs text-slate-500 mt-2">
+                                {editForm.allowedLocalidades?.length || 0} localidade(s) selecionada(s)
+                            </p>
+                        </div>
                     </form>
                 )}
             </Modal>
