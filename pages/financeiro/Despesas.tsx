@@ -22,7 +22,7 @@ const Despesas: React.FC = () => {
 
   const [formData, setFormData] = useState({
     data: new Date().toISOString().split('T')[0],
-    valor: 0,
+    valor: '' as any,
     descricao: '',
     tipo: 'operacional' as const,
     centroCustoId: ''
@@ -95,7 +95,7 @@ const Despesas: React.FC = () => {
   const handleOpenModal = () => {
     setFormData({
       data: new Date().toISOString().split('T')[0],
-      valor: 0,
+      valor: '' as any,
       descricao: '',
       tipo: 'operacional',
       centroCustoId: ''
@@ -108,7 +108,7 @@ const Despesas: React.FC = () => {
     setShowModal(false);
     setFormData({
       data: new Date().toISOString().split('T')[0],
-      valor: 0,
+      valor: '' as any,
       descricao: '',
       tipo: 'operacional',
       centroCustoId: ''
@@ -130,7 +130,8 @@ const Despesas: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.descricao.trim() || formData.valor <= 0 || !selectedLocalidade) return;
+    const valorNumerico = parseFloat(formData.valor as any) || 0;
+    if (!formData.descricao.trim() || valorNumerico <= 0 || !selectedLocalidade) return;
 
     setLoading(true);
     setMessage('');
@@ -140,7 +141,7 @@ const Despesas: React.FC = () => {
       if (editingId) {
         await updateDoc(doc(db, 'despesasGerais', editingId), {
           data: formData.data,
-          valor: formData.valor,
+          valor: valorNumerico,
           descricao: formData.descricao.toUpperCase(),
           tipo: formData.tipo,
           centroCustoId: formData.centroCustoId || null
@@ -150,7 +151,7 @@ const Despesas: React.FC = () => {
       } else {
         await addDoc(collection(db, 'despesasGerais'), {
           data: formData.data,
-          valor: formData.valor,
+          valor: valorNumerico,
           descricao: formData.descricao.toUpperCase(),
           tipo: formData.tipo,
           centroCustoId: formData.centroCustoId || null,
@@ -492,7 +493,7 @@ const Despesas: React.FC = () => {
               step="0.01"
               min="0"
               value={formData.valor}
-              onChange={(e) => setFormData({ ...formData, valor: parseFloat(e.target.value) || 0 })}
+              onChange={(e) => setFormData({ ...formData, valor: e.target.value as any })}
               disabled={!isAuthorized}
               required
               placeholder="0.00"
