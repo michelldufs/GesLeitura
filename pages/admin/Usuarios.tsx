@@ -112,6 +112,7 @@ const Usuarios: React.FC = () => {
     const fetchLocalidades = async () => {
         try {
             const locs = await adminService.getLocalidades();
+            console.log('Localidades carregadas:', locs);
             setLocalidades(locs as Localidade[]);
         } catch (error) {
             console.error('Erro ao buscar localidades:', error);
@@ -527,8 +528,14 @@ const Usuarios: React.FC = () => {
                             </div>
 
                             {localidades.length === 0 ? (
-                                <div className="text-center py-4 text-slate-500 text-sm">
-                                    Nenhuma localidade cadastrada
+                                <div className="text-center py-6 text-slate-500 text-sm space-y-2 border border-slate-200/50 rounded-xl p-4 bg-slate-50/30">
+                                    <p className="font-medium">Nenhuma localidade cadastrada</p>
+                                    <p className="text-xs text-slate-400">
+                                        Crie localidades na tela de Localidades para atribuir aos usuários.
+                                    </p>
+                                    <p className="text-xs text-slate-400 mt-3">
+                                        (Localidades carregadas: {localidades.length})
+                                    </p>
                                 </div>
                             ) : (
                                 <div className="max-h-64 overflow-y-auto space-y-2 border border-slate-200/50 rounded-xl p-4 bg-slate-50/30">
