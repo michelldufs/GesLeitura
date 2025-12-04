@@ -30,10 +30,16 @@ const ModalTrocarLocalidade: React.FC<ModalTrocarLocalidadeProps> = ({ isOpen, o
             setLoading(true);
             const locs = await adminService.getLocalidades();
 
-            // Filtrar apenas localidades permitidas para este usuário
-            const allowed = locs.filter((loc: any) =>
-                userProfile?.allowedLocalidades?.includes(loc.id)
-            );
+            // Admin vê todas as localidades, outros veem apenas as permitidas
+            let allowed;
+            if (userProfile?.role === 'admin') {
+                allowed = locs; // Admin vê todas
+            } else {
+                // Filtrar apenas localidades permitidas para este usuário
+                allowed = locs.filter((loc: any) =>
+                    userProfile?.allowedLocalidades?.includes(loc.id)
+                );
+            }
 
             setLocalidades(allowed as Localidade[]);
             setLoading(false);

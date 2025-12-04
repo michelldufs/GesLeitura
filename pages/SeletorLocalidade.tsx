@@ -27,10 +27,16 @@ const SeletorLocalidade: React.FC = () => {
             console.log('Todas as localidades:', locs);
             console.log('Localidades permitidas do usuário:', userProfile?.allowedLocalidades);
 
-            // Filtrar apenas localidades permitidas para este usuário
-            const allowed = locs.filter((loc: any) =>
-                userProfile?.allowedLocalidades?.includes(loc.id)
-            );
+            // Admin vê todas as localidades, outros veem apenas as permitidas
+            let allowed;
+            if (userProfile?.role === 'admin') {
+                allowed = locs; // Admin vê todas
+            } else {
+                // Filtrar apenas localidades permitidas para este usuário
+                allowed = locs.filter((loc: any) =>
+                    userProfile?.allowedLocalidades?.includes(loc.id)
+                );
+            }
             console.log('Localidades filtradas:', allowed);
 
             setLocalidades(allowed as Localidade[]);
