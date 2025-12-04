@@ -100,6 +100,7 @@ export interface Venda {
   comissaoPorcentagem: number;
   valorComissao: number;
   despesa: number; // Expenses paid at the machine
+  centroCustoId?: string; // Centro de custo da despesa
   totalFinal: number; // Net cash to company
   
   status_conferencia: 'pendente' | 'conferido';

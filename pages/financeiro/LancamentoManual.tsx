@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 import { getUltimaLeitura, saveVenda } from '../../services/financeiroService';
 import { Operador, Venda } from '../../types';
-import { GlassCard, AlertBox, PageHeader, InputField, SelectField } from '../../components/MacOSDesign';
-import { Save, Upload } from 'lucide-react';
+import { GlassCard, AlertBox, PageHeader, Modal, ButtonPrimary, ButtonSecondary } from '../../components/MacOSDesign';
+import { Plus, FileText, Eye, Camera } from 'lucide-react';
 
 interface Ponto {
   id: string;
@@ -21,21 +21,30 @@ const LancamentoManual: React.FC = () => {
   const { userProfile } = useAuth();
   const { selectedLocalidade } = useLocalidade();
   const [pontos, setPontos] = useState<Ponto[]>([]);
-  const [operadores, setOperadores] = useState<any[]>([]);
+  const [operadores, setOperadores] = useState<any[]>([]); // Lista completa para tabela
+  const [operadoresFiltrados, setOperadoresFiltrados] = useState<any[]>([]); // Filtrados por ponto
+  const [vendas, setVendas] = useState<any[]>([]);
+  const [centrosCusto, setCentrosCusto] = useState<any[]>([]);
   const [selectedPontoId, setSelectedPontoId] = useState<string>('');
   const [selectedOperadorId, setSelectedOperadorId] = useState<string>('');
   const [selectedPonto, setSelectedPonto] = useState<Ponto | null>(null);
   const [selectedOperador, setSelectedOperador] = useState<any | null>(null);
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [loadingVendas, setLoadingVendas] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [showModal, setShowModal] = useState(false);
   
-  const { register, handleSubmit, watch, setValue, formState: { errors } } = useForm<Venda>({
+  const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<Venda>({
     defaultValues: {
       data: new Date().toISOString().split('T')[0],
       comissaoPorcentagem: 0,
-      despesa: 0
+      despesa: 0,
+      entradaAnterior: undefined,
+      entradaAtual: undefined,
+      saidaAnterior: undefined,
+      saidaAtual: undefined
     }
   });
 
@@ -46,6 +55,7 @@ const LancamentoManual: React.FC = () => {
   const saidaAnterior = watch('saidaAnterior', 0);
   const comissaoPorcentagem = watch('comissaoPorcentagem', 20);
   const despesa = watch('despesa', 0);
+  const centroCustoId = watch('centroCustoId', '');
 
   const totalEntrada = entradaAtual - entradaAnterior;
   const totalSaida = saidaAtual - saidaAnterior;
@@ -58,16 +68,73 @@ const LancamentoManual: React.FC = () => {
 
   useEffect(() => {
     loadPontos();
+    loadVendas();
+    loadAllOperadores(); // Carregar todos operadores para exibir na tabela
+    loadCentrosCusto();
   }, [selectedLocalidade]);
+
+  const loadAllOperadores = async () => {
+    if (!selectedLocalidade) {
+      setOperadores([]);
+      return;
+    }
+
+    try {
+      const operadoresQuery = query(
+        collection(db, 'operadores'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
+      const snapshot = await getDocs(operadoresQuery);
+      const operadoresData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        codigo: doc.data().codigo,
+        nome: doc.data().nome,
+        pontoId: doc.data().pontoId,
+        fatorConversao: doc.data().fatorConversao || 0.01
+      }));
+      operadoresData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
+      setOperadores(operadoresData);
+    } catch (error) {
+      console.error('Erro ao carregar operadores:', error);
+    }
+  };
+
+  const loadCentrosCusto = async () => {
+    if (!selectedLocalidade) {
+      setCentrosCusto([]);
+      return;
+    }
+
+    try {
+      const centrosQuery = query(
+        collection(db, 'centrosCusto'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
+      const snapshot = await getDocs(centrosQuery);
+      const centrosData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        nome: doc.data().nome,
+        descricao: doc.data().descricao
+      }));
+      centrosData.sort((a, b) => a.nome.localeCompare(b.nome));
+      console.log('Centros de Custo carregados:', centrosData);
+      setCentrosCusto(centrosData);
+    } catch (error) {
+      console.error('Erro ao carregar centros de custo:', error);
+    }
+  };
 
   useEffect(() => {
     if (selectedPontoId) {
-      loadOperadores(selectedPontoId);
+      const filtered = operadores.filter(op => op.pontoId === selectedPontoId);
+      setOperadoresFiltrados(filtered);
     } else {
-      setOperadores([]);
+      setOperadoresFiltrados([]);
       setValue('operadorId', '');
     }
-  }, [selectedPontoId]);
+  }, [selectedPontoId, operadores]);
 
   const loadPontos = async () => {
     if (!selectedLocalidade) {
@@ -97,28 +164,87 @@ const LancamentoManual: React.FC = () => {
     }
   };
 
-  const loadOperadores = async (pontoId: string) => {
+  const loadVendas = async () => {
+    if (!selectedLocalidade) {
+      setVendas([]);
+      return;
+    }
+
+    setLoadingVendas(true);
     try {
-      const operadoresQuery = query(
-        collection(db, 'operadores'),
-        where('active', '==', true),
-        where('pontoId', '==', pontoId)
-      );
-      const snapshot = await getDocs(operadoresQuery);
-      const operadoresData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        codigo: doc.data().codigo,
-        nome: doc.data().nome,
-        pontoId: doc.data().pontoId,
-        fatorConversao: doc.data().fatorConversao || 0.01
-      }));
-      // Ordenar por código crescente
-      operadoresData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
-      setOperadores(operadoresData);
+      console.log('Carregando vendas para localidade:', selectedLocalidade);
+      
+      let snapshot;
+      let vendasData: any[] = [];
+      
+      // Tentar query com active e localidadeId
+      try {
+        const vendasQuery = query(
+          collection(db, 'vendas'),
+          where('localidadeId', '==', selectedLocalidade),
+          limit(50)
+        );
+        snapshot = await getDocs(vendasQuery);
+        
+        // Filtrar manualmente por active (caso o campo exista)
+        vendasData = snapshot.docs
+          .map(doc => ({
+            id: doc.id,
+            ...doc.data()
+          }))
+          .filter((venda: any) => venda.active !== false); // Inclui documentos sem o campo active
+        
+        console.log('Query 1 - Total documentos:', snapshot.docs.length, 'Após filtro active:', vendasData.length);
+      } catch (error1: any) {
+        console.warn('Erro na query 1:', error1.message);
+        
+        // Fallback: buscar todas as vendas e filtrar manualmente
+        try {
+          const allVendasQuery = query(
+            collection(db, 'vendas'),
+            limit(100)
+          );
+          snapshot = await getDocs(allVendasQuery);
+          
+          vendasData = snapshot.docs
+            .map(doc => ({
+              id: doc.id,
+              ...doc.data()
+            }))
+            .filter((venda: any) => 
+              venda.localidadeId === selectedLocalidade && 
+              venda.active !== false
+            );
+          
+          console.log('Query 2 (fallback) - Total documentos:', snapshot.docs.length, 'Após filtros:', vendasData.length);
+        } catch (error2) {
+          console.error('Erro na query fallback:', error2);
+        }
+      }
+      
+      // Ordenar manualmente por data
+      vendasData.sort((a: any, b: any) => {
+        const dateA = new Date(a.data || 0).getTime();
+        const dateB = new Date(b.data || 0).getTime();
+        return dateB - dateA; // Decrescente (mais recente primeiro)
+      });
+      
+      console.log('Vendas carregadas:', vendasData.length, vendasData);
+      setVendas(vendasData);
+      
+      if (vendasData.length === 0) {
+        console.warn('Nenhuma venda encontrada. Verifique se as vendas no Firebase têm localidadeId:', selectedLocalidade);
+      }
     } catch (error) {
-      console.error('Erro ao carregar operadores:', error);
+      console.error('Erro ao carregar vendas:', error);
+      setMessage('Erro ao carregar leituras. Verifique o console para mais detalhes.');
+      setMessageType('error');
+    } finally {
+      setLoadingVendas(false);
     }
   };
+
+
 
   const handlePontoChange = (pontoId: string) => {
     setSelectedPontoId(pontoId);
@@ -140,12 +266,14 @@ const LancamentoManual: React.FC = () => {
     
     if (!opId) {
       setSelectedOperador(null);
+      setValue('entradaAnterior', undefined);
+      setValue('saidaAnterior', undefined);
       return;
     }
 
     setLoadingHistory(true);
     try {
-      const operador = operadores.find(op => op.id === opId);
+      const operador = operadoresFiltrados.find(op => op.id === opId);
       setSelectedOperador(operador);
       
       const last = await getUltimaLeitura(opId);
@@ -163,8 +291,45 @@ const LancamentoManual: React.FC = () => {
     }
   };
 
+  const handleOpenModal = () => {
+    reset({
+      data: new Date().toISOString().split('T')[0],
+      comissaoPorcentagem: 0,
+      despesa: 0,
+      entradaAnterior: undefined,
+      saidaAnterior: undefined,
+      entradaAtual: undefined,
+      saidaAtual: undefined
+    });
+    setSelectedPontoId('');
+    setSelectedOperadorId('');
+    setSelectedPonto(null);
+    setSelectedOperador(null);
+    setMessage('');
+    setMessageType('');
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
+
   const onSubmit = async (data: Venda) => {
     if (!userProfile) return;
+    
+    // Validar localidade selecionada
+    if (!selectedLocalidade) {
+      setMessage('Por favor, selecione uma localidade antes de salvar a leitura.');
+      setMessageType('error');
+      return;
+    }
+    
+    // Validar centro de custo se houver despesa
+    if (data.despesa > 0 && !data.centroCustoId) {
+      setMessage('Por favor, selecione um Centro de Custo para a despesa informada.');
+      setMessageType('error');
+      return;
+    }
     
     setLoading(true);
     setMessage('');
@@ -185,12 +350,23 @@ const LancamentoManual: React.FC = () => {
         status_conferencia: 'pendente' as const,
         fotoUrl: '',
         userId: userProfile.uid,
-        localidadeId: operador?.localidadeId || ''
+        localidadeId: selectedLocalidade,
+        centroCustoId: data.centroCustoId || null
       };
+      
+      console.log('Salvando venda com payload:', payload);
 
       await saveVenda(payload, userProfile.uid);
       setMessage('Leitura salva com sucesso!');
       setMessageType('success');
+      handleCloseModal();
+      loadVendas(); // Recarregar listagem
+      
+      // Limpar mensagem após 3s
+      setTimeout(() => {
+        setMessage('');
+        setMessageType('');
+      }, 3000);
     } catch (error: any) {
       setMessage(error.message || 'Erro ao salvar leitura');
       setMessageType('error');
@@ -203,29 +379,230 @@ const LancamentoManual: React.FC = () => {
   const isAuthorized = userProfile && ['admin', 'gerente', 'coleta'].includes(userProfile.role);
 
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <PageHeader 
-        title="Lançamento de Leitura"
-        subtitle="Registre leituras manuais de máquinas e operadores"
-      />
-
-      {!isAuthorized && (
-        <AlertBox 
-          type="warning"
-          message={`Seu perfil (${userProfile?.role}) não possui permissão para lançar leituras.`}
+    <>
+      <div className="p-8 max-w-7xl mx-auto">
+        <PageHeader 
+          title="Lançamento de Leitura"
+          subtitle="Registre leituras manuais de máquinas e operadores"
+          action={
+            isAuthorized ? (
+              <ButtonPrimary onClick={handleOpenModal}>
+                <Plus size={20} />
+                Nova Leitura
+              </ButtonPrimary>
+            ) : undefined
+          }
         />
-      )}
 
-      {message && (
-        <div className="mb-6">
+        {!isAuthorized && (
           <AlertBox 
-            type={messageType as 'success' | 'error' | 'warning' | 'info'}
-            message={message}
+            type="warning"
+            message={`Seu perfil (${userProfile?.role}) não possui permissão para lançar leituras.`}
           />
-        </div>
-      )}
+        )}
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+        {message && (
+          <div className="mb-6">
+            <AlertBox 
+              type={messageType as 'success' | 'error' | 'warning' | 'info'}
+              message={message}
+            />
+          </div>
+        )}
+
+        {/* Tabela de Leituras Cadastradas */}
+        <GlassCard className="overflow-hidden">
+        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+            <FileText size={20} />
+            Leituras Cadastradas
+            <span className="text-xs text-slate-500 font-normal ml-2">({vendas.length} encontradas)</span>
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={async () => {
+                if (!selectedLocalidade) {
+                  alert('Selecione uma localidade primeiro!');
+                  return;
+                }
+                if (!confirm('Deseja corrigir todas as vendas sem localidade, atribuindo a localidade atual?')) {
+                  return;
+                }
+                
+                try {
+                  const { collection, query, where, getDocs, updateDoc, doc } = await import('firebase/firestore');
+                  const { db } = await import('../../services/firebaseConfig');
+                  
+                  // Buscar vendas sem localidade ou com localidade vazia
+                  const vendasQuery = query(
+                    collection(db, 'vendas'),
+                    where('localidadeId', 'in', ['', null])
+                  );
+                  
+                  const snapshot = await getDocs(vendasQuery);
+                  console.log(`Encontradas ${snapshot.docs.length} vendas sem localidade`);
+                  
+                  let count = 0;
+                  for (const docSnap of snapshot.docs) {
+                    await updateDoc(doc(db, 'vendas', docSnap.id), {
+                      localidadeId: selectedLocalidade
+                    });
+                    count++;
+                  }
+                  
+                  alert(`${count} vendas corrigidas com sucesso!`);
+                  loadVendas();
+                } catch (error) {
+                  console.error('Erro ao corrigir vendas:', error);
+                  alert('Erro ao corrigir vendas. Veja o console.');
+                }
+              }}
+              className="text-xs px-3 py-1 bg-orange-100 hover:bg-orange-200 text-orange-700 rounded-lg transition-colors font-medium"
+            >
+              🔧 Corrigir Vendas
+            </button>
+            <button
+              onClick={() => {
+                console.log('=== DEBUG INFO ===');
+                console.log('Localidade selecionada:', selectedLocalidade);
+                console.log('Total de vendas:', vendas.length);
+                console.log('Vendas:', vendas);
+                console.log('Pontos carregados:', pontos.length);
+                console.log('Operadores carregados:', operadores.length);
+                loadVendas();
+              }}
+              className="text-xs px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg transition-colors"
+            >
+              🔄 Recarregar
+            </button>
+          </div>
+        </div>
+
+        {loadingVendas ? (
+          <div className="p-12 text-center">
+            <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="mt-4 text-slate-600">Carregando leituras...</p>
+          </div>
+        ) : vendas.length === 0 ? (
+          <div className="p-12 text-center">
+            <FileText size={48} className="mx-auto text-slate-300 mb-4" />
+            <p className="text-slate-500 font-medium">Nenhuma leitura encontrada para esta localidade.</p>
+            <p className="text-sm text-slate-400 mt-2">Clique em "Nova Leitura" para cadastrar a primeira leitura.</p>
+            {!selectedLocalidade && (
+              <p className="text-xs text-orange-600 mt-2">⚠️ Selecione uma localidade no topo da página</p>
+            )}
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full">
+              <thead className="bg-slate-50 border-b border-slate-200">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Data</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Ponto</th>
+                  <th className="px-6 py-3 text-left text-xs font-bold text-slate-700 uppercase tracking-wider">Operador</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Total Geral</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Comissão</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Despesa</th>
+                  <th className="px-6 py-3 text-right text-xs font-bold text-slate-700 uppercase tracking-wider">Total Final</th>
+                  <th className="px-6 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wider">Status</th>
+                  <th className="px-6 py-3 text-center text-xs font-bold text-slate-700 uppercase tracking-wider">Ações</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-200">
+                {vendas.map((venda) => {
+                  const ponto = pontos.find(p => p.id === venda.pontoId);
+                  const operador = operadores.find(o => o.id === venda.operadorId);
+                  
+                  console.log('Renderizando venda:', {
+                    id: venda.id,
+                    data: venda.data,
+                    pontoId: venda.pontoId,
+                    operadorId: venda.operadorId,
+                    ponto: ponto?.nome,
+                    operador: operador?.nome
+                  });
+                  
+                  return (
+                    <tr key={venda.id} className="hover:bg-slate-50 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                        {new Date(venda.data).toLocaleDateString('pt-BR')}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                        {ponto?.codigo} - {ponto?.nome || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-900">
+                        {operador?.codigo} - {operador?.nome || 'N/A'}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono font-semibold text-slate-900">
+                        R$ {(venda.totalGeral || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono text-yellow-700">
+                        R$ {(venda.valorComissao || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 text-sm text-right">
+                        {venda.despesa > 0 ? (
+                          <div className="flex flex-col items-end">
+                            <span className="font-mono text-orange-700 font-semibold">
+                              R$ {venda.despesa.toFixed(2)}
+                            </span>
+                            {venda.centroCustoId && (
+                              <span className="text-xs text-slate-500 mt-0.5" title={centrosCusto.find(c => c.id === venda.centroCustoId)?.nome}>
+                                {centrosCusto.find(c => c.id === venda.centroCustoId)?.nome || 'N/A'}
+                              </span>
+                            )}
+                          </div>
+                        ) : (
+                          <span className="font-mono text-slate-400">R$ 0,00</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-right font-mono font-bold text-blue-600">
+                        R$ {(venda.totalFinal || 0).toFixed(2)}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                          venda.status_conferencia === 'conferido' 
+                            ? 'bg-green-100 text-green-800' 
+                            : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {venda.status_conferencia === 'conferido' ? 'Conferido' : 'Pendente'}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-center">
+                        <button
+                          className="text-blue-600 hover:text-blue-800 transition-colors p-1"
+                          title="Visualizar"
+                        >
+                          <Eye size={18} />
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        </GlassCard>
+      </div>
+
+      {/* Modal de Nova Leitura */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-4xl my-8 max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-slate-200 px-8 py-6 flex items-center justify-between z-10">
+              <h2 className="text-2xl font-bold text-slate-900">Nova Leitura</h2>
+              <button
+                onClick={handleCloseModal}
+                type="button"
+                className="text-slate-400 hover:text-slate-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit(onSubmit)} className="p-8 space-y-6">
         
         {/* Header Selection - Data, Rota, Ponto/Máquina */}
         <GlassCard className="p-6">
@@ -275,7 +652,7 @@ const LancamentoManual: React.FC = () => {
                 className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
               >
                 <option value="">Selecione a máquina...</option>
-                {operadores.map(op => (
+                {operadoresFiltrados.map(op => (
                   <option key={op.id} value={op.id}>
                     {op.codigo} - {op.nome}
                   </option>
@@ -299,6 +676,7 @@ const LancamentoManual: React.FC = () => {
                 <input 
                   {...register('entradaAnterior')} 
                   readOnly 
+                  placeholder="-"
                   className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 font-mono text-sm"
                 />
               </div>
@@ -310,6 +688,7 @@ const LancamentoManual: React.FC = () => {
                   type="number" 
                   {...register('entradaAtual', { valueAsNumber: true, required: 'Obrigatório' })} 
                   disabled={!isAuthorized}
+                  placeholder="Digite o valor"
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-green-500 outline-none disabled:bg-slate-50 font-mono text-sm"
                 />
               </div>
@@ -331,6 +710,7 @@ const LancamentoManual: React.FC = () => {
                 <input 
                   {...register('saidaAnterior')} 
                   readOnly 
+                  placeholder="-"
                   className="w-full bg-slate-100 border border-slate-300 rounded-lg px-3 py-2 text-slate-700 font-mono text-sm"
                 />
               </div>
@@ -342,6 +722,7 @@ const LancamentoManual: React.FC = () => {
                   type="number" 
                   {...register('saidaAtual', { valueAsNumber: true, required: 'Obrigatório' })} 
                   disabled={!isAuthorized}
+                  placeholder="Digite o valor"
                   className="w-full bg-white border border-slate-300 rounded-lg px-3 py-2 text-slate-900 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-slate-50 font-mono text-sm"
                 />
               </div>
@@ -398,6 +779,36 @@ const LancamentoManual: React.FC = () => {
               </div>
             </div>
 
+            {/* Centro de Custo - Aparece apenas se despesa > 0 */}
+            {despesa > 0 && (
+              <div className="bg-orange-50 border-2 border-orange-200 rounded-xl p-4">
+                <label className="block text-sm font-semibold text-slate-700 mb-2">
+                  🎯 Centro de Custo <span className="text-red-500">*</span>
+                  <span className="text-xs text-slate-500 ml-2">({centrosCusto.length} disponíveis)</span>
+                </label>
+                <select
+                  {...register('centroCustoId', { 
+                    required: despesa > 0 ? 'Centro de Custo é obrigatório quando há despesa' : false 
+                  })}
+                  disabled={!isAuthorized}
+                  className="w-full bg-white border border-orange-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-orange-500 outline-none disabled:bg-slate-50"
+                >
+                  <option value="">Selecione o centro de custo...</option>
+                  {centrosCusto.map(centro => (
+                    <option key={centro.id} value={centro.id}>
+                      {centro.nome}
+                    </option>
+                  ))}
+                </select>
+                {centrosCusto.length === 0 && (
+                  <p className="text-xs text-orange-600 mt-2">
+                    ⚠️ Nenhum centro de custo cadastrado para esta localidade. 
+                    Vá em Financeiro → Despesas para cadastrar centros de custo.
+                  </p>
+                )}
+              </div>
+            )}
+
             {/* Total Final (Caixa) em Destaque */}
             <div className="bg-gradient-to-r from-blue-50 to-blue-100 border-2 border-blue-300 rounded-xl p-6">
               <div className="flex items-center justify-between">
@@ -439,17 +850,27 @@ const LancamentoManual: React.FC = () => {
           </div>
         </GlassCard>
 
-        <button 
-          type="submit" 
-          disabled={!isAuthorized || loading}
-          className={`w-full py-4 rounded-xl font-bold text-lg text-white transition-all duration-300 flex items-center justify-center gap-2 ${
-            isAuthorized && !loading ? 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 shadow-lg hover:shadow-xl transform hover:scale-[1.02]' : 'bg-slate-400 cursor-not-allowed'
-          }`}
-        >
-          <Save size={22} /> {loading ? 'Salvando...' : 'Salvar'}
-        </button>
-      </form>
-    </div>
+              <div className="flex gap-3 sticky bottom-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-8 py-6 -mx-8 -mb-8 mt-6">
+                <button
+                  onClick={handleCloseModal}
+                  type="button"
+                  className="flex-1 px-6 py-3 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded-lg transition-colors"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="flex-1 px-6 py-3 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 text-white font-semibold rounded-lg transition-colors disabled:cursor-not-allowed"
+                >
+                  {loading ? 'Salvando...' : 'Salvar Leitura'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </>
   );
 };
 
