@@ -1,15 +1,27 @@
 import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
-import { getActiveCollection } from '../../services/operacionalService';
+import { useLocalidade } from '../../contexts/LocalidadeContext';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../services/firebaseConfig';
 import { getUltimaLeitura, saveVenda } from '../../services/financeiroService';
 import { Operador, Venda } from '../../types';
 import { GlassCard, AlertBox, PageHeader, InputField, SelectField } from '../../components/MacOSDesign';
 import { Save, Upload } from 'lucide-react';
 
+interface Ponto {
+  id: string;
+  codigo: string;
+  nome: string;
+  localidadeId: string;
+}
+
 const LancamentoManual: React.FC = () => {
   const { userProfile } = useAuth();
+  const { selectedLocalidade } = useLocalidade();
+  const [pontos, setPontos] = useState<Ponto[]>([]);
   const [operadores, setOperadores] = useState<Operador[]>([]);
+  const [selectedPontoId, setSelectedPontoId] = useState<string>('');
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -33,8 +45,58 @@ const LancamentoManual: React.FC = () => {
   const totalFinal = totalGeral - valorComissao - despesa;
 
   useEffect(() => {
-    getActiveCollection<Operador>('operadores').then(setOperadores);
-  }, []);
+    loadPontos();
+  }, [selectedLocalidade]);
+
+  useEffect(() => {
+    if (selectedPontoId) {
+      loadOperadores(selectedPontoId);
+    } else {
+      setOperadores([]);
+      setValue('operadorId', '');
+    }
+  }, [selectedPontoId]);
+
+  const loadPontos = async () => {
+    if (!selectedLocalidade) {
+      setPontos([]);
+      return;
+    }
+
+    try {
+      const pontosQuery = query(
+        collection(db, 'pontos'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
+      const snapshot = await getDocs(pontosQuery);
+      const pontosData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Ponto));
+      setPontos(pontosData);
+    } catch (error) {
+      console.error('Erro ao carregar pontos:', error);
+    }
+  };
+
+  const loadOperadores = async (pontoId: string) => {
+    try {
+      const operadoresQuery = query(
+        collection(db, 'operadores'),
+        where('active', '==', true),
+        where('pontoId', '==', pontoId)
+      );
+      const snapshot = await getDocs(operadoresQuery);
+      const operadoresData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      } as Operador));
+      setOperadores(operadoresData);
+    } catch (error) {
+      console.error('Erro ao carregar operadores:', error);
+    }
+  };
 
   const handleOperadorChange = async (e: React.ChangeEvent<HTMLSelectElement>) => {
     const opId = e.target.value;
@@ -123,20 +185,51 @@ const LancamentoManual: React.FC = () => {
         
         {/* Selection Card */}
         <GlassCard className="p-6">
-          <label className="block text-sm font-semibold text-slate-700 mb-3">Operador / Máquina</label>
-          <select 
-            {...register('operadorId', { required: 'Operador é obrigatório' })}
-            onChange={handleOperadorChange}
-            disabled={!isAuthorized}
-            className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
-          >
-            <option value="">Selecione...</option>
-            {operadores.map(op => (
-              <option key={op.id} value={op.id}>{op.nome} - {op.codigo}</option>
-            ))}
-          </select>
-          {loadingHistory && <p className="text-xs text-blue-500 mt-2">Buscando histórico...</p>}
-          {errors.operadorId && <p className="text-xs text-red-500 mt-2">{errors.operadorId.message}</p>}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Seleção de Ponto */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700">Ponto de Venda</label>
+              <select 
+                value={selectedPontoId}
+                onChange={(e) => setSelectedPontoId(e.target.value)}
+                disabled={!isAuthorized}
+                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
+              >
+                <option value="">Selecione o ponto...</option>
+                {pontos.map(ponto => (
+                  <option key={ponto.id} value={ponto.id}>
+                    {ponto.codigo} - {ponto.nome}
+                  </option>
+                ))}
+              </select>
+              {!selectedPontoId && pontos.length === 0 && (
+                <p className="text-xs text-slate-500 mt-2">Nenhum ponto disponível na localidade selecionada</p>
+              )}
+            </div>
+
+            {/* Seleção de Operador/Máquina */}
+            <div className="space-y-2">
+              <label className="block text-sm font-semibold text-slate-700">Operador / Máquina</label>
+              <select 
+                {...register('operadorId', { required: 'Operador é obrigatório' })}
+                onChange={handleOperadorChange}
+                disabled={!isAuthorized || !selectedPontoId}
+                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
+              >
+                <option value="">Selecione a máquina...</option>
+                {operadores.map(op => (
+                  <option key={op.id} value={op.id}>
+                    {op.codigo} - {op.nome}
+                  </option>
+                ))}
+              </select>
+              {loadingHistory && <p className="text-xs text-blue-500 mt-2">Buscando histórico...</p>}
+              {errors.operadorId && <p className="text-xs text-red-500 mt-2">{errors.operadorId.message}</p>}
+              {selectedPontoId && operadores.length === 0 && !loadingHistory && (
+                <p className="text-xs text-slate-500 mt-2">Nenhuma máquina cadastrada neste ponto</p>
+              )}
+            </div>
+          </div>
         </GlassCard>
 
         {/* Counters Grid */}
