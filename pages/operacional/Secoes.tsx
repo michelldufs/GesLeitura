@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
+import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
 
@@ -19,6 +20,7 @@ interface Localidade {
 
 const Secoes: React.FC = () => {
   const { userProfile } = useAuth();
+  const { selectedLocalidade } = useLocalidade();
   const [secoes, setSecoes] = useState<Secao[]>([]);
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
   const [showModal, setShowModal] = useState(false);
@@ -35,18 +37,43 @@ const Secoes: React.FC = () => {
 
   useEffect(() => {
     loadData();
-  }, []);
+  }, [selectedLocalidade]);
 
   const loadData = async () => {
     try {
+      // Carregar localidades permitidas do usuário
       const locQuery = query(collection(db, 'localidades'), where('active', '==', true));
       const locSnapshot = await getDocs(locQuery);
       const locData = locSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Localidade));
       setLocalidades(locData);
 
-      const secQuery = query(collection(db, 'secoes'), where('active', '==', true));
+      // Se usuário é admin, carrega todas as seções de todas as localidades
+      // Se não é admin, carrega apenas seções da localidade selecionada
+      let secQuery;
+      if (userProfile?.role === 'admin') {
+        secQuery = query(collection(db, 'secoes'), where('active', '==', true));
+      } else if (selectedLocalidade) {
+        secQuery = query(
+          collection(db, 'secoes'),
+          where('active', '==', true),
+          where('localidadeId', '==', selectedLocalidade)
+        );
+      } else {
+        // Se não tem localidade selecionada (não deveria acontecer), mostra vazio
+        setSecoes([]);
+        return;
+      }
+
       const secSnapshot = await getDocs(secQuery);
-      const secData = secSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Secao));
+      const secData = secSnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          nome: data.nome,
+          localidadeId: data.localidadeId,
+          active: data.active
+        } as Secao;
+      });
       setSecoes(secData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
