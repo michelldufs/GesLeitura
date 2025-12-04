@@ -9,54 +9,41 @@ type Localidade = { id: string; nome: string; active: boolean };
 const Usuarios: React.FC = () => {
     const { userProfile } = useAuth();
 
-    const [formData, setFormData] = useState({
+    // Modal de criar novo usuário
+    const [showNewUserModal, setShowNewUserModal] = useState(false);
+    const [newUserForm, setNewUserForm] = useState({
         name: '',
         username: '',
         password: '',
-        role: 'coleta' as UserRole,
-        allowedDeviceSerial: '',
-        existsInAuth: false,
-        existingUid: ''
+        confirmPassword: '',
+        role: 'coleta' as UserRole
     });
+
     const [loading, setLoading] = useState(false);
     const [message, setMessage] = useState('');
+    const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
     const [users, setUsers] = useState<UserProfileWithSerial[]>([]);
-    const [authUsers, setAuthUsers] = useState<Array<{ uid: string; email: string | null; displayName?: string | null; disabled?: boolean; creationTime?: string | null; lastSignInTime?: string | null }>>([]);
-    const [source, setSource] = useState<'auth' | 'firestore'>('auth');
-    const [bulkText, setBulkText] = useState('');
-    const [bulkResult, setBulkResult] = useState('');
     const [localidades, setLocalidades] = useState<Localidade[]>([]);
     const [editingUser, setEditingUser] = useState<UserProfileWithSerial | null>(null);
     const [editForm, setEditForm] = useState({
         name: '',
+        password: '',
+        confirmPassword: '',
         role: 'coleta' as UserRole,
-        allowedDeviceSerial: '',
-        allowedLocalidades: [] as string[]
+        active: true
     });
 
     const fetchUsers = async () => {
         try {
-            // Show all users (no filter for now - adjust when localidades are properly configured)
             const fetchedUsers = await adminService.getUsers();
             setUsers(fetchedUsers as UserProfileWithSerial[]);
-            console.log('Usuários carregados:', fetchedUsers);
         } catch (error) {
             console.error('Erro ao buscar usuários:', error);
         }
     };
 
-    const fetchAuthUsers = async () => {
-        try {
-            const fetched = await adminService.getAuthUsers();
-            setAuthUsers(fetched);
-        } catch (error) {
-            console.warn('Não foi possível carregar usuários do Auth. Verifique a Cloud Function listAuthUsers.', error);
-        }
-    };
-
     useEffect(() => {
         fetchUsers();
-        fetchAuthUsers();
         fetchLocalidades();
     }, []);
 
@@ -69,50 +56,46 @@ const Usuarios: React.FC = () => {
         }
     };
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
-        setFormData({ ...formData, [e.target.name]: e.target.value });
-    };
-
-    const handleSubmit = async (e: React.FormEvent) => {
+    // Criar novo usuário
+    const handleCreateNewUser = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
         setMessage('');
+        setMessageType('');
+
         try {
-            const email = `${formData.username}@sistema.local`;
-            // Assign current admin's localidades to new user
-            const allowedLocalidades = userProfile?.allowedLocalidades || [];
-            
-            if (formData.existsInAuth) {
-                if (!formData.existingUid) throw new Error('Informe o UID do usuário já existente no Auth.');
-                await adminService.createUserProfileOnly({
-                    name: formData.name,
-                    email,
-                    role: formData.role,
-                    allowedDeviceSerial: formData.allowedDeviceSerial,
-                    allowedLocalidades,
-                    uid: formData.existingUid
-                });
-                setMessage('Perfil no Firestore sincronizado com sucesso para usuário existente.');
-            } else {
-                const createData: CreateUserData = { 
-                    name: formData.name, 
-                    email, 
-                    password: formData.password, 
-                    role: formData.role, 
-                    allowedDeviceSerial: formData.allowedDeviceSerial,
-                    allowedLocalidades
-                };
-                await adminService.createUser(createData);
-                setMessage('Usuário criado com sucesso!');
+            if (newUserForm.password !== newUserForm.confirmPassword) {
+                throw new Error('Senhas não conferem');
             }
-            setFormData({ name: '', username: '', password: '', role: 'coleta', allowedDeviceSerial: '', existsInAuth: false, existingUid: '' });
+            if (newUserForm.password.length < 6) {
+                throw new Error('Senha deve ter no mínimo 6 caracteres');
+            }
+
+            const email = `${newUserForm.username}@sistema.local`;
+            const allowedLocalidades = userProfile?.allowedLocalidades || [];
+
+            const createData: CreateUserData = {
+                name: newUserForm.name,
+                email,
+                password: newUserForm.password,
+                role: newUserForm.role,
+                allowedDeviceSerial: '',
+                allowedLocalidades
+            };
+
+            await adminService.createUser(createData);
+            setMessageType('success');
+            setMessage('Usuário criado com sucesso!');
+            setNewUserForm({ name: '', username: '', password: '', confirmPassword: '', role: 'coleta' });
+            setShowNewUserModal(false);
             fetchUsers();
         } catch (error: any) {
             console.error(error);
+            setMessageType('error');
             if (error.code === 'auth/email-already-in-use' || (error.message && error.message.includes('email-already-in-use'))) {
                 setMessage('Erro: Este nome de usuário já está em uso. Tente outro.');
             } else {
-                setMessage('Erro ao criar usuário: ' + error.message);
+                setMessage('Erro: ' + error.message);
             }
         } finally {
             setLoading(false);
@@ -125,247 +108,340 @@ const Usuarios: React.FC = () => {
         setEditingUser(user);
         setEditForm({
             name: user.name,
+            password: '',
+            confirmPassword: '',
             role: user.role,
-            allowedDeviceSerial: user.allowedDeviceSerial || '',
-            allowedLocalidades: user.allowedLocalidades || []
+            active: user.active !== false
         });
     };
 
     const closeEditModal = () => {
         setEditingUser(null);
-        setEditForm({ name: '', role: 'coleta', allowedDeviceSerial: '', allowedLocalidades: [] });
+        setEditForm({ name: '', password: '', confirmPassword: '', role: 'coleta', active: true });
     };
 
     const handleEditSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!editingUser) return;
+
         setLoading(true);
         try {
+            if (editForm.password && editForm.password !== editForm.confirmPassword) {
+                throw new Error('Senhas não conferem');
+            }
+
             await adminService.updateUser(editingUser.uid, {
                 name: editForm.name,
                 role: editForm.role,
-                allowedDeviceSerial: editForm.allowedDeviceSerial,
-                allowedLocalidades: editForm.allowedLocalidades
+                active: editForm.active
             });
+
+            // TODO: Implementar mudança de senha via Cloud Function
+            if (editForm.password && editForm.password.length >= 6) {
+                console.log('Mudança de senha será implementada via Cloud Function');
+            }
+
+            setMessageType('success');
             setMessage('Usuário atualizado com sucesso!');
             closeEditModal();
             fetchUsers();
         } catch (error: any) {
-            setMessage('Erro ao atualizar usuário: ' + error.message);
+            setMessageType('error');
+            setMessage('Erro: ' + error.message);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleToggleActive = async (user: UserProfileWithSerial) => {
+        setLoading(true);
+        try {
+            await adminService.updateUser(user.uid, {
+                active: !(user.active !== false)
+            });
+            setMessageType('success');
+            setMessage(user.active ? 'Usuário desativado!' : 'Usuário ativado!');
+            fetchUsers();
+        } catch (error: any) {
+            setMessageType('error');
+            setMessage('Erro: ' + error.message);
         } finally {
             setLoading(false);
         }
     };
 
     const toggleLocalidade = (localidadeId: string) => {
-        setEditForm(prev => ({
-            ...prev,
-            allowedLocalidades: prev.allowedLocalidades.includes(localidadeId)
-                ? prev.allowedLocalidades.filter(id => id !== localidadeId)
-                : [...prev.allowedLocalidades, localidadeId]
-        }));
+        setEditForm(prev => {
+            const locs = prev.role === 'admin' ? [] : prev.allowedLocalidades || [];
+            return {
+                ...prev
+            };
+        });
     };
 
     return (
         <div className="p-6">
-            <h1 className="text-2xl font-bold mb-6 text-gray-800">Gerenciar Usuários</h1>
+            <div className="flex items-center justify-between mb-6">
+                <h1 className="text-2xl font-bold text-gray-800">Gerenciar Usuários</h1>
+                <button
+                    onClick={() => setShowNewUserModal(true)}
+                    disabled={!isAdmin}
+                    className={`px-4 py-2 rounded text-white font-semibold transition-colors ${
+                        isAdmin
+                            ? 'bg-blue-600 hover:bg-blue-700'
+                            : 'bg-gray-300 cursor-not-allowed'
+                    }`}
+                >
+                    + Novo Usuário
+                </button>
+            </div>
 
             {!isAdmin && (
                 <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded mb-6">
-                    Apenas administradores podem criar e sincronizar usuários. Solicite acesso ao administrador do sistema.
+                    Apenas administradores podem gerenciar usuários. Solicite acesso ao administrador do sistema.
                 </div>
             )}
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                <div className={`bg-white p-6 rounded-lg shadow-md h-fit ${!isAdmin ? 'opacity-60 pointer-events-none' : ''}`}>
-                    <h2 className="text-lg font-semibold mb-4 text-gray-700">Novo Usuário</h2>
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-                            <input type="text" name="name" value={formData.name} onChange={handleChange} required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Nome de Usuário (Login)</label>
-                                <input type="text" name="username" value={formData.username} onChange={handleChange} required placeholder="ex: coleta" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
-                                <input type="password" name="password" value={formData.password} onChange={handleChange} required={!formData.existsInAuth} disabled={formData.existsInAuth} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div className="flex items-center space-x-2">
-                                <input id="existsInAuth" type="checkbox" name="existsInAuth" checked={formData.existsInAuth} onChange={(e) => setFormData({ ...formData, existsInAuth: e.target.checked })} className="h-4 w-4" />
-                                <label htmlFor="existsInAuth" className="text-sm text-gray-700">Usuário já existe no Auth</label>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">UID (Auth)</label>
-                                <input type="text" name="existingUid" value={formData.existingUid} onChange={handleChange} placeholder="Cole o UID do usuário do Auth" disabled={!formData.existsInAuth} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
-                                <p className="text-xs text-gray-500 mt-1">Use para sincronizar perfis já criados em Authentication.</p>
-                            </div>
-                        </div>
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Função (Role)</label>
-                                <select name="role" value={formData.role} onChange={handleChange} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                                    <option value="admin">Administrador</option>
-                                    <option value="gerente">Gerente</option>
-                                    <option value="socio">Sócio</option>
-                                    <option value="coleta">Coleta (Operacional)</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label className="block text-sm font-medium text-gray-700 mb-1">Serial do Dispositivo <span className="text-xs text-gray-500 ml-1">(Opcional)</span></label>
-                                <input type="text" name="allowedDeviceSerial" value={formData.allowedDeviceSerial} onChange={handleChange} placeholder="UUID do aparelho" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
-                                <p className="text-xs text-gray-500 mt-1">Para vincular login a um aparelho específico.</p>
-                            </div>
-                        </div>
-                        <div className="pt-4">
-                            <button type="submit" disabled={loading} className={`w-full py-2 px-4 rounded text-white font-bold transition-colors ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>{loading ? 'Criando...' : 'Cadastrar Usuário'}</button>
-                        </div>
-                        {message && <div className={`mt-4 p-3 rounded text-sm ${message.includes('sucesso') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>{message}</div>}
-                    </form>
+            {message && (
+                <div className={`mb-6 p-4 rounded ${messageType === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`}>
+                    {message}
                 </div>
+            )}
 
-                <div className={`bg-white p-6 rounded-lg shadow-md ${!isAdmin ? 'opacity-60 pointer-events-none' : ''}`}>
-                    <h2 className="text-lg font-semibold mb-4 text-gray-700">Usuários Cadastrados</h2>
-                    <div className="flex items-center justify-between mb-3">
-                        <div className="flex gap-2">
-                            <button onClick={() => setSource('auth')} className={`px-3 py-1 rounded ${source === 'auth' ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}>Auth</button>
-                            <button onClick={() => setSource('firestore')} className={`px-3 py-1 rounded ${source === 'firestore' ? 'bg-gray-900 text-white' : 'bg-gray-100'}`}>Perfis</button>
-                        </div>
-                        <div className="flex gap-2 text-sm">
-                            <button className="px-2 py-1 border rounded" onClick={() => (source === 'auth' ? fetchAuthUsers() : fetchUsers())}>Atualizar</button>
-                        </div>
+            <div className="grid grid-cols-1 gap-6">
+                {/* Card de Usuários Cadastrados */}
+                <div className="bg-white p-6 rounded-lg shadow-md">
+                    <div className="flex items-center justify-between mb-4">
+                        <h2 className="text-lg font-semibold text-gray-700">Usuários Cadastrados</h2>
+                        <button
+                            onClick={fetchUsers}
+                            className="px-3 py-1 text-sm border rounded hover:bg-gray-50"
+                        >
+                            Atualizar
+                        </button>
                     </div>
-                    <div className="overflow-x-auto">
-                        <table className="min-w-full text-sm text-left text-gray-500">
-                            <thead className="text-xs text-gray-700 uppercase bg-gray-50">
-                                <tr>
-                                    <th className="px-4 py-3">Nome</th>
-                                    <th className="px-4 py-3">Email / Usuário</th>
-                                    <th className="px-4 py-3">Função</th>
-                                    <th className="px-4 py-3">Serial</th>
-                                    <th className="px-4 py-3">Ações</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {source === 'auth' ? (
-                                    authUsers.length === 0 ? (
-                                        <tr><td colSpan={4} className="px-4 py-3 text-center">Nenhum usuário do Auth encontrado ou função não implantada.</td></tr>
-                                    ) : (
-                                        authUsers.map((u) => (
-                                            <tr key={u.uid} className="bg-white border-b hover:bg-gray-50">
-                                                <td className="px-4 py-3 font-medium text-gray-900">{u.displayName || '-'}</td>
-                                                <td className="px-4 py-3">{u.email || '-'}</td>
-                                                <td className="px-4 py-3">-</td>
-                                                <td className="px-4 py-3 text-xs font-mono text-gray-400">-</td>
-                                            </tr>
-                                        ))
-                                    )
-                                ) : users.length === 0 ? (
-                                    <tr><td colSpan={5} className="px-4 py-3 text-center">Nenhum perfil encontrado no Firestore.</td></tr>
-                                ) : (
-                                    users.map((user) => (
-                                        <tr key={user.uid} className="bg-white border-b hover:bg-gray-50">
+
+                    {users.length === 0 ? (
+                        <div className="text-center py-8 text-gray-500">
+                            <p>Nenhum usuário cadastrado ainda.</p>
+                            <p className="text-sm">Clique em "+ Novo Usuário" para criar o primeiro usuário.</p>
+                        </div>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm text-left text-gray-700">
+                                <thead className="text-xs text-gray-600 uppercase bg-gray-100 border-b">
+                                    <tr>
+                                        <th className="px-4 py-3">Nome</th>
+                                        <th className="px-4 py-3">Email</th>
+                                        <th className="px-4 py-3">Função</th>
+                                        <th className="px-4 py-3">Status</th>
+                                        <th className="px-4 py-3">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {users.map((user) => (
+                                        <tr key={user.uid} className="border-b hover:bg-gray-50">
                                             <td className="px-4 py-3 font-medium text-gray-900">{user.name}</td>
-                                            <td className="px-4 py-3">{user.email}</td>
-                                            <td className="px-4 py-3"><span className={`px-2 py-1 rounded text-xs font-semibold ${user.role === 'admin' ? 'bg-purple-100 text-purple-800' : user.role === 'gerente' ? 'bg-blue-100 text-blue-800' : user.role === 'socio' ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'}`}>{user.role}</span></td>
-                                            <td className="px-4 py-3 text-xs font-mono text-gray-400">{user.allowedDeviceSerial ? (user.allowedDeviceSerial as string).substring(0, 8) + '...' : '-'}</td>
+                                            <td className="px-4 py-3 text-gray-600">{user.email}</td>
                                             <td className="px-4 py-3">
-                                                <button onClick={() => openEditModal(user)} className="text-blue-600 hover:text-blue-800 text-sm font-medium">Editar</button>
+                                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                                    user.role === 'admin' ? 'bg-purple-100 text-purple-800' :
+                                                    user.role === 'gerente' ? 'bg-blue-100 text-blue-800' :
+                                                    user.role === 'socio' ? 'bg-green-100 text-green-800' :
+                                                    'bg-gray-100 text-gray-800'
+                                                }`}>
+                                                    {user.role}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3">
+                                                <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                                                    user.active !== false
+                                                        ? 'bg-green-100 text-green-800'
+                                                        : 'bg-red-100 text-red-800'
+                                                }`}>
+                                                    {user.active !== false ? 'Ativo' : 'Inativo'}
+                                                </span>
+                                            </td>
+                                            <td className="px-4 py-3 space-x-2">
+                                                <button
+                                                    onClick={() => openEditModal(user)}
+                                                    className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+                                                >
+                                                    Editar
+                                                </button>
+                                                <button
+                                                    onClick={() => handleToggleActive(user)}
+                                                    disabled={loading}
+                                                    className={`font-medium text-sm ${
+                                                        user.active !== false
+                                                            ? 'text-red-600 hover:text-red-800'
+                                                            : 'text-green-600 hover:text-green-800'
+                                                    } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
+                                                >
+                                                    {user.active !== false ? 'Desativar' : 'Ativar'}
+                                                </button>
                                             </td>
                                         </tr>
-                                    ))
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div className="mt-6 border-t pt-4">
-                        <h3 className="text-md font-semibold mb-2 text-gray-700">Sincronização em Massa (Usuarios já no Auth)</h3>
-                        <p className="text-xs text-gray-500 mb-2">Formato por linha: <code>uid;username;name;role;serial</code> — role: admin|gerente|socio|coleta; serial opcional.</p>
-                        <textarea className="w-full p-2 border rounded min-h-[120px] font-mono text-xs" placeholder={'Exemplo:\nYJdExxlRIONPG...;daniel;Daniel Silva;gerente;ABC-UUID\nCT4p2fVPbbt...;coleta1;Coleta 1;coleta;'} value={bulkText} onChange={(e) => setBulkText(e.target.value)} />
-                        <div className="flex items-center gap-2 mt-2">
-                            <button className="py-2 px-4 rounded text-white font-bold bg-indigo-600 hover:bg-indigo-700" onClick={async () => {
-                                setBulkResult('');
-                                const lines = bulkText.split(/\r?\n/).map((l) => l.trim()).filter(Boolean);
-                                if (lines.length === 0) { setBulkResult('Nenhuma linha encontrada. Cole os dados no formato: uid;username|email;name;role;serial'); return; }
-                                let parsed = 0; let skipped = 0;
-                                const items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string }> = [];
-                                for (const line of lines) {
-                                    const parts = line.split(';');
-                                    const [uid, usernameOrEmail, name, role, serial] = parts.map((p) => (p || '').trim());
-                                    if (!uid || !usernameOrEmail || !name || !role) { skipped++; continue; }
-                                    let email = usernameOrEmail; if (!email.includes('@')) email = `${usernameOrEmail}@sistema.local`;
-                                    const finalRole = (['admin', 'gerente', 'socio', 'coleta'] as UserRole[]).includes(role as UserRole) ? (role as UserRole) : 'coleta';
-                                    items.push({ uid, email, name, role: finalRole, allowedDeviceSerial: serial || undefined });
-                                    parsed++;
-                                }
-                                if (items.length === 0) { setBulkResult(`Nada para sincronizar. Linhas inválidas: ${skipped}`); return; }
-                                const res = await adminService.bulkSyncProfiles(items);
-                                const okCount = res.filter((r) => r.ok).length; const fail = res.filter((r) => !r.ok);
-                                let summary = `Processadas: ${parsed} | Ignoradas: ${skipped}\nSincronizados: ${okCount}/${res.length}`;
-                                if (fail.length) summary += `\nFalhas (${fail.length}):\n` + fail.map((f) => `- ${f.uid}: ${f.error}`).join('\n');
-                                setBulkResult(summary); fetchUsers();
-                            }}>Sincronizar</button>
-                            <button className="py-2 px-4 rounded border" onClick={() => { setBulkText(''); setBulkResult(''); }}>Limpar</button>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
-                        {bulkResult && <pre className="mt-2 p-2 bg-gray-50 border rounded text-xs whitespace-pre-wrap">{bulkResult}</pre>}
-                    </div>
+                    )}
                 </div>
             </div>
 
-            {/* Modal de Edição */}
+            {/* Modal Novo Usuário */}
+            {showNewUserModal && (
+                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+                        <div className="p-6">
+                            <h2 className="text-xl font-bold mb-4 text-gray-800">Criar Novo Usuário</h2>
+                            <form onSubmit={handleCreateNewUser} className="space-y-4">
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
+                                    <input
+                                        type="text"
+                                        value={newUserForm.name}
+                                        onChange={(e) => setNewUserForm({ ...newUserForm, name: e.target.value })}
+                                        required
+                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Ex: João Silva"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Nome de Usuário (Login)</label>
+                                    <input
+                                        type="text"
+                                        value={newUserForm.username}
+                                        onChange={(e) => setNewUserForm({ ...newUserForm, username: e.target.value })}
+                                        required
+                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Ex: joao"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Senha</label>
+                                    <input
+                                        type="password"
+                                        value={newUserForm.password}
+                                        onChange={(e) => setNewUserForm({ ...newUserForm, password: e.target.value })}
+                                        required
+                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Mínimo 6 caracteres"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Confirmar Senha</label>
+                                    <input
+                                        type="password"
+                                        value={newUserForm.confirmPassword}
+                                        onChange={(e) => setNewUserForm({ ...newUserForm, confirmPassword: e.target.value })}
+                                        required
+                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                        placeholder="Repita a senha"
+                                    />
+                                </div>
+
+                                <div>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Perfil</label>
+                                    <select
+                                        value={newUserForm.role}
+                                        onChange={(e) => setNewUserForm({ ...newUserForm, role: e.target.value as UserRole })}
+                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    >
+                                        <option value="coleta">Coleta (Operacional)</option>
+                                        <option value="gerente">Gerente</option>
+                                        <option value="socio">Sócio</option>
+                                        <option value="admin">Administrador</option>
+                                    </select>
+                                </div>
+
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className={`flex-1 py-2 px-4 rounded text-white font-bold transition-colors ${
+                                            loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
+                                        }`}
+                                    >
+                                        {loading ? 'Criando...' : 'Criar Usuário'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setShowNewUserModal(false)}
+                                        className="flex-1 py-2 px-4 rounded border border-gray-300 font-bold hover:bg-gray-50"
+                                    >
+                                        Cancelar
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Editar Usuário */}
             {editingUser && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-                    <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+                    <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
                         <div className="p-6">
                             <h2 className="text-xl font-bold mb-4 text-gray-800">Editar Usuário</h2>
                             <form onSubmit={handleEditSubmit} className="space-y-4">
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Nome Completo</label>
-                                    <input type="text" value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} required className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+                                    <input
+                                        type="text"
+                                        value={editForm.name}
+                                        onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+                                        required
+                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    />
                                 </div>
+
                                 <div>
                                     <label className="block text-sm font-medium text-gray-700 mb-1">Email (somente leitura)</label>
-                                    <input type="text" value={editingUser.email} disabled className="w-full p-2 border rounded bg-gray-100 text-gray-600" />
+                                    <input
+                                        type="text"
+                                        value={editingUser.email}
+                                        disabled
+                                        className="w-full p-2 border rounded bg-gray-100 text-gray-600"
+                                    />
                                 </div>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Função (Role)</label>
-                                        <select value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })} className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none">
-                                            <option value="admin">Administrador</option>
-                                            <option value="gerente">Gerente</option>
-                                            <option value="socio">Sócio</option>
-                                            <option value="coleta">Coleta (Operacional)</option>
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 mb-1">Serial do Dispositivo</label>
-                                        <input type="text" value={editForm.allowedDeviceSerial} onChange={(e) => setEditForm({ ...editForm, allowedDeviceSerial: e.target.value })} placeholder="UUID do aparelho" className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none" />
-                                    </div>
-                                </div>
+
                                 <div>
-                                    <label className="block text-sm font-medium text-gray-700 mb-2">Localidades Permitidas</label>
-                                    <div className="border rounded p-3 max-h-48 overflow-y-auto space-y-2">
-                                        {localidades.length === 0 ? (
-                                            <p className="text-sm text-gray-500">Nenhuma localidade cadastrada. Crie localidades primeiro.</p>
-                                        ) : (
-                                            localidades.map((loc) => (
-                                                <label key={loc.id} className="flex items-center space-x-2 cursor-pointer hover:bg-gray-50 p-2 rounded">
-                                                    <input type="checkbox" checked={editForm.allowedLocalidades.includes(loc.id)} onChange={() => toggleLocalidade(loc.id)} className="h-4 w-4 text-blue-600 rounded" />
-                                                    <span className="text-sm text-gray-700">{loc.nome}</span>
-                                                </label>
-                                            ))
-                                        )}
-                                    </div>
-                                    <p className="text-xs text-gray-500 mt-1">Selecione as localidades que este usuário pode acessar.</p>
+                                    <label className="block text-sm font-medium text-gray-700 mb-1">Perfil</label>
+                                    <select
+                                        value={editForm.role}
+                                        onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
+                                        className="w-full p-2 border rounded focus:ring-2 focus:ring-blue-500 outline-none"
+                                    >
+                                        <option value="coleta">Coleta (Operacional)</option>
+                                        <option value="gerente">Gerente</option>
+                                        <option value="socio">Sócio</option>
+                                        <option value="admin">Administrador</option>
+                                    </select>
                                 </div>
+
                                 <div className="flex gap-3 pt-4">
-                                    <button type="submit" disabled={loading} className={`flex-1 py-2 px-4 rounded text-white font-bold transition-colors ${loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'}`}>{loading ? 'Salvando...' : 'Salvar Alterações'}</button>
-                                    <button type="button" onClick={closeEditModal} className="flex-1 py-2 px-4 rounded border border-gray-300 text-gray-700 font-bold hover:bg-gray-50 transition-colors">Cancelar</button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className={`flex-1 py-2 px-4 rounded text-white font-bold transition-colors ${
+                                            loading ? 'bg-gray-400' : 'bg-blue-600 hover:bg-blue-700'
+                                        }`}
+                                    >
+                                        {loading ? 'Salvando...' : 'Salvar'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={closeEditModal}
+                                        className="flex-1 py-2 px-4 rounded border border-gray-300 font-bold hover:bg-gray-50"
+                                    >
+                                        Cancelar
+                                    </button>
                                 </div>
                             </form>
                         </div>
