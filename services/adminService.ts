@@ -84,26 +84,9 @@ export const adminService = {
     },
 
     async getAuthUsers() {
-        try {
-            const callable = httpsCallable(functions, 'listAuthUsers');
-            const res: any = await callable();
-            return (res.data?.users || []) as Array<{
-                uid: string;
-                email: string | null;
-                displayName?: string | null;
-                disabled?: boolean;
-                creationTime?: string | null;
-                lastSignInTime?: string | null;
-            }>;
-        } catch (error: any) {
-            console.error('Erro ao chamar Cloud Function listAuthUsers:', {
-                code: error.code,
-                message: error.message,
-                details: error.details
-            });
-            // Retorna array vazio em vez de falhar completamente
-            return [];
-        }
+        // Descontinuado: Usuários inativos foram desativados no Firebase Auth
+        // Agora apenas usuários do Firestore collection "users" são utilizados
+        return [];
     },
 
     async bulkSyncProfiles(items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string; allowedLocalidades?: string[] }>) {
