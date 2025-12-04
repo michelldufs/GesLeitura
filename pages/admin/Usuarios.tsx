@@ -109,11 +109,6 @@ const Usuarios: React.FC = () => {
         }
     };
 
-    useEffect(() => {
-        fetchUsers();
-        fetchLocalidades();
-    }, []);
-
     const fetchLocalidades = async () => {
         try {
             const locs = await adminService.getLocalidades();
@@ -122,6 +117,11 @@ const Usuarios: React.FC = () => {
             console.error('Erro ao buscar localidades:', error);
         }
     };
+
+    useEffect(() => {
+        fetchUsers();
+        fetchLocalidades();
+    }, []);
 
     const handleCreateNewUser = async (e: React.FormEvent) => {
         e.preventDefault();
