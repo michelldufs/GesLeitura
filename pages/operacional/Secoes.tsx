@@ -297,20 +297,23 @@ const Secoes: React.FC = () => {
         }
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <SelectField
-            label="Localidade"
-            value={formData.localidadeId}
-            onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
-            disabled={!isAuthorized}
-            required
-          >
-            <option value="">Selecione a localidade</option>
-            {localidades && localidades.length > 0 && localidades.map(loc => (
-              <option key={loc.id} value={loc.id}>
-                {loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome}
-              </option>
-            ))}
-          </SelectField>
+          <div>
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Localidade</label>
+            <select
+              value={formData.localidadeId}
+              onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
+              disabled={!isAuthorized}
+              required
+              className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50"
+            >
+              <option value="">Selecione a localidade</option>
+              {localidades && localidades.length > 0 && localidades.map(loc => (
+                <option key={loc.id} value={loc.id}>
+                  {loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome}
+                </option>
+              ))}
+            </select>
+          </div>
 
           {!editingId && formData.localidadeId && localidades.length > 0 && (
             <>
