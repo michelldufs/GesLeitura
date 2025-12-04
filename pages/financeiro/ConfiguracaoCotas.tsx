@@ -132,32 +132,32 @@ const ConfiguracaoCotas = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Porcentagem</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Prejuízo</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Porcentagem</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Prejuízo</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {cotas.map((c: Cota) => (
                   <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
+                    <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
                       <div className="p-2 bg-indigo-100/50 rounded-lg">
                         <Users className="text-indigo-600" size={18} />
                       </div>
                       {c.nome}
                     </td>
-                    <td className="px-6 py-4 text-slate-600 font-semibold">{c.porcentagem}%</td>
-                    <td className={`px-6 py-4 font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    <td className="px-6 py-2.5 text-slate-600 font-semibold">{c.porcentagem}%</td>
+                    <td className={`px-6 py-2.5 font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
                       R$ {(c.saldoAcumulado || 0).toFixed(2)}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-6 py-2.5">
                       <Badge type={c.participaPrejuizo ? 'warning' : 'info'}>
                         {c.participaPrejuizo ? 'Sim' : 'Não'}
                       </Badge>
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-6 py-2.5 text-right">
                       <button
                         onClick={() => handleDelete(c.id)}
                         disabled={!isAuthorized}

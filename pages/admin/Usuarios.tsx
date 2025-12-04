@@ -233,29 +233,29 @@ const Usuarios: React.FC = () => {
                         <table className="w-full text-sm text-left">
                             <thead className="bg-slate-50/50 border-b border-slate-200/50">
                                 <tr>
-                                    <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                                    <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Email</th>
-                                    <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Função</th>
-                                    <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Status</th>
-                                    <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Ações</th>
+                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Email</th>
+                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Função</th>
+                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Status</th>
+                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Ações</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {users.map((user) => (
                                     <tr key={user.uid} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-4 font-medium text-slate-900">{user.name}</td>
-                                        <td className="px-6 py-4 text-slate-600">{user.email}</td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-2.5 font-medium text-slate-900">{user.name}</td>
+                                        <td className="px-6 py-2.5 text-slate-600">{user.email}</td>
+                                        <td className="px-6 py-2.5">
                                             <Badge variant={getRoleBadgeColor(user.role)}>
                                                 {user.role}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4">
+                                        <td className="px-6 py-2.5">
                                             <Badge variant={user.active !== false ? 'success' : 'error'}>
                                                 {user.active !== false ? 'Ativo' : 'Inativo'}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-4 flex gap-3">
+                                        <td className="px-6 py-2.5 flex gap-3">
                                             <button
                                                 onClick={() => openEditModal(user)}
                                                 className="text-blue-500 hover:text-blue-700 font-medium transition-colors flex items-center gap-1"

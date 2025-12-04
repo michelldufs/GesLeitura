@@ -168,22 +168,22 @@ const Secoes: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {secoes.map((secao) => (
                   <tr key={secao.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
+                    <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
                       <div className="p-2 bg-purple-100/50 rounded-lg">
                         <Layers className="text-purple-600" size={18} />
                       </div>
                       {secao.nome}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{getLocalidadeNome(secao.localidadeId)}</td>
-                    <td className="px-6 py-4 text-right flex justify-end gap-3">
+                    <td className="px-6 py-2.5 text-slate-600">{getLocalidadeNome(secao.localidadeId)}</td>
+                    <td className="px-6 py-2.5 text-right flex justify-end gap-3">
                       <button
                         onClick={() => handleEdit(secao)}
                         disabled={!isAuthorized}

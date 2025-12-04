@@ -185,24 +185,24 @@ const Rotas: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Seção</th>
-                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Seção</th>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {rotas.map((rota) => (
                   <tr key={rota.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
+                    <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
                       <div className="p-2 bg-green-100/50 rounded-lg">
                         <RouteIcon className="text-green-600" size={18} />
                       </div>
                       {rota.nome}
                     </td>
-                    <td className="px-6 py-4 text-slate-600">{getLocalidadeNome(rota.localidadeId)}</td>
-                    <td className="px-6 py-4 text-slate-600">{getSecaoNome(rota.secaoId)}</td>
-                    <td className="px-6 py-4 text-right flex justify-end gap-3">
+                    <td className="px-6 py-2.5 text-slate-600">{getLocalidadeNome(rota.localidadeId)}</td>
+                    <td className="px-6 py-2.5 text-slate-600">{getSecaoNome(rota.secaoId)}</td>
+                    <td className="px-6 py-2.5 text-right flex justify-end gap-3">
                       <button
                         onClick={() => handleEdit(rota)}
                         disabled={!isAuthorized}
