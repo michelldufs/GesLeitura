@@ -3,15 +3,16 @@ import { adminService, CreateUserData } from '../../services/adminService';
 import { UserRole, UserProfile } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
-import { Plus, Edit2, Check, X } from 'lucide-react';
+import { Plus, Edit2, Check, X, RefreshCw, AlertTriangle } from 'lucide-react';
 
-type UserProfileWithSerial = UserProfile & { allowedDeviceSerial?: string | null };
+type UserProfileWithSerial = UserProfile & { allowedDeviceSerial?: string | null; missingProfile?: boolean; authOnly?: boolean };
 type Localidade = { id: string; nome: string; active: boolean };
 
 const Usuarios: React.FC = () => {
     const { userProfile } = useAuth();
 
     const [showNewUserModal, setShowNewUserModal] = useState(false);
+    const [showSyncModal, setShowSyncModal] = useState(false);
     const [newUserForm, setNewUserForm] = useState({
         name: '',
         username: '',
@@ -21,9 +22,12 @@ const Usuarios: React.FC = () => {
     });
 
     const [loading, setLoading] = useState(false);
+    const [syncing, setSyncing] = useState(false);
     const [message, setMessage] = useState('');
     const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
     const [users, setUsers] = useState<UserProfileWithSerial[]>([]);
+    const [authUsers, setAuthUsers] = useState<any[]>([]);
+    const [missingProfiles, setMissingProfiles] = useState<any[]>([]);
     const [localidades, setLocalidades] = useState<Localidade[]>([]);
     const [editingUser, setEditingUser] = useState<UserProfileWithSerial | null>(null);
     const [editForm, setEditForm] = useState({
@@ -36,10 +40,71 @@ const Usuarios: React.FC = () => {
 
     const fetchUsers = async () => {
         try {
-            const fetchedUsers = await adminService.getUsers();
-            setUsers(fetchedUsers as UserProfileWithSerial[]);
+            // Busca usuários do Firestore
+            const firestoreUsers = await adminService.getUsers();
+            
+            // Busca usuários do Firebase Auth
+            try {
+                const authUsersList = await adminService.getAuthUsers();
+                setAuthUsers(authUsersList);
+                
+                // Identifica usuários do Auth que não têm perfil no Firestore
+                const firestoreUids = new Set(firestoreUsers.map((u: any) => u.uid));
+                const missing = authUsersList.filter((authUser: any) => !firestoreUids.has(authUser.uid));
+                setMissingProfiles(missing);
+                
+                // Combina todos os usuários
+                const allUsers: UserProfileWithSerial[] = [
+                    ...firestoreUsers as UserProfileWithSerial[],
+                    ...missing.map((authUser: any) => ({
+                        uid: authUser.uid,
+                        name: authUser.displayName || authUser.email || 'Sem nome',
+                        email: authUser.email || '',
+                        role: 'coleta' as UserRole,
+                        active: !authUser.disabled,
+                        allowedLocalidades: [],
+                        authOnly: true,
+                        missingProfile: true
+                    }))
+                ];
+                
+                setUsers(allUsers);
+            } catch (authError) {
+                // Se falhar ao buscar do Auth, usa apenas Firestore
+                console.error('Erro ao buscar usuários do Auth:', authError);
+                setUsers(firestoreUsers as UserProfileWithSerial[]);
+            }
         } catch (error) {
             console.error('Erro ao buscar usuários:', error);
+        }
+    };
+
+    const handleSyncMissingProfiles = async () => {
+        setSyncing(true);
+        setMessage('');
+        setMessageType('');
+        
+        try {
+            const itemsToSync = missingProfiles.map(authUser => ({
+                uid: authUser.uid,
+                email: authUser.email || '',
+                name: authUser.displayName || authUser.email?.split('@')[0] || 'Usuário',
+                role: 'coleta' as UserRole,
+                allowedDeviceSerial: '',
+                allowedLocalidades: userProfile?.allowedLocalidades || []
+            }));
+            
+            await adminService.bulkSyncProfiles(itemsToSync);
+            
+            setMessageType('success');
+            setMessage(`${itemsToSync.length} perfil(is) sincronizado(s) com sucesso!`);
+            setShowSyncModal(false);
+            fetchUsers();
+        } catch (error: any) {
+            setMessageType('error');
+            setMessage('Erro ao sincronizar perfis: ' + error.message);
+        } finally {
+            setSyncing(false);
         }
     };
 
@@ -185,13 +250,24 @@ const Usuarios: React.FC = () => {
                 title="Gerenciar Usuários"
                 subtitle="Crie e gerencie todos os usuários do sistema"
                 action={
-                    <button
-                        onClick={() => setShowNewUserModal(true)}
-                        disabled={!isAdmin}
-                        className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
-                    >
-                        <Plus size={20} /> Novo Usuário
-                    </button>
+                    <div className="flex gap-3">
+                        {missingProfiles.length > 0 && (
+                            <button
+                                onClick={() => setShowSyncModal(true)}
+                                disabled={!isAdmin}
+                                className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-600 hover:to-orange-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+                            >
+                                <RefreshCw size={20} /> Sincronizar ({missingProfiles.length})
+                            </button>
+                        )}
+                        <button
+                            onClick={() => setShowNewUserModal(true)}
+                            disabled={!isAdmin}
+                            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+                        >
+                            <Plus size={20} /> Novo Usuário
+                        </button>
+                    </div>
                 }
             />
 
@@ -243,7 +319,17 @@ const Usuarios: React.FC = () => {
                             <tbody>
                                 {users.map((user) => (
                                     <tr key={user.uid} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-2.5 font-medium text-slate-900">{user.name}</td>
+                                        <td className="px-6 py-2.5 font-medium text-slate-900">
+                                            {user.name}
+                                            {user.authOnly && (
+                                                <span className="ml-2">
+                                                    <Badge variant="warning">
+                                                        <AlertTriangle className="h-3 w-3 mr-1" />
+                                                        Apenas Auth
+                                                    </Badge>
+                                                </span>
+                                            )}
+                                        </td>
                                         <td className="px-6 py-2.5 text-slate-600">{user.email}</td>
                                         <td className="px-6 py-2.5">
                                             <Badge variant={getRoleBadgeColor(user.role)}>
@@ -390,6 +476,74 @@ const Usuarios: React.FC = () => {
                         />
                     </form>
                 )}
+            </Modal>
+
+            {/* Modal Sincronizar Perfis */}
+            <Modal 
+                isOpen={showSyncModal}
+                onClose={() => setShowSyncModal(false)}
+                title="Sincronizar Perfis"
+                actions={
+                    <div className="flex gap-3">
+                        <ButtonPrimary 
+                            onClick={handleSyncMissingProfiles} 
+                            disabled={syncing || missingProfiles.length === 0}
+                            icon={<RefreshCw className={syncing ? "h-4 w-4 animate-spin" : "h-4 w-4"} />}
+                        >
+                            {syncing ? 'Sincronizando...' : 'Sincronizar Todos'}
+                        </ButtonPrimary>
+                        <ButtonSecondary onClick={() => setShowSyncModal(false)}>
+                            Cancelar
+                        </ButtonSecondary>
+                    </div>
+                }
+            >
+                <div className="space-y-4">
+                    <AlertBox type="warning">
+                        <div className="flex items-start gap-2">
+                            <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+                            <div>
+                                <p className="font-semibold">Usuários sem perfil no Firestore</p>
+                                <p className="text-sm mt-1">Os usuários abaixo existem no Firebase Authentication mas não têm perfil completo no sistema.</p>
+                            </div>
+                        </div>
+                    </AlertBox>
+
+                    {missingProfiles.length === 0 ? (
+                        <div className="text-center py-8">
+                            <Check className="h-12 w-12 text-green-500 mx-auto mb-3" />
+                            <p className="text-slate-700 font-medium">Todos os perfis estão sincronizados!</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {missingProfiles.map((authUser, idx) => (
+                                <div key={authUser.uid} className="p-4 bg-slate-50/50 border border-slate-200/50 rounded-xl">
+                                    <div className="flex items-center justify-between">
+                                        <div>
+                                            <p className="font-semibold text-slate-900">{authUser.displayName || authUser.email}</p>
+                                            <p className="text-sm text-slate-600">{authUser.email}</p>
+                                            <p className="text-xs text-slate-500 mt-1">UID: {authUser.uid}</p>
+                                        </div>
+                                        <Badge variant="warning">Sem Perfil</Badge>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+
+                    {missingProfiles.length > 0 && (
+                        <div className="mt-4 p-4 bg-blue-50/50 border border-blue-200/50 rounded-xl">
+                            <p className="text-sm text-slate-700">
+                                <strong>Nota:</strong> A sincronização criará perfis no Firestore com as seguintes configurações padrão:
+                            </p>
+                            <ul className="mt-2 text-sm text-slate-600 list-disc list-inside space-y-1">
+                                <li>Função: <strong>Coleta</strong></li>
+                                <li>Status: <strong>Ativo</strong></li>
+                                <li>Localidades permitidas: <strong>Herdadas do seu perfil</strong></li>
+                            </ul>
+                        </div>
+                    )}
+                </div>
             </Modal>
         </div>
     );
