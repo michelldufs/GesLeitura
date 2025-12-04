@@ -74,7 +74,7 @@ export const InputField: React.FC<{
         value={value}
         onChange={onChange}
         disabled={disabled}
-        className={`w-full ${icon ? 'pl-12' : 'pl-4'} pr-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 ${error ? 'border-red-300 focus:ring-red-400' : ''}`}
+        className={`w-full ${icon ? 'pl-12' : 'pl-4'} pr-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 uppercase ${error ? 'border-red-300 focus:ring-red-400' : ''}`}
       />
     </div>
     {error && <p className="text-red-600 text-sm mt-2">{error}</p>}

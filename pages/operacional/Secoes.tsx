@@ -130,13 +130,13 @@ const Secoes: React.FC = () => {
 
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'secoes', editingId), { nome: formData.nome, localidadeId: formData.localidadeId });
+        await updateDoc(doc(db, 'secoes', editingId), { nome: formData.nome.toUpperCase(), localidadeId: formData.localidadeId });
         setMessageType('success');
         setMessage('Seção atualizada com sucesso!');
       } else {
         const codigo = gerarCodigoSecao();
         const secaoData: any = {
-          nome: formData.nome,
+          nome: formData.nome.toUpperCase(),
           localidadeId: formData.localidadeId,
           active: true
         };
@@ -329,11 +329,12 @@ const Secoes: React.FC = () => {
 
           <InputField
             label="Nome da Seção"
-            placeholder="Ex: Seção A"
+            placeholder="Ex: SEÇÃO A"
             value={formData.nome}
-            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value.toUpperCase() })}
             disabled={!isAuthorized}
             required
+            className="uppercase"
           />
         </form>
       </Modal>

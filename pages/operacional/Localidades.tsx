@@ -62,14 +62,14 @@ const Localidades: React.FC = () => {
 
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'localidades', editingId), { nome: formData.nome });
+        await updateDoc(doc(db, 'localidades', editingId), { nome: formData.nome.toUpperCase() });
         setMessageType('success');
         setMessage('Localidade atualizada com sucesso!');
       } else {
         const codigo = gerarCodigoLocalidade();
         await addDoc(collection(db, 'localidades'), {
           codigo,
-          nome: formData.nome,
+          nome: formData.nome.toUpperCase(),
           active: true
         });
         setMessageType('success');
@@ -223,11 +223,12 @@ const Localidades: React.FC = () => {
           
           <InputField
             label="Nome da Localidade"
-            placeholder="Ex: Matriz"
+            placeholder="Ex: MATRIZ"
             value={formData.nome}
-            onChange={(e) => setFormData({ nome: e.target.value })}
+            onChange={(e) => setFormData({ nome: e.target.value.toUpperCase() })}
             disabled={!isAuthorized}
             required
+            className="uppercase"
           />
         </form>
       </Modal>
