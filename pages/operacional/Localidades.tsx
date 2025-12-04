@@ -163,7 +163,9 @@ const Localidades: React.FC = () => {
               <tbody>
                 {localidades.map((localidade) => (
                   <tr key={localidade.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-2.5 font-mono font-semibold text-slate-900">{localidade.codigo}</td>
+                    <td className="px-6 py-2.5 font-mono font-semibold text-slate-900">
+                      {localidade.codigo || <span className="text-slate-400 italic">sem código</span>}
+                    </td>
                     <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
                       <div className="p-2 bg-blue-100/50 rounded-lg">
                         <MapPin className="text-blue-600" size={18} />
@@ -211,6 +213,14 @@ const Localidades: React.FC = () => {
         }
       >
         <form onSubmit={handleSubmit} className="space-y-5">
+          {!editingId && (
+            <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">
+              <p className="text-sm text-blue-900">
+                <span className="font-semibold">Código que será gerado:</span> {gerarCodigoLocalidade()}
+              </p>
+            </div>
+          )}
+          
           <InputField
             label="Nome da Localidade"
             placeholder="Ex: Matriz"
