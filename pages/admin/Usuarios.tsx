@@ -41,9 +41,8 @@ const Usuarios: React.FC = () => {
         try {
             // Busca apenas usuários do Firestore (coleção "users")
             const firestoreUsers = await adminService.getUsers();
+            console.log('Usuários do Firestore:', firestoreUsers);
             setUsers(firestoreUsers as UserProfileWithSerial[]);
-            setAuthUsers([]);
-            setMissingProfiles([]);
         } catch (error) {
             console.error('Erro ao buscar usuários:', error);
             setUsers([]);
