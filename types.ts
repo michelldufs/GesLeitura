@@ -21,6 +21,7 @@ export interface UserProfile {
 
 export interface Localidade {
   id: string;
+  code?: string;
   nome: string;
   active: boolean;
 }
