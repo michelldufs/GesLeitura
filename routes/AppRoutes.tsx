@@ -13,6 +13,7 @@ import LancamentoManual from '../pages/financeiro/LancamentoManual';
 import CaixaGeral from '../pages/financeiro/CaixaGeral';
 import ConfiguracaoCotas from '../pages/financeiro/ConfiguracaoCotas';
 import Usuarios from '../pages/admin/Usuarios';
+import EditarUsuarioLocalidades from '../pages/admin/EditarUsuarioLocalidades';
 import Localidades from '../pages/operacional/Localidades';
 import Secoes from '../pages/operacional/Secoes';
 import Rotas from '../pages/operacional/Rotas';
@@ -91,6 +92,7 @@ const AppRoutes: React.FC = () => {
         {/* Administração */}
         <Route path="/localidades" element={<Localidades />} />
         <Route path="/usuarios" element={<RequireAdmin><Usuarios /></RequireAdmin>} />
+        <Route path="/admin/editar-usuario-localidades" element={<RequireAdmin><EditarUsuarioLocalidades /></RequireAdmin>} />
         
         {/* Financeiro */}
         <Route path="/caixa-geral" element={<CaixaGeral />} />

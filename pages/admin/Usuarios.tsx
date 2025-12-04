@@ -1,14 +1,16 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { adminService, CreateUserData } from '../../services/adminService';
 import { UserRole, UserProfile } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
-import { Plus, Edit2, Check, X, RefreshCw, AlertTriangle } from 'lucide-react';
+import { Plus, Edit2, Check, X, RefreshCw, AlertTriangle, MapPin } from 'lucide-react';
 
 type UserProfileWithSerial = UserProfile & { allowedDeviceSerial?: string | null; missingProfile?: boolean; authOnly?: boolean };
 type Localidade = { id: string; nome: string; active: boolean };
 
 const Usuarios: React.FC = () => {
+    const navigate = useNavigate();
     const { userProfile } = useAuth();
 
     const [showNewUserModal, setShowNewUserModal] = useState(false);
@@ -248,29 +250,6 @@ const Usuarios: React.FC = () => {
         return colors[role] || 'secondary';
     };
 
-    const handleToggleLocalidade = (localidadeId: string) => {
-        setEditForm(prev => {
-            const currentLocalidades = prev.allowedLocalidades || [];
-            const isSelected = currentLocalidades.includes(localidadeId);
-            
-            return {
-                ...prev,
-                allowedLocalidades: isSelected
-                    ? currentLocalidades.filter(id => id !== localidadeId)
-                    : [...currentLocalidades, localidadeId]
-            };
-        });
-    };
-
-    const handleSelectAllLocalidades = () => {
-        const allIds = localidades.filter(loc => loc.active).map(loc => loc.id);
-        setEditForm(prev => ({ ...prev, allowedLocalidades: allIds }));
-    };
-
-    const handleDeselectAllLocalidades = () => {
-        setEditForm(prev => ({ ...prev, allowedLocalidades: [] }));
-    };
-
     return (
         <div className="p-8 max-w-7xl mx-auto">
             <PageHeader 
@@ -502,74 +481,18 @@ const Usuarios: React.FC = () => {
                             onChange={(e) => setEditForm({ ...editForm, role: e.target.value as UserRole })}
                         />
 
-                        {/* Seleção de Localidades */}
-                        <div className="space-y-3">
-                            <div className="flex items-center justify-between">
-                                <label className="block text-sm font-semibold text-slate-700">
-                                    Localidades Permitidas
-                                </label>
-                                <div className="flex gap-2">
-                                    <button
-                                        type="button"
-                                        onClick={handleSelectAllLocalidades}
-                                        className="text-xs text-blue-600 hover:text-blue-700 font-medium"
-                                    >
-                                        Selecionar Todas
-                                    </button>
-                                    <span className="text-slate-300">|</span>
-                                    <button
-                                        type="button"
-                                        onClick={handleDeselectAllLocalidades}
-                                        className="text-xs text-slate-600 hover:text-slate-700 font-medium"
-                                    >
-                                        Limpar
-                                    </button>
-                                </div>
-                            </div>
-
-                            {localidades.length === 0 ? (
-                                <div className="text-center py-6 text-slate-500 text-sm space-y-2 border border-slate-200/50 rounded-xl p-4 bg-slate-50/30">
-                                    <p className="font-medium">Nenhuma localidade cadastrada</p>
-                                    <p className="text-xs text-slate-400">
-                                        Crie localidades na tela de Localidades para atribuir aos usuários.
-                                    </p>
-                                    <p className="text-xs text-slate-400 mt-3">
-                                        (Localidades carregadas: {localidades.length})
-                                    </p>
-                                </div>
-                            ) : (
-                                <div className="max-h-64 overflow-y-auto space-y-2 border border-slate-200/50 rounded-xl p-4 bg-slate-50/30">
-                                    {localidades
-                                        .filter(loc => loc.active)
-                                        .map((localidade) => {
-                                            const isSelected = editForm.allowedLocalidades?.includes(localidade.id);
-                                            return (
-                                                <label
-                                                    key={localidade.id}
-                                                    className={`flex items-center gap-3 p-3 rounded-lg cursor-pointer transition-all ${
-                                                        isSelected
-                                                            ? 'bg-blue-50 border-2 border-blue-300'
-                                                            : 'bg-white border-2 border-slate-200/50 hover:border-slate-300'
-                                                    }`}
-                                                >
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={isSelected}
-                                                        onChange={() => handleToggleLocalidade(localidade.id)}
-                                                        className="h-5 w-5 text-blue-600 rounded border-slate-300 focus:ring-2 focus:ring-blue-500"
-                                                    />
-                                                    <span className={`font-medium ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>
-                                                        {localidade.nome}
-                                                    </span>
-                                                </label>
-                                            );
-                                        })}
-                                </div>
-                            )}
-
-                            <p className="text-xs text-slate-500 mt-2">
-                                {editForm.allowedLocalidades?.length || 0} localidade(s) selecionada(s)
-                            </p>
+                        <div className="flex gap-2 pt-2">
+                            <ButtonSecondary 
+                                type="button"
+                                onClick={() => {
+                                    closeEditModal();
+                                    navigate('/admin/editar-usuario-localidades', { state: { user: editingUser } });
+                                }}
+                                icon={<MapPin className="h-4 w-4" />}
+                                className="flex-1"
+                            >
+                                Editar Localidades
+                            </ButtonSecondary>
                         </div>
                     </form>
                 )}
