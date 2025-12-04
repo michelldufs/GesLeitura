@@ -84,18 +84,28 @@ export const adminService = {
     },
 
     async getAuthUsers() {
-        const callable = httpsCallable(functions, 'listAuthUsers');
-        const res: any = await callable();
-        return (res.data?.users || []) as Array<{
-            uid: string;
-            email: string | null;
-            displayName?: string | null;
-            disabled?: boolean;
-            creationTime?: string | null;
-            lastSignInTime?: string | null;
-        }>;
-    }
-,
+        try {
+            const callable = httpsCallable(functions, 'listAuthUsers');
+            const res: any = await callable();
+            return (res.data?.users || []) as Array<{
+                uid: string;
+                email: string | null;
+                displayName?: string | null;
+                disabled?: boolean;
+                creationTime?: string | null;
+                lastSignInTime?: string | null;
+            }>;
+        } catch (error: any) {
+            console.error('Erro ao chamar Cloud Function listAuthUsers:', {
+                code: error.code,
+                message: error.message,
+                details: error.details
+            });
+            // Retorna array vazio em vez de falhar completamente
+            return [];
+        }
+    },
+
     async bulkSyncProfiles(items: Array<{ uid: string; email: string; name: string; role: UserRole; allowedDeviceSerial?: string; allowedLocalidades?: string[] }>) {
         const results: Array<{ uid: string; ok: boolean; error?: string }> = [];
         for (const item of items) {

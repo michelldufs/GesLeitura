@@ -47,10 +47,11 @@ const Usuarios: React.FC = () => {
             const firestoreUsers = await adminService.getUsers();
             
             // Busca usuários do Firebase Auth
-            try {
-                const authUsersList = await adminService.getAuthUsers();
-                setAuthUsers(authUsersList);
-                
+            const authUsersList = await adminService.getAuthUsers();
+            setAuthUsers(authUsersList);
+            
+            // Se conseguiu buscar do Auth, combina com Firestore
+            if (authUsersList.length > 0) {
                 // Identifica usuários do Auth que não têm perfil no Firestore
                 const firestoreUids = new Set(firestoreUsers.map((u: any) => u.uid));
                 const missing = authUsersList.filter((authUser: any) => !firestoreUids.has(authUser.uid));
@@ -72,13 +73,14 @@ const Usuarios: React.FC = () => {
                 ];
                 
                 setUsers(allUsers);
-            } catch (authError) {
+            } else {
                 // Se falhar ao buscar do Auth, usa apenas Firestore
-                console.error('Erro ao buscar usuários do Auth:', authError);
                 setUsers(firestoreUsers as UserProfileWithSerial[]);
+                setMissingProfiles([]);
             }
         } catch (error) {
             console.error('Erro ao buscar usuários:', error);
+            setUsers([]);
         }
     };
 
