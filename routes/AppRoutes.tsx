@@ -19,6 +19,8 @@ import EditarUsuarioLocalidades from '../pages/admin/EditarUsuarioLocalidades';
 import Localidades from '../pages/operacional/Localidades';
 import Secoes from '../pages/operacional/Secoes';
 import Rotas from '../pages/operacional/Rotas';
+import Pontos from '../pages/operacional/Pontos';
+import Operadores from '../pages/operacional/Operadores';
 
 // Placeholder component
 const Placeholder: React.FC<{ title: string }> = ({ title }) => (
@@ -110,8 +112,8 @@ const AppRoutes: React.FC = () => {
         {/* Operacional - Restrito a Admin, Gerente, Supervisor, Operacional */}
         <Route path="/secao" element={<RequireOperacional><Secoes /></RequireOperacional>} />
         <Route path="/rota" element={<RequireOperacional><Rotas /></RequireOperacional>} />
-        <Route path="/ponto" element={<RequireOperacional><Placeholder title="Gestão de Pontos" /></RequireOperacional>} />
-        <Route path="/operador" element={<RequireOperacional><Placeholder title="Gestão de Operadores" /></RequireOperacional>} />
+        <Route path="/ponto" element={<RequireOperacional><Pontos /></RequireOperacional>} />
+        <Route path="/operador" element={<RequireOperacional><Operadores /></RequireOperacional>} />
         <Route path="/lancamento" element={<RequireOperacional><LancamentoManual /></RequireOperacional>} />
         
         {/* Relatórios - Restrito a Admin e Financeiro */}
