@@ -368,18 +368,21 @@ const Operadores: React.FC = () => {
         }
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <SelectField
-            label="Ponto"
-            value={formData.pontoId}
-            onChange={(e) => setFormData({ ...formData, pontoId: e.target.value })}
-            disabled={!isAuthorized}
-            required
-          >
-            <option value="">Selecione o ponto</option>
-            {pontos.map(ponto => (
-              <option key={ponto.id} value={ponto.id}>{ponto.nome}</option>
-            ))}
-          </SelectField>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Ponto</label>
+            <select
+              value={formData.pontoId}
+              onChange={(e) => setFormData({ ...formData, pontoId: e.target.value })}
+              disabled={!isAuthorized}
+              required
+              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+            >
+              <option value="">Selecione o ponto</option>
+              {pontos.map(ponto => (
+                <option key={ponto.id} value={ponto.id}>{ponto.nome}</option>
+              ))}
+            </select>
+          </div>
 
           {formData.pontoId && (
             <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
@@ -398,18 +401,21 @@ const Operadores: React.FC = () => {
             required
           />
 
-          <SelectField
-            label="Fator de Conversão"
-            value={formData.fatorConversao}
-            onChange={(e) => setFormData({ ...formData, fatorConversao: parseFloat(e.target.value) })}
-            disabled={!isAuthorized}
-            required
-          >
-            <option value="">Selecione o fator</option>
-            {factoresConversao.map(fator => (
-              <option key={fator} value={fator}>{formatFator(fator)}</option>
-            ))}
-          </SelectField>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Fator de Conversão</label>
+            <select
+              value={formData.fatorConversao}
+              onChange={(e) => setFormData({ ...formData, fatorConversao: parseFloat(e.target.value) })}
+              disabled={!isAuthorized}
+              required
+              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+            >
+              <option value="">Selecione o fator</option>
+              {factoresConversao.map(fator => (
+                <option key={fator} value={fator}>{formatFator(fator)}</option>
+              ))}
+            </select>
+          </div>
         </form>
       </Modal>
     </div>

@@ -376,18 +376,21 @@ const Pontos: React.FC = () => {
         }
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <SelectField
-            label="Rota"
-            value={formData.rotaId}
-            onChange={(e) => setFormData({ ...formData, rotaId: e.target.value })}
-            disabled={!isAuthorized}
-            required
-          >
-            <option value="">Selecione a rota</option>
-            {rotas.map(rota => (
-              <option key={rota.id} value={rota.id}>{rota.nome}</option>
-            ))}
-          </SelectField>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Rota</label>
+            <select
+              value={formData.rotaId}
+              onChange={(e) => setFormData({ ...formData, rotaId: e.target.value })}
+              disabled={!isAuthorized}
+              required
+              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+            >
+              <option value="">Selecione a rota</option>
+              {rotas.map(rota => (
+                <option key={rota.id} value={rota.id}>{rota.nome}</option>
+              ))}
+            </select>
+          </div>
 
           {formData.rotaId && (
             <div className="p-3 bg-blue-50 rounded-lg border border-blue-200">

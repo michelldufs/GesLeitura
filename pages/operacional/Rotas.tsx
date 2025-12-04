@@ -302,31 +302,37 @@ const Rotas: React.FC = () => {
         }
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <SelectField
-            label="Localidade"
-            value={formData.localidadeId}
-            onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value, secaoId: '' })}
-            disabled={true}
-            required
-          >
-            <option value="">Selecione a localidade</option>
-            {localidades.map(loc => (
-              <option key={loc.id} value={loc.id}>{loc.nome}</option>
-            ))}
-          </SelectField>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Localidade</label>
+            <select
+              value={formData.localidadeId}
+              onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value, secaoId: '' })}
+              disabled={true}
+              required
+              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+            >
+              <option value="">Selecione a localidade</option>
+              {localidades.map(loc => (
+                <option key={loc.id} value={loc.id}>{loc.nome}</option>
+              ))}
+            </select>
+          </div>
 
-          <SelectField
-            label="Seção"
-            value={formData.secaoId}
-            onChange={(e) => setFormData({ ...formData, secaoId: e.target.value })}
-            disabled={!isAuthorized || !formData.localidadeId}
-            required
-          >
-            <option value="">Selecione a seção</option>
-            {filteredSecoes.map(sec => (
-              <option key={sec.id} value={sec.id}>{sec.nome}</option>
-            ))}
-          </SelectField>
+          <div className="space-y-2">
+            <label className="block text-sm font-semibold text-slate-700">Seção</label>
+            <select
+              value={formData.secaoId}
+              onChange={(e) => setFormData({ ...formData, secaoId: e.target.value })}
+              disabled={!isAuthorized || !formData.localidadeId}
+              required
+              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
+            >
+              <option value="">Selecione a seção</option>
+              {filteredSecoes.map(sec => (
+                <option key={sec.id} value={sec.id}>{sec.nome}</option>
+              ))}
+            </select>
+          </div>
 
           {formData.secaoId && formData.localidadeId && (
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
