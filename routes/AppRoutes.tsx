@@ -61,8 +61,8 @@ const AppRoutes: React.FC = () => {
     );
   }
 
-  // Se usuário não-coleta e não selecionou localidade, mostrar seletor
-  if (userProfile?.role !== 'coleta' && !localidadeSelecionada) {
+  // Se usuário não-coleta, não-admin e não selecionou localidade, mostrar seletor
+  if (userProfile?.role !== 'coleta' && userProfile?.role !== 'admin' && !localidadeSelecionada) {
     return (
       <Routes>
         <Route path="/" element={<SeletorLocalidade />} />

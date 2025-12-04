@@ -63,7 +63,8 @@ export const LocalidadeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     // localidadeSelecionada = true quando:
     // 1. Selecionou uma localidade (não-coleta)
     // 2. OU é perfil coleta (não precisa selecionar)
-    const localidadeSelecionada = !!selectedLocalidade || userProfile?.role === 'coleta';
+    // 3. OU é perfil admin (tem acesso a todas as localidades)
+    const localidadeSelecionada = !!selectedLocalidade || userProfile?.role === 'coleta' || userProfile?.role === 'admin';
 
     return (
         <LocalidadeContext.Provider
