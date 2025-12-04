@@ -100,14 +100,12 @@ const Secoes: React.FC = () => {
     try {
       if (!formData.localidadeId) return '';
       
-      const localidade = localidades.find(l => l.id === formData.localidadeId);
-      if (!localidade || !localidade.codigo) return '';
-
-      // Encontrar seções desta localidade
+      // Encontrar seções desta localidade para gerar próximo código sequencial
       const secoesLocalidade = secoes.filter(s => s.localidadeId === formData.localidadeId);
-      const proximoId = String(secoesLocalidade.length + 1).padStart(2, '0');
+      const proximoId = secoesLocalidade.length + 1;
       
-      return `${localidade.codigo}${proximoId}`;
+      // Código da seção é apenas 2 dígitos (01, 02, 03...)
+      return String(proximoId).padStart(2, '0');
     } catch (error) {
       console.error('Erro ao gerar código:', error);
       return '';
@@ -317,37 +315,23 @@ const Secoes: React.FC = () => {
             </select>
           </div>
 
-          {!editingId && formData.localidadeId && localidades.length > 0 && (
-            <>
-              {(() => {
-                const localidade = localidades.find(l => l.id === formData.localidadeId);
-                if (!localidade) return null;
-                
-                if (!localidade.codigo) {
-                  return (
-                    <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                      <p className="text-sm text-yellow-900">
-                        ⚠️ <span className="font-semibold">Atenção:</span> Esta localidade não possui código cadastrado. 
-                        Adicione o campo "codigo" no Firebase para gerar códigos automáticos.
-                      </p>
-                    </div>
-                  );
-                }
-                
-                const codigoGerado = gerarCodigoSecao();
-                if (codigoGerado) {
-                  return (
-                    <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                      <p className="text-sm text-purple-900">
-                        <span className="font-semibold">Código que será gerado:</span> {codigoGerado}
-                      </p>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
-            </>
-          )}
+          {!editingId && formData.localidadeId && localidades.length > 0 && (() => {
+            const codigoGerado = gerarCodigoSecao();
+            if (codigoGerado) {
+              const localidade = localidades.find(l => l.id === formData.localidadeId);
+              return (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-sm text-purple-900">
+                    <span className="font-semibold">Código que será gerado:</span> {codigoGerado}
+                  </p>
+                  <p className="text-xs text-purple-700 mt-1">
+                    Vinculada à: {localidade?.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade?.nome}
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
 
           <InputField
             label="Nome da Seção"
