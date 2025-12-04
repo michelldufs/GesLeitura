@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
-import { Route as RouteIcon, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Route as RouteIcon, Plus } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Rota {
   id: string;
@@ -23,14 +24,21 @@ interface Localidade {
 }
 
 const Rotas: React.FC = () => {
+  const { userProfile } = useAuth();
   const [rotas, setRotas] = useState<Rota[]>([]);
   const [secoes, setSecoes] = useState<Secao[]>([]);
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
-  const [nome, setNome] = useState('');
-  const [localidadeId, setLocalidadeId] = useState('');
-  const [secaoId, setSecaoId] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+
+  const [formData, setFormData] = useState({
+    nome: '',
+    localidadeId: '',
+    secaoId: ''
+  });
 
   useEffect(() => {
     loadData();
@@ -54,40 +62,60 @@ const Rotas: React.FC = () => {
     }
   };
 
+  const handleOpenModal = () => {
+    setFormData({ nome: '', localidadeId: '', secaoId: '' });
+    setEditingId(null);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setFormData({ nome: '', localidadeId: '', secaoId: '' });
+    setEditingId(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim() || !secaoId || !localidadeId) return;
+    if (!formData.nome.trim() || !formData.secaoId || !formData.localidadeId) return;
 
     setLoading(true);
+    setMessage('');
+    setMessageType('');
+
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'rotas', editingId), { nome, secaoId, localidadeId });
-        setEditingId(null);
+        await updateDoc(doc(db, 'rotas', editingId), {
+          nome: formData.nome,
+          secaoId: formData.secaoId,
+          localidadeId: formData.localidadeId
+        });
+        setMessageType('success');
+        setMessage('Rota atualizada com sucesso!');
       } else {
         await addDoc(collection(db, 'rotas'), {
-          nome,
-          secaoId,
-          localidadeId,
+          nome: formData.nome,
+          secaoId: formData.secaoId,
+          localidadeId: formData.localidadeId,
           active: true
         });
+        setMessageType('success');
+        setMessage('Rota criada com sucesso!');
       }
-      setNome('');
-      setSecaoId('');
-      setLocalidadeId('');
+      handleCloseModal();
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar rota');
+      setMessageType('error');
+      setMessage(error?.message || 'Erro ao salvar rota');
     } finally {
       setLoading(false);
     }
   };
 
   const handleEdit = (rota: Rota) => {
-    setNome(rota.nome);
-    setLocalidadeId(rota.localidadeId);
-    setSecaoId(rota.secaoId);
+    setFormData({ nome: rota.nome, localidadeId: rota.localidadeId, secaoId: rota.secaoId });
     setEditingId(rota.id);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -95,105 +123,180 @@ const Rotas: React.FC = () => {
 
     try {
       await updateDoc(doc(db, 'rotas', id), { active: false });
+      setMessageType('success');
+      setMessage('Rota desativada com sucesso!');
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao desativar:', error);
+      setMessageType('error');
+      setMessage(error?.message || 'Erro ao desativar rota');
     }
   };
 
-  const filteredSecoes = secoes.filter(s => s.localidadeId === localidadeId);
+  const isAuthorized = userProfile && ['admin', 'gerente'].includes(userProfile.role);
+  const filteredSecoes = secoes.filter(s => s.localidadeId === formData.localidadeId);
+  const getLocalidadeNome = (id: string) => localidades.find(l => l.id === id)?.nome || 'N/A';
+  const getSecaoNome = (id: string) => secoes.find(s => s.id === id)?.nome || 'N/A';
 
   return (
-    <div className="max-w-5xl mx-auto">
-      <div className="bg-white rounded-lg shadow-md p-6">
-        <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <RouteIcon className="text-green-600" size={28} />
           Gestão de Rotas
         </h1>
+        <button
+          onClick={handleOpenModal}
+          disabled={!isAuthorized}
+          className={`px-4 py-2 rounded text-white font-semibold transition-colors ${
+            isAuthorized
+              ? 'bg-green-600 hover:bg-green-700'
+              : 'bg-gray-300 cursor-not-allowed'
+          }`}
+        >
+          + Nova Rota
+        </button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mb-3">
-            <select
-              value={localidadeId}
-              onChange={(e) => { setLocalidadeId(e.target.value); setSecaoId(''); }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              required
-            >
-              <option value="">Localidade</option>
-              {localidades.map(loc => (
-                <option key={loc.id} value={loc.id}>{loc.nome}</option>
-              ))}
-            </select>
-            <select
-              value={secaoId}
-              onChange={(e) => setSecaoId(e.target.value)}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              required
-              disabled={!localidadeId}
-            >
-              <option value="">Seção</option>
-              {filteredSecoes.map(sec => (
-                <option key={sec.id} value={sec.id}>{sec.nome}</option>
-              ))}
-            </select>
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Nome da rota"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500"
-              required
-            />
-            <div className="flex gap-2">
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={() => { setNome(''); setLocalidadeId(''); setSecaoId(''); setEditingId(null); }}
-                  className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                >
-                  Cancelar
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 flex items-center justify-center gap-2"
-              >
-                <Plus size={20} />
-                {editingId ? 'Atualizar' : 'Adicionar'}
-              </button>
+      {!isAuthorized && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded mb-6">
+          Seu perfil ({userProfile?.role}) não possui permissão para gerenciar rotas.
+        </div>
+      )}
+
+      {message && (
+        <div className={`mb-6 p-4 rounded ${messageType === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`}>
+          {message}
+        </div>
+      )}
+
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <h2 className="text-lg font-semibold text-gray-700 mb-4">Rotas Cadastradas</h2>
+
+        {rotas.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>Nenhuma rota cadastrada ainda.</p>
+            <p className="text-sm">Clique em "+ Nova Rota" para criar a primeira.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-left text-gray-700">
+              <thead className="text-xs text-gray-600 uppercase bg-gray-100 border-b">
+                <tr>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">Localidade</th>
+                  <th className="px-4 py-3">Seção</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rotas.map((rota) => (
+                  <tr key={rota.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900 flex items-center gap-2">
+                      <RouteIcon className="text-green-500" size={18} />
+                      {rota.nome}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{getLocalidadeNome(rota.localidadeId)}</td>
+                    <td className="px-4 py-3 text-gray-600">{getSecaoNome(rota.secaoId)}</td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <button
+                        onClick={() => handleEdit(rota)}
+                        disabled={!isAuthorized}
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm disabled:opacity-50"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(rota.id)}
+                        disabled={!isAuthorized}
+                        className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                      >
+                        Desativar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4 text-gray-800">
+                {editingId ? 'Editar Rota' : 'Nova Rota'}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Localidade</label>
+                  <select
+                    value={formData.localidadeId}
+                    onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value, secaoId: '' })}
+                    required
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 outline-none"
+                  >
+                    <option value="">Selecione a localidade</option>
+                    {localidades.map(loc => (
+                      <option key={loc.id} value={loc.id}>{loc.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Seção</label>
+                  <select
+                    value={formData.secaoId}
+                    onChange={(e) => setFormData({ ...formData, secaoId: e.target.value })}
+                    required
+                    disabled={!formData.localidadeId}
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 outline-none disabled:bg-gray-100"
+                  >
+                    <option value="">Selecione a seção</option>
+                    {filteredSecoes.map(sec => (
+                      <option key={sec.id} value={sec.id}>{sec.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                  <input
+                    type="text"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    required
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-green-500 outline-none"
+                    placeholder="Ex: Rota 01"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`flex-1 py-2 px-4 rounded text-white font-bold transition-colors ${
+                      loading ? 'bg-gray-400' : 'bg-green-600 hover:bg-green-700'
+                    }`}
+                  >
+                    {loading ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="flex-1 py-2 px-4 rounded border border-gray-300 font-bold hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
             </div>
           </div>
-        </form>
-
-        <div className="space-y-2">
-          {rotas.length === 0 ? (
-            <p className="text-gray-500 text-center py-8">Nenhuma rota cadastrada</p>
-          ) : (
-            rotas.map(rota => (
-              <div key={rota.id} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100">
-                <div className="flex items-center gap-3">
-                  <RouteIcon className="text-green-500" size={20} />
-                  <div>
-                    <span className="font-medium">{rota.nome}</span>
-                    <p className="text-xs text-gray-500">
-                      {secoes.find(s => s.id === rota.secaoId)?.nome || 'N/A'}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button onClick={() => handleEdit(rota)} className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg">
-                    <Edit2 size={18} />
-                  </button>
-                  <button onClick={() => handleDelete(rota.id)} className="p-2 text-red-600 hover:bg-red-50 rounded-lg">
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ))
-          )}
         </div>
-      </div>
+      )}
     </div>
   );
 };

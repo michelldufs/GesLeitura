@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
-import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
+import { Layers, Plus } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 interface Secao {
   id: string;
@@ -16,13 +17,20 @@ interface Localidade {
 }
 
 const Secoes: React.FC = () => {
+  const { userProfile } = useAuth();
   const [secoes, setSecoes] = useState<Secao[]>([]);
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
-  const [nome, setNome] = useState('');
-  const [localidadeId, setLocalidadeId] = useState('');
-  const [filterLocalidadeId, setFilterLocalidadeId] = useState('');
+  const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [message, setMessage] = useState('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [filterLocalidadeId, setFilterLocalidadeId] = useState('');
+
+  const [formData, setFormData] = useState({
+    nome: '',
+    localidadeId: ''
+  });
 
   useEffect(() => {
     loadData();
@@ -30,13 +38,11 @@ const Secoes: React.FC = () => {
 
   const loadData = async () => {
     try {
-      // Load localidades
       const locQuery = query(collection(db, 'localidades'), where('active', '==', true));
       const locSnapshot = await getDocs(locQuery);
       const locData = locSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Localidade));
       setLocalidades(locData);
 
-      // Load secoes
       const secQuery = query(collection(db, 'secoes'), where('active', '==', true));
       const secSnapshot = await getDocs(secQuery);
       const secData = secSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Secao));
@@ -46,37 +52,55 @@ const Secoes: React.FC = () => {
     }
   };
 
+  const handleOpenModal = () => {
+    setFormData({ nome: '', localidadeId: '' });
+    setEditingId(null);
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setFormData({ nome: '', localidadeId: '' });
+    setEditingId(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!nome.trim() || !localidadeId) return;
+    if (!formData.nome.trim() || !formData.localidadeId) return;
 
     setLoading(true);
+    setMessage('');
+    setMessageType('');
+
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'secoes', editingId), { nome, localidadeId });
-        setEditingId(null);
+        await updateDoc(doc(db, 'secoes', editingId), { nome: formData.nome, localidadeId: formData.localidadeId });
+        setMessageType('success');
+        setMessage('Seção atualizada com sucesso!');
       } else {
         await addDoc(collection(db, 'secoes'), {
-          nome,
-          localidadeId,
+          nome: formData.nome,
+          localidadeId: formData.localidadeId,
           active: true
         });
+        setMessageType('success');
+        setMessage('Seção criada com sucesso!');
       }
-      setNome('');
-      setLocalidadeId('');
+      handleCloseModal();
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao salvar:', error);
-      alert('Erro ao salvar seção');
+      setMessageType('error');
+      setMessage(error?.message || 'Erro ao salvar seção');
     } finally {
       setLoading(false);
     }
   };
 
   const handleEdit = (secao: Secao) => {
-    setNome(secao.nome);
-    setLocalidadeId(secao.localidadeId);
+    setFormData({ nome: secao.nome, localidadeId: secao.localidadeId });
     setEditingId(secao.id);
+    setShowModal(true);
   };
 
   const handleDelete = async (id: string) => {
@@ -84,75 +108,63 @@ const Secoes: React.FC = () => {
 
     try {
       await updateDoc(doc(db, 'secoes', id), { active: false });
+      setMessageType('success');
+      setMessage('Seção desativada com sucesso!');
       loadData();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Erro ao desativar:', error);
-      alert('Erro ao desativar seção');
+      setMessageType('error');
+      setMessage(error?.message || 'Erro ao desativar seção');
     }
   };
 
-  const getLocalidadeNome = (id: string) => {
-    return localidades.find(l => l.id === id)?.nome || 'N/A';
-  };
+  const isAuthorized = userProfile && ['admin', 'gerente'].includes(userProfile.role);
+  const getLocalidadeNome = (id: string) => localidades.find(l => l.id === id)?.nome || 'N/A';
+
+  const visibleSecoes =
+    filterLocalidadeId === '' ? [] :
+    filterLocalidadeId === 'ALL' ? secoes :
+    secoes.filter(s => s.localidadeId === filterLocalidadeId);
 
   return (
-    <div className="max-w-4xl mx-auto">
-      <div className="bg-white rounded-lg shadow-md p-6 mb-6">
-        <h1 className="text-2xl font-bold mb-6 flex items-center gap-2">
+    <div className="p-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
           <Layers className="text-purple-600" size={28} />
           Gestão de Seções
         </h1>
+        <button
+          onClick={handleOpenModal}
+          disabled={!isAuthorized}
+          className={`px-4 py-2 rounded text-white font-semibold transition-colors ${
+            isAuthorized
+              ? 'bg-purple-600 hover:bg-purple-700'
+              : 'bg-gray-300 cursor-not-allowed'
+          }`}
+        >
+          + Nova Seção
+        </button>
+      </div>
 
-        <form onSubmit={handleSubmit} className="mb-6">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3">
-            <select
-              value={localidadeId}
-              onChange={(e) => { setLocalidadeId(e.target.value); setFilterLocalidadeId(e.target.value); }}
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              required
-            >
-              <option value="">Selecione a localidade</option>
-              {localidades.map(loc => (
-                <option key={loc.id} value={loc.id}>{loc.nome}</option>
-              ))}
-            </select>
-            <input
-              type="text"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              placeholder="Nome da seção"
-              className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500"
-              required
-            />
-            <div className="flex gap-2">
-              {editingId && (
-                <button
-                  type="button"
-                  onClick={() => { setNome(''); setLocalidadeId(''); setEditingId(null); }}
-                  className="flex-1 px-4 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600"
-                >
-                  Cancelar
-                </button>
-              )}
-              <button
-                type="submit"
-                disabled={loading}
-                className="flex-1 px-6 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 flex items-center justify-center gap-2"
-              >
-                <Plus size={20} />
-                {editingId ? 'Atualizar' : 'Adicionar'}
-              </button>
-            </div>
-          </div>
-        </form>
+      {!isAuthorized && (
+        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded mb-6">
+          Seu perfil ({userProfile?.role}) não possui permissão para gerenciar seções.
+        </div>
+      )}
 
-        {/* Filtro por localidade para a listagem */}
-        <div className="flex items-center gap-3 mb-3">
-          <label className="text-sm text-gray-600">Filtrar por localidade:</label>
+      {message && (
+        <div className={`mb-6 p-4 rounded ${messageType === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`}>
+          {message}
+        </div>
+      )}
+
+      <div className="bg-white p-6 rounded-lg shadow-md">
+        <div className="flex items-center gap-4 mb-4">
+          <label className="text-sm font-medium text-gray-700">Filtrar por localidade:</label>
           <select
             value={filterLocalidadeId}
             onChange={(e) => setFilterLocalidadeId(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg"
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
           >
             <option value="">Selecione</option>
             <option value="ALL">Todas</option>
@@ -162,46 +174,118 @@ const Secoes: React.FC = () => {
           </select>
         </div>
 
-        <div className="space-y-2">
-          {(() => {
-            const visibleSecoes =
-              filterLocalidadeId === '' ? [] :
-              filterLocalidadeId === 'ALL' ? secoes :
-              secoes.filter(s => s.localidadeId === filterLocalidadeId);
-            if (visibleSecoes.length === 0) {
-              return <p className="text-gray-500 text-center py-8">{filterLocalidadeId === '' ? 'Selecione uma localidade para listar as seções' : 'Nenhuma seção cadastrada'}</p>;
-            }
-            return visibleSecoes.map(secao => (
-              <div
-                key={secao.id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100"
-              >
-                <div className="flex items-center gap-3">
-                  <Layers className="text-purple-500" size={20} />
-                  <div>
-                    <span className="font-medium">{secao.nome}</span>
-                    <p className="text-xs text-gray-500">Localidade: {getLocalidadeNome(secao.localidadeId)}</p>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(secao)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg"
-                  >
-                    <Edit2 size={18} />
-                  </button>
-                  <button
-                    onClick={() => handleDelete(secao.id)}
-                    className="p-2 text-red-600 hover:bg-red-50 rounded-lg"
-                  >
-                    <Trash2 size={18} />
-                  </button>
-                </div>
-              </div>
-            ));
-          })()}
-        </div>
+        <h2 className="text-lg font-semibold text-gray-700 mb-4">Seções Cadastradas</h2>
+
+        {filterLocalidadeId === '' ? (
+          <div className="text-center py-8 text-gray-500">
+            Selecione uma localidade para listar as seções.
+          </div>
+        ) : visibleSecoes.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <p>Nenhuma seção cadastrada.</p>
+            <p className="text-sm">Clique em "+ Nova Seção" para criar uma.</p>
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="min-w-full text-sm text-left text-gray-700">
+              <thead className="text-xs text-gray-600 uppercase bg-gray-100 border-b">
+                <tr>
+                  <th className="px-4 py-3">Nome</th>
+                  <th className="px-4 py-3">Localidade</th>
+                  <th className="px-4 py-3 text-right">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                {visibleSecoes.map((secao) => (
+                  <tr key={secao.id} className="border-b hover:bg-gray-50">
+                    <td className="px-4 py-3 font-medium text-gray-900 flex items-center gap-2">
+                      <Layers className="text-purple-500" size={18} />
+                      {secao.nome}
+                    </td>
+                    <td className="px-4 py-3 text-gray-600">{getLocalidadeNome(secao.localidadeId)}</td>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <button
+                        onClick={() => handleEdit(secao)}
+                        disabled={!isAuthorized}
+                        className="text-blue-600 hover:text-blue-800 font-medium text-sm disabled:opacity-50"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDelete(secao.id)}
+                        disabled={!isAuthorized}
+                        className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                      >
+                        Desativar
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </div>
+
+      {/* Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="p-6">
+              <h2 className="text-xl font-bold mb-4 text-gray-800">
+                {editingId ? 'Editar Seção' : 'Nova Seção'}
+              </h2>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Localidade</label>
+                  <select
+                    value={formData.localidadeId}
+                    onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
+                    required
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-purple-500 outline-none"
+                  >
+                    <option value="">Selecione a localidade</option>
+                    {localidades.map(loc => (
+                      <option key={loc.id} value={loc.id}>{loc.nome}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
+                  <input
+                    type="text"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+                    required
+                    className="w-full p-2 border rounded focus:ring-2 focus:ring-purple-500 outline-none"
+                    placeholder="Ex: Seção A"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4">
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className={`flex-1 py-2 px-4 rounded text-white font-bold transition-colors ${
+                      loading ? 'bg-gray-400' : 'bg-purple-600 hover:bg-purple-700'
+                    }`}
+                  >
+                    {loading ? 'Salvando...' : 'Salvar'}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseModal}
+                    className="flex-1 py-2 px-4 rounded border border-gray-300 font-bold hover:bg-gray-50"
+                  >
+                    Cancelar
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
