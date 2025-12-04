@@ -19,11 +19,11 @@ const ModalTrocarLocalidade: React.FC<ModalTrocarLocalidadeProps> = ({ isOpen, o
     const [loading, setLoading] = useState(false);
 
     useEffect(() => {
-        if (isOpen) {
+        if (isOpen && userProfile) {
             loadLocalidades();
             setSelectedValue(selectedLocalidade || '');
         }
-    }, [isOpen, selectedLocalidade]);
+    }, [isOpen, selectedLocalidade, userProfile]);
 
     const loadLocalidades = async () => {
         try {

@@ -16,8 +16,10 @@ const SeletorLocalidade: React.FC = () => {
     const [error, setError] = useState<string | null>(null);
 
     useEffect(() => {
-        loadLocalidades();
-    }, []);
+        if (userProfile) {
+            loadLocalidades();
+        }
+    }, [userProfile]);
 
     const loadLocalidades = async () => {
         try {
