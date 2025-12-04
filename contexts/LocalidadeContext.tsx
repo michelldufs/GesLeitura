@@ -7,6 +7,7 @@ interface LocalidadeContextType {
     setSelectedLocalidade: (id: string, name: string) => void;
     clearSelectedLocalidade: () => void;
     isFilteredByLocalidade: boolean;
+    localidadeSelecionada: boolean;
 }
 
 const LocalidadeContext = createContext<LocalidadeContextType | undefined>(undefined);
@@ -50,7 +51,19 @@ export const LocalidadeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         localStorage.removeItem('selectedLocalidadeName');
     };
 
+    // Limpar se fizer logout
+    useEffect(() => {
+        if (!userProfile) {
+            clearSelectedLocalidade();
+        }
+    }, [userProfile]);
+
     const isFilteredByLocalidade = selectedLocalidade !== null && userProfile?.role !== 'coleta';
+    
+    // localidadeSelecionada = true quando:
+    // 1. Selecionou uma localidade (não-coleta)
+    // 2. OU é perfil coleta (não precisa selecionar)
+    const localidadeSelecionada = !!selectedLocalidade || userProfile?.role === 'coleta';
 
     return (
         <LocalidadeContext.Provider
@@ -59,7 +72,8 @@ export const LocalidadeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 selectedLocalidadeName,
                 setSelectedLocalidade,
                 clearSelectedLocalidade,
-                isFilteredByLocalidade
+                isFilteredByLocalidade,
+                localidadeSelecionada
             }}
         >
             {children}

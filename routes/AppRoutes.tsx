@@ -1,11 +1,13 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocalidade } from '../contexts/LocalidadeContext';
 import MobileLayout from '../layouts/MobileLayout';
 import AdminLayout from '../layouts/AdminLayout';
 
 // Pages
 import Login from '../pages/Login';
+import SeletorLocalidade from '../pages/SeletorLocalidade';
 import Dashboard from '../pages/Dashboard';
 import ConfiguracaoTerminal from '../pages/mobile/ConfiguracaoTerminal';
 import NovaLeituraMobile from '../pages/mobile/NovaLeituraMobile';
@@ -28,6 +30,7 @@ const Placeholder: React.FC<{ title: string }> = ({ title }) => (
 
 const AppRoutes: React.FC = () => {
   const { user, userProfile, loading } = useAuth();
+  const { localidadeSelecionada } = useLocalidade();
 
   const RequireAdmin: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     if (userProfile?.role !== 'admin') {
@@ -58,6 +61,16 @@ const AppRoutes: React.FC = () => {
     );
   }
 
+  // Se usuário não-coleta e não selecionou localidade, mostrar seletor
+  if (userProfile?.role !== 'coleta' && !localidadeSelecionada) {
+    return (
+      <Routes>
+        <Route path="/" element={<SeletorLocalidade />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
+    );
+  }
+
   // Mobile Routes (role === 'coleta')
   if (userProfile?.role === 'coleta') {
     return (
@@ -72,7 +85,7 @@ const AppRoutes: React.FC = () => {
     );
   }
 
-  // Admin/Desktop Routes (all other roles)
+  // Admin/Desktop Routes (all other roles - com localidade já selecionada)
   return (
     <AdminLayout>
       <Routes>

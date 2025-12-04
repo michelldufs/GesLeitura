@@ -2,7 +2,6 @@ import React from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
-import SelectorLocalidadeModal from '../components/SelectorLocalidadeModal';
 import { 
   Home, Layers, Route, MapPin, Users, FileText, BarChart3, Settings, LogOut,
   ChevronRight, Circle
@@ -135,9 +134,6 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
           {children}
         </div>
       </main>
-
-      {/* Modal de seleção de localidade */}
-      <SelectorLocalidadeModal />
     </div>
   );
 };
