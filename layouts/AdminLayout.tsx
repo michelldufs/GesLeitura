@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
 import { 
-  Home, Layers, Route, MapPin, Users, FileText, BarChart3, Settings, LogOut,
+  Home, Layers, Route, MapPin, Users, FileText, BarChart3, Settings, LogOut, Clock,
   ChevronRight, Circle
 } from 'lucide-react';
 
@@ -97,7 +97,27 @@ const Sidebar = () => {
 
 const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const { logout, userProfile } = useAuth();
+  const { selectedLocalidade, selectedLocalidadeName } = useLocalidade();
   const navigate = useNavigate();
+  const [currentTime, setCurrentTime] = useState<string>('');
+
+  // Atualizar relógio a cada segundo
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const timeString = now.toLocaleTimeString('pt-BR', { 
+        hour: '2-digit', 
+        minute: '2-digit',
+        second: '2-digit'
+      });
+      setCurrentTime(timeString);
+    };
+
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -115,17 +135,47 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         {/* Header */}
         <header className="bg-white/95 backdrop-blur-xl border-b border-slate-200/30 sticky top-0 z-10 shadow-sm">
           <div className="flex justify-between items-center px-8 py-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">GesLeitura</h2>
-              <p className="text-xs text-slate-500">{userProfile?.name} • {userProfile?.role}</p>
+            {/* Esquerda - Logo e Localidade */}
+            <div className="flex items-center gap-6">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">GesLeitura</h2>
+                <p className="text-xs text-slate-500">{userProfile?.name} • {userProfile?.role}</p>
+              </div>
+              
+              {/* Localidade Selecionada */}
+              {selectedLocalidade && selectedLocalidadeName && (
+                <div className="flex items-center gap-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
+                  <MapPin size={16} className="text-blue-600" />
+                  <div>
+                    <p className="text-xs text-blue-600 font-medium">Localidade</p>
+                    <p className="text-sm text-blue-900 font-semibold">{selectedLocalidadeName}</p>
+                  </div>
+                </div>
+              )}
             </div>
-            <button
-              onClick={handleLogout}
-              className="flex items-center gap-2 px-4 py-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-medium text-sm border border-transparent hover:border-red-200"
-            >
-              <LogOut size={18} />
-              Sair
-            </button>
+
+            {/* Direita - Relógio e Usuário */}
+            <div className="flex items-center gap-6">
+              {/* Relógio */}
+              <div className="flex items-center gap-2 text-slate-700">
+                <Clock size={18} className="text-slate-500" />
+                <span className="text-sm font-mono">{currentTime}</span>
+              </div>
+
+              {/* Usuário e Logout */}
+              <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
+                <div className="text-right">
+                  <p className="text-sm font-medium text-slate-900">{userProfile?.name}</p>
+                  <p className="text-xs text-slate-500 capitalize">{userProfile?.role}</p>
+                </div>
+                <button
+                  onClick={handleLogout}
+                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-medium text-sm border border-transparent hover:border-red-200"
+                >
+                  <LogOut size={16} />
+                </button>
+              </div>
+            </div>
           </div>
         </header>
 
