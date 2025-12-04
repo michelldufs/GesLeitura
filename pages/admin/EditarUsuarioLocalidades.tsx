@@ -217,7 +217,7 @@ const EditarUsuarioLocalidades: React.FC = () => {
                                                 <p className={`text-lg font-semibold ${
                                                     isSelected ? 'text-blue-900' : 'text-slate-900'
                                                 }`}>
-                                                    {localidade.nome}
+                                                    {localidade.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade.nome}
                                                 </p>
                                                 <p className="text-xs text-slate-500 mt-1">
                                                     {localidade.id}

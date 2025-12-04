@@ -52,7 +52,8 @@ const SelectorLocalidadeModal: React.FC = () => {
 
         const localidade = localidades.find(l => l.id === selectedValue);
         if (localidade) {
-            setSelectedLocalidade(selectedValue, localidade.nome);
+            const displayName = localidade.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade.nome;
+            setSelectedLocalidade(selectedValue, displayName);
             setShowModal(false);
         }
     };
@@ -89,7 +90,7 @@ const SelectorLocalidadeModal: React.FC = () => {
                                 { value: '', label: 'Selecione' },
                                 ...localidades.map(loc => ({
                                     value: loc.id,
-                                    label: loc.nome
+                                    label: loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome
                                 }))
                             ]}
                             value={selectedValue}

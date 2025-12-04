@@ -55,7 +55,8 @@ const SeletorLocalidade: React.FC = () => {
 
         const localidade = localidades.find(l => l.id === selectedValue);
         if (localidade) {
-            setSelectedLocalidade(selectedValue, localidade.nome);
+            const displayName = localidade.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade.nome;
+            setSelectedLocalidade(selectedValue, displayName);
         }
     };
 
@@ -123,7 +124,7 @@ const SeletorLocalidade: React.FC = () => {
                                     <option value="">Selecione uma localidade...</option>
                                     {localidades.map(loc => (
                                         <option key={loc.id} value={loc.id}>
-                                            {loc.nome}
+                                            {loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome}
                                         </option>
                                     ))}
                                 </select>
