@@ -28,14 +28,22 @@ const SelectorLocalidadeModal: React.FC = () => {
 
     const loadLocalidades = async () => {
         try {
+            setLoading(true);
             const locs = await adminService.getLocalidades();
+            console.log('Todas as localidades:', locs);
+            console.log('Localidades permitidas do usuário:', userProfile?.allowedLocalidades);
+            
             // Filtrar apenas localidades permitidas para este usuário
             const allowed = locs.filter((loc: any) =>
                 userProfile?.allowedLocalidades?.includes(loc.id)
             );
+            console.log('Localidades filtradas:', allowed);
+            
             setLocalidades(allowed as Localidade[]);
+            setLoading(false);
         } catch (error) {
             console.error('Erro ao buscar localidades:', error);
+            setLoading(false);
         }
     };
 
@@ -65,34 +73,46 @@ const SelectorLocalidadeModal: React.FC = () => {
                     Qual localidade você deseja gerenciar?
                 </p>
 
-                <SelectField
-                    label="Localidades Disponíveis"
-                    options={[
-                        { value: '', label: 'Selecione' },
-                        ...localidades.map(loc => ({
-                            value: loc.id,
-                            label: loc.nome
-                        }))
-                    ]}
-                    value={selectedValue}
-                    onChange={(e) => setSelectedValue(e.target.value)}
-                />
+                {loading ? (
+                    <div className="text-center py-8">
+                        <p className="text-slate-500">Carregando localidades...</p>
+                    </div>
+                ) : localidades.length === 0 ? (
+                    <div className="text-center py-8">
+                        <p className="text-slate-500">Nenhuma localidade disponível</p>
+                    </div>
+                ) : (
+                    <>
+                        <SelectField
+                            label="Localidades Disponíveis"
+                            options={[
+                                { value: '', label: 'Selecione' },
+                                ...localidades.map(loc => ({
+                                    value: loc.id,
+                                    label: loc.nome
+                                }))
+                            ]}
+                            value={selectedValue}
+                            onChange={(e) => setSelectedValue(e.target.value)}
+                        />
 
-                <div className="flex gap-3 mt-8">
-                    <ButtonSecondary
-                        onClick={() => setShowModal(false)}
-                        className="flex-1"
-                    >
-                        Cancelar
-                    </ButtonSecondary>
-                    <ButtonPrimary
-                        onClick={handleSelect}
-                        disabled={!selectedValue || loading}
-                        className="flex-1"
-                    >
-                        {loading ? 'Selecionando...' : 'Selecionar'}
-                    </ButtonPrimary>
-                </div>
+                        <div className="flex gap-3 mt-8">
+                            <ButtonSecondary
+                                onClick={() => setShowModal(false)}
+                                className="flex-1"
+                            >
+                                Cancelar
+                            </ButtonSecondary>
+                            <ButtonPrimary
+                                onClick={handleSelect}
+                                disabled={!selectedValue}
+                                className="flex-1"
+                            >
+                                Selecionar
+                            </ButtonPrimary>
+                        </div>
+                    </>
+                )}
             </div>
         </div>
     );
