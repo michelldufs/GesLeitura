@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
-import { Layers, Plus } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
+import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
+import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
 
 interface Secao {
   id: string;
@@ -121,102 +122,81 @@ const Secoes: React.FC = () => {
   const isAuthorized = userProfile && ['admin', 'gerente'].includes(userProfile.role);
   const getLocalidadeNome = (id: string) => localidades.find(l => l.id === id)?.nome || 'N/A';
 
-  const visibleSecoes =
-    filterLocalidadeId === '' ? [] :
-    filterLocalidadeId === 'ALL' ? secoes :
-    secoes.filter(s => s.localidadeId === filterLocalidadeId);
-
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <Layers className="text-purple-600" size={28} />
-          Gestão de Seções
-        </h1>
-        <button
-          onClick={handleOpenModal}
-          disabled={!isAuthorized}
-          className={`px-4 py-2 rounded text-white font-semibold transition-colors ${
-            isAuthorized
-              ? 'bg-purple-600 hover:bg-purple-700'
-              : 'bg-gray-300 cursor-not-allowed'
-          }`}
-        >
-          + Nova Seção
-        </button>
-      </div>
+    <div className="p-8 max-w-6xl mx-auto">
+      <PageHeader 
+        title="Gestão de Seções"
+        subtitle="Crie e gerencie todas as seções do sistema"
+        action={
+          <button
+            onClick={handleOpenModal}
+            disabled={!isAuthorized}
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+          >
+            <Plus size={20} /> Nova Seção
+          </button>
+        }
+      />
 
       {!isAuthorized && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded mb-6">
-          Seu perfil ({userProfile?.role}) não possui permissão para gerenciar seções.
-        </div>
+        <AlertBox 
+          type="warning"
+          message={`Seu perfil (${userProfile?.role}) não possui permissão para gerenciar seções.`}
+        />
       )}
 
       {message && (
-        <div className={`mb-6 p-4 rounded ${messageType === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`}>
-          {message}
+        <div className="mb-6">
+          <AlertBox 
+            type={messageType as 'success' | 'error' | 'warning' | 'info'}
+            message={message}
+          />
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <div className="flex items-center gap-4 mb-4">
-          <label className="text-sm font-medium text-gray-700">Filtrar por localidade:</label>
-          <select
-            value={filterLocalidadeId}
-            onChange={(e) => setFilterLocalidadeId(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 outline-none"
-          >
-            <option value="">Selecione</option>
-            <option value="ALL">Todas</option>
-            {localidades.map(loc => (
-              <option key={loc.id} value={loc.id}>{loc.nome}</option>
-            ))}
-          </select>
-        </div>
+      <GlassCard className="p-8">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-6">Seções Cadastradas</h2>
 
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">Seções Cadastradas</h2>
-
-        {filterLocalidadeId === '' ? (
-          <div className="text-center py-8 text-gray-500">
-            Selecione uma localidade para listar as seções.
-          </div>
-        ) : visibleSecoes.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>Nenhuma seção cadastrada.</p>
-            <p className="text-sm">Clique em "+ Nova Seção" para criar uma.</p>
+        {secoes.length === 0 ? (
+          <div className="text-center py-12">
+            <Layers className="mx-auto text-slate-300 mb-4" size={48} />
+            <p className="text-slate-500 text-lg">Nenhuma seção cadastrada ainda.</p>
+            <p className="text-slate-400 text-sm mt-2">Clique em "Nova Seção" para criar a primeira.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left text-gray-700">
-              <thead className="text-xs text-gray-600 uppercase bg-gray-100 border-b">
+          <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-4 py-3">Nome</th>
-                  <th className="px-4 py-3">Localidade</th>
-                  <th className="px-4 py-3 text-right">Ações</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
-                {visibleSecoes.map((secao) => (
-                  <tr key={secao.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900 flex items-center gap-2">
-                      <Layers className="text-purple-500" size={18} />
+                {secoes.map((secao) => (
+                  <tr key={secao.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
+                      <div className="p-2 bg-purple-100/50 rounded-lg">
+                        <Layers className="text-purple-600" size={18} />
+                      </div>
                       {secao.nome}
                     </td>
-                    <td className="px-4 py-3 text-gray-600">{getLocalidadeNome(secao.localidadeId)}</td>
-                    <td className="px-4 py-3 text-right space-x-2">
+                    <td className="px-6 py-4 text-slate-600">{getLocalidadeNome(secao.localidadeId)}</td>
+                    <td className="px-6 py-4 text-right flex justify-end gap-3">
                       <button
                         onClick={() => handleEdit(secao)}
                         disabled={!isAuthorized}
-                        className="text-blue-600 hover:text-blue-800 font-medium text-sm disabled:opacity-50"
+                        className="text-blue-500 hover:text-blue-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
                       >
-                        Editar
+                        <Edit2 size={16} /> Editar
                       </button>
                       <button
                         onClick={() => handleDelete(secao.id)}
                         disabled={!isAuthorized}
-                        className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                        className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
                       >
-                        Desativar
+                        <Trash2 size={16} /> Desativar
                       </button>
                     </td>
                   </tr>
@@ -225,67 +205,48 @@ const Secoes: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </GlassCard>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4 text-gray-800">
-                {editingId ? 'Editar Seção' : 'Nova Seção'}
-              </h2>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Localidade</label>
-                  <select
-                    value={formData.localidadeId}
-                    onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
-                    required
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-purple-500 outline-none"
-                  >
-                    <option value="">Selecione a localidade</option>
-                    {localidades.map(loc => (
-                      <option key={loc.id} value={loc.id}>{loc.nome}</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome</label>
-                  <input
-                    type="text"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
-                    required
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-purple-500 outline-none"
-                    placeholder="Ex: Seção A"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={`flex-1 py-2 px-4 rounded text-white font-bold transition-colors ${
-                      loading ? 'bg-gray-400' : 'bg-purple-600 hover:bg-purple-700'
-                    }`}
-                  >
-                    {loading ? 'Salvando...' : 'Salvar'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="flex-1 py-2 px-4 rounded border border-gray-300 font-bold hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
+      <Modal 
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        title={editingId ? 'Editar Seção' : 'Nova Seção'}
+        actions={
+          <div className="flex gap-3">
+            <ButtonPrimary onClick={handleSubmit} disabled={loading} type="submit">
+              {loading ? 'Salvando...' : 'Salvar'}
+            </ButtonPrimary>
+            <ButtonSecondary onClick={handleCloseModal}>
+              Cancelar
+            </ButtonSecondary>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <SelectField
+            label="Localidade"
+            value={formData.localidadeId}
+            onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
+            disabled={!isAuthorized}
+            required
+          >
+            <option value="">Selecione a localidade</option>
+            {localidades.map(loc => (
+              <option key={loc.id} value={loc.id}>{loc.nome}</option>
+            ))}
+          </SelectField>
+
+          <InputField
+            label="Nome da Seção"
+            placeholder="Ex: Seção A"
+            value={formData.nome}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+            disabled={!isAuthorized}
+            required
+          />
+        </form>
+      </Modal>
     </div>
   );
 };

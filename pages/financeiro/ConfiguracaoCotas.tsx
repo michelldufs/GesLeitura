@@ -2,8 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import { getActiveCollection, saveCota, softDelete } from '../../services/operacionalService';
-import { UserPlus, Plus } from 'lucide-react';
+import { useLocation } from 'react-router-dom';
 import { Cota } from '../../types';
+import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
+import { Plus, Edit2, Trash2, Users } from 'lucide-react';
 
 interface CotaForm {
   nome: string;
@@ -16,10 +18,17 @@ const ConfiguracaoCotas = () => {
   const { userProfile } = useAuth();
   const [cotas, setCotas] = useState<Cota[]>([]);
   const [showModal, setShowModal] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
-  const { register, handleSubmit, reset, formState: { errors } } = useForm<CotaForm>();
+  const [formData, setFormData] = useState({
+    nome: '',
+    porcentagem: 0,
+    localidadeId: '',
+    participaPrejuizo: false
+  });
+  const { register, handleSubmit, reset, formState: { errors }, watch, setValue } = useForm<any>();
 
   const loadCotas = () => getActiveCollection('cotas').then(setCotas);
 
@@ -27,18 +36,31 @@ const ConfiguracaoCotas = () => {
     loadCotas();
   }, []);
 
-  const onSubmit = async (data: CotaForm) => {
-    if (!userProfile) return;
+  const handleOpenModal = () => {
+    setFormData({ nome: '', porcentagem: 0, localidadeId: '', participaPrejuizo: false });
+    setEditingId(null);
+    reset();
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setFormData({ nome: '', porcentagem: 0, localidadeId: '', participaPrejuizo: false });
+    setEditingId(null);
+    reset();
+  };
+
+  const onSubmit = async () => {
+    if (!userProfile || !formData.nome.trim()) return;
     setLoading(true);
     setMessage('');
     setMessageType('');
 
     try {
-      await saveCota({ ...data, saldoAcumulado: 0 }, userProfile.uid);
+      await saveCota({ ...formData, saldoAcumulado: 0 }, userProfile.uid);
       setMessageType('success');
       setMessage('Cota criada com sucesso!');
-      reset();
-      setShowModal(false);
+      handleCloseModal();
       loadCotas();
     } catch (e: any) {
       console.error(e);
@@ -65,79 +87,83 @@ const ConfiguracaoCotas = () => {
   const isAuthorized = userProfile && ['admin', 'gerente', 'socio'].includes(userProfile.role);
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-800 flex items-center gap-2">
-          <UserPlus className="text-indigo-600" size={28} />
-          Configuração de Sócios e Cotas
-        </h1>
-        <button
-          onClick={() => setShowModal(true)}
-          disabled={!isAuthorized}
-          className={`px-4 py-2 rounded text-white font-semibold transition-colors ${
-            isAuthorized
-              ? 'bg-indigo-600 hover:bg-indigo-700'
-              : 'bg-gray-300 cursor-not-allowed'
-          }`}
-        >
-          + Nova Cota
-        </button>
-      </div>
+    <div className="p-8 max-w-6xl mx-auto">
+      <PageHeader 
+        title="Configuração de Sócios e Cotas"
+        subtitle="Gerencie todas as cotas e sócios do sistema"
+        action={
+          <button
+            onClick={handleOpenModal}
+            disabled={!isAuthorized}
+            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+          >
+            <Plus size={20} /> Nova Cota
+          </button>
+        }
+      />
 
       {!isAuthorized && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded mb-6">
-          Seu perfil ({userProfile?.role}) não possui permissão para gerenciar cotas.
-        </div>
+        <AlertBox 
+          type="warning"
+          message={`Seu perfil (${userProfile?.role}) não possui permissão para gerenciar cotas.`}
+        />
       )}
 
       {message && (
-        <div className={`mb-6 p-4 rounded ${messageType === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`}>
-          {message}
+        <div className="mb-6">
+          <AlertBox 
+            type={messageType as 'success' | 'error' | 'warning' | 'info'}
+            message={message}
+          />
         </div>
       )}
 
-      <div className="bg-white p-6 rounded-lg shadow-md">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">Sócios Ativos</h2>
+      <GlassCard className="p-8">
+        <h2 className="text-2xl font-semibold text-slate-900 mb-6">Sócios Ativos</h2>
 
         {cotas.length === 0 ? (
-          <div className="text-center py-8 text-gray-500">
-            <p>Nenhuma cota cadastrada ainda.</p>
-            <p className="text-sm">Clique em "+ Nova Cota" para criar a primeira.</p>
+          <div className="text-center py-12">
+            <Users className="mx-auto text-slate-300 mb-4" size={48} />
+            <p className="text-slate-500 text-lg">Nenhuma cota cadastrada ainda.</p>
+            <p className="text-slate-400 text-sm mt-2">Clique em "Nova Cota" para criar a primeira.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="min-w-full text-sm text-left text-gray-700">
-              <thead className="text-xs text-gray-600 uppercase bg-gray-100 border-b">
+          <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+            <table className="w-full text-sm text-left">
+              <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-4 py-3">Nome</th>
-                  <th className="px-4 py-3">Porcentagem</th>
-                  <th className="px-4 py-3">Saldo Acumulado</th>
-                  <th className="px-4 py-3">Participa Prejuízo</th>
-                  <th className="px-4 py-3 text-right">Ações</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Porcentagem</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Prejuízo</th>
+                  <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {cotas.map((c: Cota) => (
-                  <tr key={c.id} className="border-b hover:bg-gray-50">
-                    <td className="px-4 py-3 font-medium text-gray-900">{c.nome}</td>
-                    <td className="px-4 py-3">{c.porcentagem}%</td>
-                    <td className={`px-4 py-3 font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                  <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-slate-900 flex items-center gap-3">
+                      <div className="p-2 bg-indigo-100/50 rounded-lg">
+                        <Users className="text-indigo-600" size={18} />
+                      </div>
+                      {c.nome}
+                    </td>
+                    <td className="px-6 py-4 text-slate-600 font-semibold">{c.porcentagem}%</td>
+                    <td className={`px-6 py-4 font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
                       R$ {(c.saldoAcumulado || 0).toFixed(2)}
                     </td>
-                    <td className="px-4 py-3">
-                      <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                        c.participaPrejuizo ? 'bg-yellow-100 text-yellow-800' : 'bg-gray-100 text-gray-800'
-                      }`}>
+                    <td className="px-6 py-4">
+                      <Badge type={c.participaPrejuizo ? 'warning' : 'info'}>
                         {c.participaPrejuizo ? 'Sim' : 'Não'}
-                      </span>
+                      </Badge>
                     </td>
-                    <td className="px-4 py-3 text-right">
+                    <td className="px-6 py-4 text-right">
                       <button
                         onClick={() => handleDelete(c.id)}
                         disabled={!isAuthorized}
-                        className="text-red-600 hover:text-red-800 font-medium text-sm disabled:opacity-50"
+                        className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
                       >
-                        Desativar
+                        <Trash2 size={16} /> Desativar
                       </button>
                     </td>
                   </tr>
@@ -146,84 +172,71 @@ const ConfiguracaoCotas = () => {
             </table>
           </div>
         )}
-      </div>
+      </GlassCard>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
-            <div className="p-6">
-              <h2 className="text-xl font-bold mb-4 text-gray-800">Nova Cota</h2>
-              <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Nome do Sócio</label>
-                  <input
-                    type="text"
-                    {...register('nome', { required: 'Nome é obrigatório' })}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="Ex: João Silva"
-                  />
-                  {errors.nome && <p className="text-red-500 text-xs mt-1">{errors.nome.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Porcentagem (%)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    {...register('porcentagem', { required: 'Porcentagem é obrigatória', valueAsNumber: true, min: 0, max: 100 })}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="Ex: 25.00"
-                  />
-                  {errors.porcentagem && <p className="text-red-500 text-xs mt-1">{errors.porcentagem.message}</p>}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Localidade ID</label>
-                  <input
-                    type="text"
-                    {...register('localidadeId', { required: 'Localidade é obrigatória' })}
-                    className="w-full p-2 border rounded focus:ring-2 focus:ring-indigo-500 outline-none"
-                    placeholder="Ex: loc_123"
-                  />
-                  {errors.localidadeId && <p className="text-red-500 text-xs mt-1">{errors.localidadeId.message}</p>}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    {...register('participaPrejuizo')}
-                    id="participaPrejuizo"
-                    className="h-4 w-4"
-                  />
-                  <label htmlFor="participaPrejuizo" className="text-sm font-medium text-gray-700">
-                    Participa do Prejuízo?
-                  </label>
-                </div>
-
-                <div className="flex gap-3 pt-4">
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className={`flex-1 py-2 px-4 rounded text-white font-bold transition-colors ${
-                      loading ? 'bg-gray-400' : 'bg-indigo-600 hover:bg-indigo-700'
-                    }`}
-                  >
-                    {loading ? 'Salvando...' : 'Criar Cota'}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setShowModal(false); reset(); }}
-                    className="flex-1 py-2 px-4 rounded border border-gray-300 font-bold hover:bg-gray-50"
-                  >
-                    Cancelar
-                  </button>
-                </div>
-              </form>
-            </div>
+      <Modal 
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        title="Nova Cota"
+        actions={
+          <div className="flex gap-3">
+            <ButtonPrimary onClick={onSubmit} disabled={loading} type="submit">
+              {loading ? 'Salvando...' : 'Criar Cota'}
+            </ButtonPrimary>
+            <ButtonSecondary onClick={handleCloseModal}>
+              Cancelar
+            </ButtonSecondary>
           </div>
-        </div>
-      )}
+        }
+      >
+        <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-5">
+          <InputField
+            label="Nome do Sócio"
+            placeholder="Ex: João Silva"
+            value={formData.nome}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value })}
+            disabled={!isAuthorized}
+            required
+          />
+
+          <InputField
+            label="Porcentagem (%)"
+            type="number"
+            step="0.01"
+            min="0"
+            max="100"
+            placeholder="Ex: 25.00"
+            value={formData.porcentagem}
+            onChange={(e) => setFormData({ ...formData, porcentagem: parseFloat(e.target.value) })}
+            disabled={!isAuthorized}
+            required
+          />
+
+          <InputField
+            label="Localidade ID"
+            placeholder="Ex: loc_123"
+            value={formData.localidadeId}
+            onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
+            disabled={!isAuthorized}
+            required
+          />
+
+          <div className="flex items-center gap-3 p-4 bg-slate-50/50 rounded-lg border border-slate-200/50">
+            <input
+              type="checkbox"
+              id="participaPrejuizo"
+              checked={formData.participaPrejuizo}
+              onChange={(e) => setFormData({ ...formData, participaPrejuizo: e.target.checked })}
+              disabled={!isAuthorized}
+              className="h-5 w-5 rounded border-slate-300 text-blue-600 cursor-pointer"
+            />
+            <label htmlFor="participaPrejuizo" className="text-sm font-medium text-slate-700 cursor-pointer">
+              Este sócio participa do prejuízo?
+            </label>
+          </div>
+        </form>
+      </Modal>
     </div>
   );
 };

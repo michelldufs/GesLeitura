@@ -3,7 +3,8 @@ import { useAuth } from '../../contexts/AuthContext';
 import { getActiveCollection } from '../../services/operacionalService';
 import { fecharMes } from '../../services/financeiroService';
 import { Cota } from '../../types';
-import { Lock, Calculator, Download } from 'lucide-react';
+import { GlassCard, AlertBox, PageHeader, Badge } from '../../components/MacOSDesign';
+import { Lock, Calculator, Download, TrendingUp } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 
@@ -72,38 +73,45 @@ const CaixaGeral: React.FC = () => {
   const isAuthorized = userProfile && ['admin', 'gerente', 'socio'].includes(userProfile.role);
 
   return (
-    <div className="p-6">
-      <h1 className="text-3xl font-bold mb-8 text-gray-800">Caixa Geral & Fechamento</h1>
+    <div className="p-8 max-w-7xl mx-auto">
+      <PageHeader 
+        title="Caixa Geral & Fechamento"
+        subtitle="Visualize resumos financeiros e feche períodos"
+      />
 
       {!isAuthorized && (
-        <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 p-4 rounded mb-6">
-          Seu perfil ({userProfile?.role}) não possui permissão para acessar caixa.
-        </div>
+        <AlertBox 
+          type="warning"
+          message={`Seu perfil (${userProfile?.role}) não possui permissão para acessar a caixa.`}
+        />
       )}
 
       {message && (
-        <div className={`mb-6 p-4 rounded ${messageType === 'success' ? 'bg-green-100 text-green-800 border border-green-300' : 'bg-red-100 text-red-800 border border-red-300'}`}>
-          {message}
+        <div className="mb-6">
+          <AlertBox 
+            type={messageType as 'success' | 'error' | 'warning' | 'info'}
+            message={message}
+          />
         </div>
       )}
 
       {/* Filters */}
-      <div className="bg-white p-6 rounded-lg shadow-md mb-6">
-        <h2 className="text-lg font-semibold text-gray-700 mb-4">Filtros</h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <GlassCard className="p-6 mb-8">
+        <h2 className="text-xl font-semibold text-slate-900 mb-6">Filtros e Cálculo</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mês</label>
-            <select value={mes} onChange={e => setMes(Number(e.target.value))} className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Mês</label>
+            <select value={mes} onChange={e => setMes(Number(e.target.value))} disabled={!isAuthorized} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50">
               {[...Array(12)].map((_, i) => <option key={i} value={i+1}>Mês {i+1}</option>)}
             </select>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Ano</label>
-            <input type="number" value={ano} onChange={e => setAno(Number(e.target.value))} className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none" />
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Ano</label>
+            <input type="number" value={ano} onChange={e => setAno(Number(e.target.value))} disabled={!isAuthorized} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Localidade</label>
-            <select value={localidadeId} onChange={e => setLocalidadeId(e.target.value)} className="w-full border border-gray-300 p-2 rounded focus:ring-2 focus:ring-blue-500 outline-none">
+            <label className="block text-sm font-semibold text-slate-700 mb-2">Localidade</label>
+            <select value={localidadeId} onChange={e => setLocalidadeId(e.target.value)} disabled={!isAuthorized} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50">
               <option value="">Selecione...</option>
               <option value="loc1">Matriz (Demo)</option>
             </select>
@@ -112,112 +120,118 @@ const CaixaGeral: React.FC = () => {
             <button 
               onClick={calcularPrevia}
               disabled={!isAuthorized}
-              className={`w-full px-4 py-2 rounded text-white font-bold transition-colors flex items-center justify-center gap-2 ${
-                isAuthorized ? 'bg-blue-600 hover:bg-blue-700' : 'bg-gray-300 cursor-not-allowed'
-              }`}
+              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-2 px-4 rounded-lg shadow transition-all duration-300"
             >
-              <Calculator size={20} /> Calcular
+              <Calculator size={18} /> Calcular
             </button>
           </div>
         </div>
-      </div>
+      </GlassCard>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
         
         {/* Totals Card */}
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-700 mb-4 border-b pb-2">Resumo Operacional</h2>
-          <div className="space-y-3">
-            <div className="flex justify-between">
-              <span className="text-gray-600">(+) Total Vendas</span>
+        <GlassCard className="p-8">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 bg-blue-100/50 rounded-lg">
+              <TrendingUp className="text-blue-600" size={24} />
+            </div>
+            <h2 className="text-xl font-semibold text-slate-900">Resumo Operacional</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="flex justify-between pb-3 border-b border-slate-200/50">
+              <span className="text-slate-600">Total de Vendas</span>
               <span className="font-bold text-green-600">R$ {vendasTotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-gray-600">(-) Despesas Op.</span>
+            <div className="flex justify-between pb-3 border-b border-slate-200/50">
+              <span className="text-slate-600">Despesas Operacionais</span>
               <span className="font-bold text-red-600">R$ {despesasOp.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between pt-4 border-t text-lg font-bold">
-              <span>= Lucro Liquido</span>
-              <span className="text-blue-600">R$ {lucroLiquido.toFixed(2)}</span>
+            <div className="flex justify-between pt-2 pb-4 border-b border-slate-200/50">
+              <span className="text-slate-900 font-bold text-lg">Lucro Líquido</span>
+              <span className="font-bold text-lg text-blue-600">R$ {lucroLiquido.toFixed(2)}</span>
             </div>
             
-            <div className="mt-6 bg-yellow-50 p-4 rounded border border-yellow-200">
-              <label className="block text-sm font-bold text-yellow-800 mb-2">Retenção (Capital de Giro)</label>
+            <div className="bg-yellow-50/50 p-4 rounded-lg border border-yellow-200/50 mt-4">
+              <label className="block text-sm font-semibold text-slate-900 mb-2">Retenção (Capital de Giro)</label>
               <input 
                 type="number" 
                 value={valorRetido} 
                 onChange={e => setValorRetido(Number(e.target.value))}
                 disabled={!isAuthorized}
-                className="w-full border border-gray-300 p-2 rounded disabled:bg-gray-100"
+                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-yellow-500 outline-none disabled:bg-slate-50"
               />
             </div>
             
-            <div className="flex justify-between pt-2 font-bold">
-              <span>Base Rateio:</span>
+            <div className="flex justify-between pt-4 font-semibold text-lg">
+              <span className="text-slate-900">Base Rateio:</span>
               <span className="text-purple-600">R$ {baseRateio.toFixed(2)}</span>
             </div>
           </div>
-        </div>
+        </GlassCard>
 
         {/* Partners Simulation */}
-        <div className="lg:col-span-2 bg-white rounded-lg shadow p-6">
-          <h2 className="text-xl font-bold text-gray-700 mb-4 border-b pb-2">Simulação de Rateio</h2>
-          <div className="overflow-x-auto mb-6">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-100 text-gray-700 uppercase text-xs font-bold">
-                <tr>
-                  <th className="px-4 py-3">Sócio</th>
-                  <th className="px-4 py-3">%</th>
-                  <th className="px-4 py-3">Parte (R$)</th>
-                  <th className="px-4 py-3">Saldo Ant.</th>
-                  <th className="px-4 py-3">Previsão Final</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cotas.length === 0 ? (
+        <div className="lg:col-span-2">
+          <GlassCard className="p-8 h-full">
+            <h2 className="text-xl font-semibold text-slate-900 mb-6">Simulação de Rateio</h2>
+            <div className="overflow-x-auto rounded-xl border border-slate-200/50 mb-6">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50/50 border-b border-slate-200/50">
                   <tr>
-                    <td colSpan={5} className="px-4 py-3 text-center text-gray-500">Nenhuma cota cadastrada</td>
+                    <th className="px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Sócio</th>
+                    <th className="px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">%</th>
+                    <th className="px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Parte (R$)</th>
+                    <th className="px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo Ant.</th>
+                    <th className="px-6 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Previsão Final</th>
                   </tr>
-                ) : (
-                  cotas.map(cota => {
-                    let parte = baseRateio * (cota.porcentagem / 100);
-                    if (baseRateio < 0 && !cota.participaPrejuizo) parte = 0;
-                    const final = parte + cota.saldoAcumulado;
-                    
-                    return (
-                      <tr key={cota.id} className="border-b hover:bg-gray-50">
-                        <td className="px-4 py-3 font-medium text-gray-900">{cota.nome}</td>
-                        <td className="px-4 py-3">{cota.porcentagem}%</td>
-                        <td className={`px-4 py-3 font-semibold ${parte >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          R$ {parte.toFixed(2)}
-                        </td>
-                        <td className="px-4 py-3 text-gray-600">R$ {(cota.saldoAcumulado || 0).toFixed(2)}</td>
-                        <td className="px-4 py-3 font-bold">R$ {final.toFixed(2)}</td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {cotas.length === 0 ? (
+                    <tr>
+                      <td colSpan={5} className="px-6 py-4 text-center text-slate-500">Nenhuma cota cadastrada</td>
+                    </tr>
+                  ) : (
+                    cotas.map(cota => {
+                      let parte = baseRateio * (cota.porcentagem / 100);
+                      if (baseRateio < 0 && !cota.participaPrejuizo) parte = 0;
+                      const final = parte + cota.saldoAcumulado;
+                      
+                      return (
+                        <tr key={cota.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                          <td className="px-6 py-4 font-medium text-slate-900">{cota.nome}</td>
+                          <td className="px-6 py-4 text-slate-600">{cota.porcentagem}%</td>
+                          <td className={`px-6 py-4 font-semibold ${parte >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                            R$ {parte.toFixed(2)}
+                          </td>
+                          <td className="px-6 py-4 text-slate-600">R$ {(cota.saldoAcumulado || 0).toFixed(2)}</td>
+                          <td className="px-6 py-4 font-bold text-slate-900 text-right">R$ {final.toFixed(2)}</td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+            </div>
 
-          <div className="flex justify-end gap-4">
-            <button 
-              disabled={!isAuthorized}
-              className="flex items-center gap-2 border border-gray-300 px-4 py-2 rounded text-gray-600 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <Download size={18} /> Exportar PDF
-            </button>
-            <button 
-              onClick={handleFecharMes}
-              disabled={!isAuthorized || loading || !localidadeId}
-              className={`flex items-center gap-2 text-white px-6 py-2 rounded font-bold shadow-lg transition-colors ${
-                isAuthorized && !loading && localidadeId ? 'bg-red-600 hover:bg-red-700' : 'bg-gray-400 cursor-not-allowed'
-              }`}
-            >
-              <Lock size={18} /> {loading ? 'Fechando...' : 'FECHAR MÊS'}
-            </button>
-          </div>
+            <div className="flex justify-end gap-3">
+              <button 
+                disabled={!isAuthorized}
+                className="flex items-center gap-2 border border-slate-200/50 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                <Download size={18} /> Exportar PDF
+              </button>
+              <button 
+                onClick={handleFecharMes}
+                disabled={!isAuthorized || loading || !localidadeId}
+                className={`flex items-center gap-2 text-white px-6 py-2 rounded-lg font-semibold shadow-lg transition-all duration-300 ${
+                  isAuthorized && !loading && localidadeId ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : 'bg-slate-400 cursor-not-allowed'
+                }`}
+              >
+                <Lock size={18} /> {loading ? 'Fechando...' : 'FECHAR MÊS'}
+              </button>
+            </div>
+          </GlassCard>
         </div>
 
       </div>
