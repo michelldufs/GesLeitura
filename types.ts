@@ -26,13 +26,42 @@ export interface Localidade {
   active: boolean;
 }
 
+export interface Secao {
+  id: string;
+  codigo?: string;
+  nome: string;
+  localidadeId: string;
+  active: boolean;
+}
+
+export interface Rota {
+  id: string;
+  codigo?: string;
+  nome: string;
+  secaoId: string;
+  localidadeId: string;
+  active: boolean;
+}
+
+export interface Ponto {
+  id: string;
+  codigo?: string;
+  nome: string;
+  rotaId: string;
+  localidadeId: string;
+  comissao?: number;
+  endereco?: string;
+  telefone?: string;
+  qtdEquipamentos?: number;
+  active: boolean;
+}
+
 export interface Operador {
   id: string;
-  codigo: number;
+  codigo?: string;
   nome: string;
+  fatorConversao?: number;
   pontoId: string;
-  rotaId: string;
-  secaoId: string;
   localidadeId: string;
   active: boolean;
 }

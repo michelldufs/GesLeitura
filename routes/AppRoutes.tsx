@@ -1,27 +1,39 @@
-import React from 'react';
+import React, { lazy, Suspense } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
 import MobileLayout from '../layouts/MobileLayout';
 import AdminLayout from '../layouts/AdminLayout';
 
-// Pages
+// Critical pages (loaded immediately)
 import Login from '../pages/Login';
 import SeletorLocalidade from '../pages/SeletorLocalidade';
 import Dashboard from '../pages/Dashboard';
-import ConfiguracaoTerminal from '../pages/mobile/ConfiguracaoTerminal';
-import NovaLeituraMobile from '../pages/mobile/NovaLeituraMobile';
-import LancamentoManual from '../pages/financeiro/LancamentoManual';
-import CaixaGeral from '../pages/financeiro/CaixaGeral';
-import ConfiguracaoCotas from '../pages/financeiro/ConfiguracaoCotas';
-import Despesas from '../pages/financeiro/Despesas';
-import Usuarios from '../pages/admin/Usuarios';
-import EditarUsuarioLocalidades from '../pages/admin/EditarUsuarioLocalidades';
-import Localidades from '../pages/operacional/Localidades';
-import Secoes from '../pages/operacional/Secoes';
-import Rotas from '../pages/operacional/Rotas';
-import Pontos from '../pages/operacional/Pontos';
-import Operadores from '../pages/operacional/Operadores';
+
+// Lazy-loaded pages (code splitting)
+const ConfiguracaoTerminal = lazy(() => import('../pages/mobile/ConfiguracaoTerminal'));
+const NovaLeituraMobile = lazy(() => import('../pages/mobile/NovaLeituraMobile'));
+const LancamentoManual = lazy(() => import('../pages/financeiro/LancamentoManual'));
+const CaixaGeral = lazy(() => import('../pages/financeiro/CaixaGeral'));
+const ConfiguracaoCotas = lazy(() => import('../pages/financeiro/ConfiguracaoCotas'));
+const Despesas = lazy(() => import('../pages/financeiro/Despesas'));
+const Usuarios = lazy(() => import('../pages/admin/Usuarios'));
+const EditarUsuarioLocalidades = lazy(() => import('../pages/admin/EditarUsuarioLocalidades'));
+const Localidades = lazy(() => import('../pages/operacional/Localidades'));
+const Secoes = lazy(() => import('../pages/operacional/Secoes'));
+const Rotas = lazy(() => import('../pages/operacional/Rotas'));
+const Pontos = lazy(() => import('../pages/operacional/Pontos'));
+const Operadores = lazy(() => import('../pages/operacional/Operadores'));
+
+// Loading component
+const PageLoader = () => (
+  <div className="flex items-center justify-center min-h-screen">
+    <div className="text-center">
+      <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-blue-600 mx-auto mb-4"></div>
+      <p className="text-slate-600">Carregando...</p>
+    </div>
+  </div>
+);
 
 // Placeholder component
 const Placeholder: React.FC<{ title: string }> = ({ title }) => (
@@ -94,12 +106,14 @@ const AppRoutes: React.FC = () => {
   if (userProfile?.role === 'coleta') {
     return (
       <MobileLayout>
-        <Routes>
-          <Route path="/app/nova-leitura" element={<NovaLeituraMobile />} />
-          <Route path="/app/historico" element={<Placeholder title="Histórico de Leituras" />} />
-          <Route path="/mobile/setup" element={<ConfiguracaoTerminal />} />
-          <Route path="*" element={<Navigate to="/app/nova-leitura" replace />} />
-        </Routes>
+        <Suspense fallback={<PageLoader />}>
+          <Routes>
+            <Route path="/app/nova-leitura" element={<NovaLeituraMobile />} />
+            <Route path="/app/historico" element={<Placeholder title="Histórico de Leituras" />} />
+            <Route path="/mobile/setup" element={<ConfiguracaoTerminal />} />
+            <Route path="*" element={<Navigate to="/app/nova-leitura" replace />} />
+          </Routes>
+        </Suspense>
       </MobileLayout>
     );
   }
@@ -107,32 +121,34 @@ const AppRoutes: React.FC = () => {
   // Admin/Desktop Routes (all other roles - com localidade já selecionada)
   return (
     <AdminLayout>
-      <Routes>
-        <Route path="/" element={<Dashboard />} />
-        
-        {/* Operacional - Restrito a Admin, Gerente, Supervisor, Operacional */}
-        <Route path="/secao" element={<RequireOperacional><Secoes /></RequireOperacional>} />
-        <Route path="/rota" element={<RequireOperacional><Rotas /></RequireOperacional>} />
-        <Route path="/ponto" element={<RequireOperacional><Pontos /></RequireOperacional>} />
-        <Route path="/operador" element={<RequireOperacional><Operadores /></RequireOperacional>} />
-        <Route path="/lancamento" element={<RequireOperacional><LancamentoManual /></RequireOperacional>} />
-        
-        {/* Relatórios - Restrito a Admin e Financeiro */}
-        <Route path="/relatorios/data" element={<RequireFinanceiro><Placeholder title="Relatório por Data" /></RequireFinanceiro>} />
-        <Route path="/relatorios/mes" element={<RequireFinanceiro><Placeholder title="Relatório por Mês" /></RequireFinanceiro>} />
-        
-        {/* Administração - Restrito a Admin */}
-        <Route path="/localidades" element={<RequireAdmin><Localidades /></RequireAdmin>} />
-        <Route path="/usuarios" element={<RequireAdmin><Usuarios /></RequireAdmin>} />
-        <Route path="/admin/editar-usuario-localidades" element={<RequireAdmin><EditarUsuarioLocalidades /></RequireAdmin>} />
-        
-        {/* Financeiro - Restrito a Admin e Financeiro */}
-        <Route path="/caixa-geral" element={<RequireFinanceiro><CaixaGeral /></RequireFinanceiro>} />
-        <Route path="/cotas" element={<RequireFinanceiro><ConfiguracaoCotas /></RequireFinanceiro>} />
-        <Route path="/despesas" element={<RequireFinanceiro><Despesas /></RequireFinanceiro>} />
-        
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <Suspense fallback={<PageLoader />}>
+        <Routes>
+          <Route path="/" element={<Dashboard />} />
+          
+          {/* Operacional - Restrito a Admin, Gerente, Supervisor, Operacional */}
+          <Route path="/secao" element={<RequireOperacional><Secoes /></RequireOperacional>} />
+          <Route path="/rota" element={<RequireOperacional><Rotas /></RequireOperacional>} />
+          <Route path="/ponto" element={<RequireOperacional><Pontos /></RequireOperacional>} />
+          <Route path="/operador" element={<RequireOperacional><Operadores /></RequireOperacional>} />
+          <Route path="/lancamento" element={<RequireOperacional><LancamentoManual /></RequireOperacional>} />
+          
+          {/* Relatórios - Restrito a Admin e Financeiro */}
+          <Route path="/relatorios/data" element={<RequireFinanceiro><Placeholder title="Relatório por Data" /></RequireFinanceiro>} />
+          <Route path="/relatorios/mes" element={<RequireFinanceiro><Placeholder title="Relatório por Mês" /></RequireFinanceiro>} />
+          
+          {/* Administração - Restrito a Admin */}
+          <Route path="/localidades" element={<RequireAdmin><Localidades /></RequireAdmin>} />
+          <Route path="/usuarios" element={<RequireAdmin><Usuarios /></RequireAdmin>} />
+          <Route path="/admin/editar-usuario-localidades" element={<RequireAdmin><EditarUsuarioLocalidades /></RequireAdmin>} />
+          
+          {/* Financeiro - Restrito a Admin e Financeiro */}
+          <Route path="/caixa-geral" element={<RequireFinanceiro><CaixaGeral /></RequireFinanceiro>} />
+          <Route path="/cotas" element={<RequireFinanceiro><ConfiguracaoCotas /></RequireFinanceiro>} />
+          <Route path="/despesas" element={<RequireFinanceiro><Despesas /></RequireFinanceiro>} />
+          
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </Suspense>
     </AdminLayout>
   );
 };

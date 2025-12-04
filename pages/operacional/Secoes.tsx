@@ -1,10 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
-import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
+import { useSecoes, useCreateSecao, useUpdateSecao, useDeleteSecao } from '../../hooks/useSecoes';
 import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+import { db } from '../../services/firebaseConfig';
 
 interface Secao {
   id: string;
@@ -23,14 +24,19 @@ interface Localidade {
 const Secoes: React.FC = () => {
   const { userProfile } = useAuth();
   const { selectedLocalidade } = useLocalidade();
-  const [secoes, setSecoes] = useState<Secao[]>([]);
+  
+  // React Query hooks
+  const { data: secoes = [], isLoading: loadingSecoes, error } = useSecoes(selectedLocalidade);
+  const createSecao = useCreateSecao();
+  const updateSecao = useUpdateSecao();
+  const deleteSecao = useDeleteSecao();
+  
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
-  const [filterLocalidadeId, setFilterLocalidadeId] = useState('');
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -38,13 +44,11 @@ const Secoes: React.FC = () => {
   });
 
   useEffect(() => {
-    loadData();
-  }, [selectedLocalidade]);
+    loadLocalidades();
+  }, []);
 
-  const loadData = async () => {
+  const loadLocalidades = async () => {
     try {
-      console.log('Carregando dados de seções...');
-      // Carregar localidades permitidas do usuário
       const locQuery = query(collection(db, 'localidades'), where('active', '==', true));
       const locSnapshot = await getDocs(locQuery);
       const locData = locSnapshot.docs.map(doc => {
@@ -55,41 +59,9 @@ const Secoes: React.FC = () => {
           nome: data.nome || ''
         } as Localidade;
       });
-      console.log('Localidades carregadas:', locData);
       setLocalidades(locData);
-
-      // Todos os usuários (inclusive admin) veem apenas dados da localidade logada
-      if (!selectedLocalidade) {
-        setSecoes([]);
-        return;
-      }
-
-      const secQuery = query(
-        collection(db, 'secoes'),
-        where('active', '==', true),
-        where('localidadeId', '==', selectedLocalidade)
-      );
-
-      const secSnapshot = await getDocs(secQuery);
-      console.log('Documentos de seções encontrados:', secSnapshot.size);
-      const secData = secSnapshot.docs.map(doc => {
-        const data = doc.data();
-        return {
-          id: doc.id,
-          codigo: data.codigo || '',
-          nome: data.nome || '',
-          localidadeId: data.localidadeId || '',
-          active: data.active !== false
-        } as Secao;
-      });
-      // Ordenar por código crescente
-      secData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
-      console.log('Seções carregadas:', secData);
-      setSecoes(secData);
     } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-      setSecoes([]);
-      setLocalidades([]);
+      console.error('Erro ao carregar localidades:', error);
     }
   };
 
@@ -132,7 +104,13 @@ const Secoes: React.FC = () => {
 
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'secoes', editingId), { nome: formData.nome.toUpperCase(), localidadeId: formData.localidadeId });
+        await updateSecao.mutateAsync({
+          id: editingId,
+          data: {
+            nome: formData.nome.toUpperCase(),
+            localidadeId: formData.localidadeId
+          }
+        });
         setMessageType('success');
         setMessage('Seção atualizada com sucesso!');
       } else {
@@ -148,12 +126,11 @@ const Secoes: React.FC = () => {
           secaoData.codigo = codigo;
         }
         
-        await addDoc(collection(db, 'secoes'), secaoData);
+        await createSecao.mutateAsync(secaoData);
         setMessageType('success');
         setMessage('Seção criada com sucesso!');
       }
       handleCloseModal();
-      loadData();
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
       setMessageType('error');
@@ -173,10 +150,12 @@ const Secoes: React.FC = () => {
     if (!confirm('Deseja realmente desativar esta seção?')) return;
 
     try {
-      await updateDoc(doc(db, 'secoes', id), { active: false });
+      await deleteSecao.mutateAsync({ 
+        id, 
+        localidadeId: selectedLocalidade || '' 
+      });
       setMessageType('success');
       setMessage('Seção desativada com sucesso!');
-      loadData();
     } catch (error: any) {
       console.error('Erro ao desativar:', error);
       setMessageType('error');
@@ -219,16 +198,33 @@ const Secoes: React.FC = () => {
         </div>
       )}
 
-      <GlassCard className="p-8">
-        <h2 className="text-2xl font-semibold text-slate-900 mb-6">Seções Cadastradas</h2>
+      {/* Loading state */}
+      {loadingSecoes && (
+        <div className="flex items-center justify-center py-12">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <p className="ml-4 text-slate-600">Carregando seções...</p>
+        </div>
+      )}
 
-        {secoes.length === 0 ? (
-          <div className="text-center py-12">
-            <Layers className="mx-auto text-slate-300 mb-4" size={48} />
-            <p className="text-slate-500 text-lg">Nenhuma seção cadastrada ainda.</p>
-            <p className="text-slate-400 text-sm mt-2">Clique em "Nova Seção" para criar a primeira.</p>
-          </div>
-        ) : (
+      {/* Error state */}
+      {error && (
+        <AlertBox 
+          type="error"
+          message="Erro ao carregar seções. Tente novamente."
+        />
+      )}
+
+      {!loadingSecoes && !error && (
+        <GlassCard className="p-8">
+          <h2 className="text-2xl font-semibold text-slate-900 mb-6">Seções Cadastradas</h2>
+
+          {secoes.length === 0 ? (
+            <div className="text-center py-12">
+              <Layers className="mx-auto text-slate-300 mb-4" size={48} />
+              <p className="text-slate-500 text-lg">Nenhuma seção cadastrada ainda.</p>
+              <p className="text-slate-400 text-sm mt-2">Clique em "Nova Seção" para criar a primeira.</p>
+            </div>
+          ) : (
           <div className="overflow-x-auto rounded-xl border border-slate-200/50">
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
@@ -273,8 +269,9 @@ const Secoes: React.FC = () => {
               </tbody>
             </table>
           </div>
-        )}
-      </GlassCard>
+          )}
+        </GlassCard>
+      )}
 
       {/* Modal */}
       <Modal 
