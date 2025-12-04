@@ -152,6 +152,8 @@ const Pontos: React.FC = () => {
           active: data.active
         } as Ponto;
       });
+      // Ordenar por código crescente
+      pontosData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
       setPontos(pontosData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);

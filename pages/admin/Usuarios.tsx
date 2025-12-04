@@ -42,6 +42,8 @@ const Usuarios: React.FC = () => {
             // Busca apenas usuários do Firestore (coleção "users")
             const firestoreUsers = await adminService.getUsers();
             console.log('Usuários do Firestore:', firestoreUsers);
+            // Ordenar por nome crescente
+            (firestoreUsers as UserProfileWithSerial[]).sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
             setUsers(firestoreUsers as UserProfileWithSerial[]);
         } catch (error) {
             console.error('Erro ao buscar usuários:', error);

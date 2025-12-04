@@ -9,7 +9,14 @@ import { Cota, Operador } from "../types";
 export const getActiveCollection = async <T>(collectionName: string): Promise<T[]> => {
   const q = query(collection(db, collectionName), where("active", "==", true));
   const snapshot = await getDocs(q);
-  return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+  const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as T));
+  // Ordenar por codigo ou nome crescente se disponível
+  data.sort((a: any, b: any) => {
+    const aSort = a.codigo || a.nome || '';
+    const bSort = b.codigo || b.nome || '';
+    return (aSort as string).localeCompare(bSort as string);
+  });
+  return data;
 };
 
 export const saveCota = async (cota: Omit<Cota, 'id'>, userId: string) => {

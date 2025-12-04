@@ -44,7 +44,7 @@ const AppRoutes: React.FC = () => {
   };
 
   const RequireFinanceiro: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-    if (!['admin', 'financeiro'].includes(userProfile?.role || '')) {
+    if (!['admin', 'gerente', 'financeiro'].includes(userProfile?.role || '')) {
       return <Navigate to="/" replace />;
     }
     return <>{children}</>;

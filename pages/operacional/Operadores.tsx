@@ -153,6 +153,8 @@ const Operadores: React.FC = () => {
           active: data.active
         } as Operador;
       });
+      // Ordenar por código crescente
+      operadoresData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
       setOperadores(operadoresData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);

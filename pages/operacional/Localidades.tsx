@@ -28,6 +28,8 @@ const Localidades: React.FC = () => {
       const q = query(collection(db, 'localidades'), where('active', '==', true));
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Localidade));
+      // Ordenar por código crescente
+      data.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
       setLocalidades(data);
     } catch (error) {
       console.error('Erro ao carregar localidades:', error);

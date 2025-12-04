@@ -145,7 +145,7 @@ const Despesas: React.FC = () => {
     }
   };
 
-  const isAuthorized = userProfile && ['admin', 'financeiro'].includes(userProfile.role);
+  const isAuthorized = userProfile && ['admin', 'gerente', 'financeiro'].includes(userProfile.role);
   
   const totalDespesas = despesas.reduce((sum, d) => sum + d.valor, 0);
   const despesasOperacionais = despesas.filter(d => d.tipo === 'operacional').reduce((sum, d) => sum + d.valor, 0);

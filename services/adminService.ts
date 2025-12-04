@@ -74,12 +74,11 @@ export const adminService = {
             filteredUsers = users.filter(u => u.allowedLocalidades?.includes(localidadeId));
         }
         
-        // Sort in memory by createdAt if available, otherwise by name
+        // Sort by displayName or email in ascending order
         return filteredUsers.sort((a: any, b: any) => {
-            if (a.createdAt && b.createdAt) {
-                return b.createdAt.seconds - a.createdAt.seconds;
-            }
-            return (a.name || '').localeCompare(b.name || '');
+            const aName = a.displayName || a.email || '';
+            const bName = b.displayName || b.email || '';
+            return aName.localeCompare(bName);
         });
     },
 

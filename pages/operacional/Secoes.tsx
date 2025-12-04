@@ -73,7 +73,7 @@ const Secoes: React.FC = () => {
       const secSnapshot = await getDocs(secQuery);
       console.log('Documentos de seções encontrados:', secSnapshot.size);
       const secData = secSnapshot.docs.map(doc => {
-        const data = doc.data() as any;
+        const data = doc.data();
         return {
           id: doc.id,
           codigo: data.codigo || '',
@@ -82,6 +82,8 @@ const Secoes: React.FC = () => {
           active: data.active !== false
         } as Secao;
       });
+      // Ordenar por código crescente
+      secData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
       console.log('Seções carregadas:', secData);
       setSecoes(secData);
     } catch (error) {

@@ -89,6 +89,8 @@ const LancamentoManual: React.FC = () => {
         localidadeId: doc.data().localidadeId,
         comissao: doc.data().comissao || 0
       } as Ponto));
+      // Ordenar por código crescente
+      pontosData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
       setPontos(pontosData);
     } catch (error) {
       console.error('Erro ao carregar pontos:', error);
@@ -110,6 +112,8 @@ const LancamentoManual: React.FC = () => {
         pontoId: doc.data().pontoId,
         fatorConversao: doc.data().fatorConversao || 0.01
       }));
+      // Ordenar por código crescente
+      operadoresData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
       setOperadores(operadoresData);
     } catch (error) {
       console.error('Erro ao carregar operadores:', error);

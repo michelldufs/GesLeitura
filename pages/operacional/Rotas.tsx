@@ -112,6 +112,8 @@ const Rotas: React.FC = () => {
           active: data.active
         } as Rota;
       });
+      // Ordenar por código crescente
+      rotasData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
       setRotas(rotasData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
