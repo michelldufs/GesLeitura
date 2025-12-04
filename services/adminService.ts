@@ -129,8 +129,19 @@ export const adminService = {
     },
 
     async getLocalidades() {
-        const q = query(collection(db, "localidades"), where("active", "==", true), orderBy("nome", "asc"));
-        const querySnapshot = await getDocs(q);
-        return querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        try {
+            // Buscar todas as localidades sem filtro (evita necessidade de índice composto)
+            const q = query(collection(db, "localidades"));
+            const querySnapshot = await getDocs(q);
+            const allLocs = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            
+            // Filtrar ativas e ordenar em memória
+            return allLocs
+                .filter((loc: any) => loc.active !== false)
+                .sort((a: any, b: any) => (a.nome || '').localeCompare(b.nome || ''));
+        } catch (error) {
+            console.error('Erro ao buscar localidades:', error);
+            return [];
+        }
     }
 };
