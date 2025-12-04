@@ -8,6 +8,7 @@ import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, Ale
 
 interface Secao {
   id: string;
+  codigo: string;
   nome: string;
   localidadeId: string;
   active: boolean;
@@ -15,6 +16,7 @@ interface Secao {
 
 interface Localidade {
   id: string;
+  codigo?: string;
   nome: string;
 }
 
@@ -69,6 +71,7 @@ const Secoes: React.FC = () => {
         const data = doc.data() as any;
         return {
           id: doc.id,
+          codigo: data.codigo,
           nome: data.nome,
           localidadeId: data.localidadeId,
           active: data.active
@@ -78,6 +81,19 @@ const Secoes: React.FC = () => {
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
     }
+  };
+
+  const gerarCodigoSecao = (): string => {
+    if (!formData.localidadeId) return '';
+    
+    const localidade = localidades.find(l => l.id === formData.localidadeId);
+    if (!localidade || !localidade.codigo) return '';
+
+    // Encontrar seções desta localidade
+    const secoesLocalidade = secoes.filter(s => s.localidadeId === formData.localidadeId);
+    const proximoId = String(secoesLocalidade.length + 1).padStart(2, '0');
+    
+    return `${localidade.codigo}${proximoId}`;
   };
 
   const handleOpenModal = () => {
@@ -106,7 +122,9 @@ const Secoes: React.FC = () => {
         setMessageType('success');
         setMessage('Seção atualizada com sucesso!');
       } else {
+        const codigo = gerarCodigoSecao();
         await addDoc(collection(db, 'secoes'), {
+          codigo,
           nome: formData.nome,
           localidadeId: formData.localidadeId,
           active: true
@@ -195,6 +213,7 @@ const Secoes: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
+                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
                   <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
                   <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
                   <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
@@ -203,6 +222,9 @@ const Secoes: React.FC = () => {
               <tbody>
                 {secoes.map((secao) => (
                   <tr key={secao.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <td className="px-6 py-2.5 font-mono font-semibold text-slate-900">
+                      {secao.codigo || <span className="text-slate-400 italic">sem código</span>}
+                    </td>
                     <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
                       <div className="p-2 bg-purple-100/50 rounded-lg">
                         <Layers className="text-purple-600" size={18} />
@@ -260,9 +282,19 @@ const Secoes: React.FC = () => {
           >
             <option value="">Selecione a localidade</option>
             {localidades.map(loc => (
-              <option key={loc.id} value={loc.id}>{loc.nome}</option>
+              <option key={loc.id} value={loc.id}>
+                {loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome}
+              </option>
             ))}
           </SelectField>
+
+          {!editingId && formData.localidadeId && (
+            <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+              <p className="text-sm text-purple-900">
+                <span className="font-semibold">Código que será gerado:</span> {gerarCodigoSecao()}
+              </p>
+            </div>
+          )}
 
           <InputField
             label="Nome da Seção"
