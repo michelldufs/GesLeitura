@@ -115,7 +115,9 @@ const Secoes: React.FC = () => {
   };
 
   const handleOpenModal = () => {
-    setFormData({ nome: '', localidadeId: '' });
+    // Pré-selecionar a localidade em que o usuário está logado
+    const localidadeInicial = userProfile?.role === 'admin' ? '' : (selectedLocalidade || '');
+    setFormData({ nome: '', localidadeId: localidadeInicial });
     setEditingId(null);
     setShowModal(true);
   };
@@ -302,9 +304,9 @@ const Secoes: React.FC = () => {
             <select
               value={formData.localidadeId}
               onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
-              disabled={!isAuthorized}
+              disabled={!isAuthorized || (userProfile?.role !== 'admin' && !!selectedLocalidade)}
               required
-              className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50"
+              className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 disabled:bg-slate-100"
             >
               <option value="">Selecione a localidade</option>
               {localidades && localidades.length > 0 && localidades.map(loc => (
