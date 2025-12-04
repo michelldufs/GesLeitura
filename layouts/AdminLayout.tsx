@@ -5,7 +5,7 @@ import { useLocalidade } from '../contexts/LocalidadeContext';
 import ModalTrocarLocalidade from '../components/ModalTrocarLocalidade';
 import { 
   Home, Layers, Route, MapPin, Users, FileText, BarChart3, Settings, LogOut, Clock,
-  ChevronRight, Circle
+  ChevronRight, Circle, DollarSign
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -84,6 +84,7 @@ const Sidebar = () => {
             <SectionTitle title="Financeiro" />
             <NavItem icon={BarChart3} label="Caixa Geral" path="/caixa-geral" />
             <NavItem icon={Settings} label="Cotas & Sócios" path="/cotas" />
+            <NavItem icon={DollarSign} label="Despesas" path="/despesas" />
 
             <SectionTitle title="Relatórios" />
             <NavItem icon={FileText} label="Vendas/Data" path="/relatorios/data" />

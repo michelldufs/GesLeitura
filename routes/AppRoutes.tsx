@@ -14,6 +14,7 @@ import NovaLeituraMobile from '../pages/mobile/NovaLeituraMobile';
 import LancamentoManual from '../pages/financeiro/LancamentoManual';
 import CaixaGeral from '../pages/financeiro/CaixaGeral';
 import ConfiguracaoCotas from '../pages/financeiro/ConfiguracaoCotas';
+import Despesas from '../pages/financeiro/Despesas';
 import Usuarios from '../pages/admin/Usuarios';
 import EditarUsuarioLocalidades from '../pages/admin/EditarUsuarioLocalidades';
 import Localidades from '../pages/operacional/Localidades';
@@ -128,6 +129,7 @@ const AppRoutes: React.FC = () => {
         {/* Financeiro - Restrito a Admin e Financeiro */}
         <Route path="/caixa-geral" element={<RequireFinanceiro><CaixaGeral /></RequireFinanceiro>} />
         <Route path="/cotas" element={<RequireFinanceiro><ConfiguracaoCotas /></RequireFinanceiro>} />
+        <Route path="/despesas" element={<RequireFinanceiro><Despesas /></RequireFinanceiro>} />
         
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
