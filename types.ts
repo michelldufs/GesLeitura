@@ -1,4 +1,11 @@
-export type UserRole = 'admin' | 'socio' | 'gerente' | 'coleta';
+export type UserRole =
+  | 'admin'
+  | 'socio'
+  | 'gerente'
+  | 'financeiro'
+  | 'operacional'
+  | 'supervisor'
+  | 'coleta';
 
 export interface AuditLog {
   id?: string;
@@ -14,6 +21,7 @@ export interface UserProfile {
   uid: string;
   name: string;
   email: string;
+  displayName?: string;
   role: UserRole;
   allowedLocalidades: string[]; // IDs
   active: boolean;
@@ -53,6 +61,7 @@ export interface Ponto {
   endereco?: string;
   telefone?: string;
   qtdEquipamentos?: number;
+   participaDespesa?: boolean;
   active: boolean;
 }
 

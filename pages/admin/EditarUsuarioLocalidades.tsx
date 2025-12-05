@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { adminService } from '../../services/adminService';
-import { UserRole, UserProfile } from '../../types';
+import { UserRole, UserProfile, Localidade } from '../../types';
 import { GlassCard, ButtonPrimary, ButtonSecondary, PageHeader, Badge, AlertBox } from '../../components/MacOSDesign';
 import { ArrowLeft, MapPin, CheckCircle2, Circle } from 'lucide-react';
 
 type UserProfileWithSerial = UserProfile & { allowedDeviceSerial?: string | null };
-type Localidade = { id: string; nome: string; active: boolean };
 
 const EditarUsuarioLocalidades: React.FC = () => {
     const navigate = useNavigate();
@@ -113,9 +112,7 @@ const EditarUsuarioLocalidades: React.FC = () => {
 
             {message && (
                 <div className="mb-6">
-                    <AlertBox type={messageType === 'success' ? 'success' : 'error'}>
-                        {message}
-                    </AlertBox>
+                    <AlertBox type={messageType === 'success' ? 'success' : 'error'} message={message} />
                 </div>
             )}
 

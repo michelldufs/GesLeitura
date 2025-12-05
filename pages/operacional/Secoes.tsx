@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { useSecoes, useCreateSecao, useUpdateSecao, useDeleteSecao } from '../../hooks/useSecoes';
 import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
-import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
+import { GlassCard, AlertBox, PageHeader } from '../../components/MacOSDesign';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 
@@ -141,6 +141,7 @@ const Secoes: React.FC = () => {
   };
 
   const handleEdit = (secao: Secao) => {
+    console.log('handleEdit chamado com:', secao);
     setFormData({ nome: secao.nome, localidadeId: secao.localidadeId });
     setEditingId(secao.id);
     setShowModal(true);
@@ -274,69 +275,79 @@ const Secoes: React.FC = () => {
       )}
 
       {/* Modal */}
-      <Modal 
-        isOpen={showModal}
-        onClose={handleCloseModal}
-        title={editingId ? 'Editar Seção' : 'Nova Seção'}
-        actions={
-          <div className="flex gap-3">
-            <ButtonPrimary onClick={handleSubmit} disabled={loading} type="submit">
-              {loading ? 'Salvando...' : 'Salvar'}
-            </ButtonPrimary>
-            <ButtonSecondary onClick={handleCloseModal}>
-              Cancelar
-            </ButtonSecondary>
-          </div>
-        }
-      >
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Localidade</label>
-            <select
-              value={formData.localidadeId}
-              onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
-              disabled={true}
-              required
-              className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 disabled:bg-slate-100"
-            >
-              <option value="">Selecione a localidade</option>
-              {localidades && localidades.length > 0 && localidades.map(loc => (
-                <option key={loc.id} value={loc.id}>
-                  {loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {!editingId && formData.localidadeId && localidades.length > 0 && (() => {
-            const codigoGerado = gerarCodigoSecao();
-            if (codigoGerado) {
-              const localidade = localidades.find(l => l.id === formData.localidadeId);
-              return (
-                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                  <p className="text-sm text-purple-900">
-                    <span className="font-semibold">Código que será gerado:</span> {codigoGerado}
-                  </p>
-                  <p className="text-xs text-purple-700 mt-1">
-                    Vinculada à: {localidade?.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade?.nome}
-                  </p>
+      {showModal && (
+        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="backdrop-blur-xl bg-white/80 border border-white/30 rounded-2xl shadow-2xl w-full max-w-lg p-8">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-6">{editingId ? 'Editar Seção' : 'Nova Seção'}</h2>
+            <div className="mb-8 max-h-96 overflow-y-auto">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Localidade</label>
+                  <select
+                    value={formData.localidadeId}
+                    onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
+                    disabled={editingId ? true : false}
+                    required
+                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 disabled:bg-slate-100"
+                  >
+                    <option value="">Selecione a localidade</option>
+                    {localidades && localidades.length > 0 && localidades.map(loc => (
+                      <option key={loc.id} value={loc.id}>
+                        {loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome}
+                      </option>
+                    ))}
+                  </select>
                 </div>
-              );
-            }
-            return null;
-          })()}
 
-          <InputField
-            label="Nome da Seção"
-            placeholder="Ex: SEÇÃO A"
-            value={formData.nome}
-            onChange={(e) => setFormData({ ...formData, nome: e.target.value.toUpperCase() })}
-            disabled={!isAuthorized}
-            required
-            className="uppercase"
-          />
-        </form>
-      </Modal>
+                {!editingId && formData.localidadeId && localidades.length > 0 && (() => {
+                  const codigoGerado = gerarCodigoSecao();
+                  if (codigoGerado) {
+                    const localidade = localidades.find(l => l.id === formData.localidadeId);
+                    return (
+                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                        <p className="text-sm text-purple-900">
+                          <span className="font-semibold">Código que será gerado:</span> {codigoGerado}
+                        </p>
+                        <p className="text-xs text-purple-700 mt-1">
+                          Vinculada à: {localidade?.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade?.nome}
+                        </p>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nome da Seção</label>
+                  <input
+                    type="text"
+                    placeholder="Ex: SEÇÃO A"
+                    value={formData.nome}
+                    onChange={(e) => setFormData({ ...formData, nome: e.target.value.toUpperCase() })}
+                    disabled={!isAuthorized}
+                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 uppercase"
+                  />
+                </div>
+              </form>
+            </div>
+            <div className="flex gap-4 justify-end">
+              <button
+                onClick={handleSubmit}
+                disabled={loading}
+                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+              >
+                {loading ? 'Salvando...' : 'Salvar'}
+              </button>
+              <button
+                onClick={handleCloseModal}
+                className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

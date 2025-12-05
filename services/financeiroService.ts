@@ -32,17 +32,55 @@ export const verificarPeriodoFechado = async (data: string, localidadeId: string
  * Get the last valid reading for an operator to pre-fill inputs.
  */
 export const getUltimaLeitura = async (operadorId: string): Promise<Venda | null> => {
-  const q = query(
-    collection(db, "vendas"),
-    where("operadorId", "==", operadorId),
-    where("active", "==", true),
-    orderBy("data", "desc"),
-    limit(1)
-  );
+  try {
+    // Tentar com orderBy (requer índice)
+    const q = query(
+      collection(db, "vendas"),
+      where("operadorId", "==", operadorId),
+      where("active", "==", true),
+      orderBy("data", "desc"),
+      limit(1)
+    );
+    
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      return snapshot.docs[0].data() as Venda;
+    }
+  } catch (orderByError: any) {
+    console.warn("Índice não existe para orderBy, usando fallback sem ordenação:", orderByError.message);
+    
+    // Fallback: buscar sem orderBy e ordenar em memória
+    try {
+      const q = query(
+        collection(db, "vendas"),
+        where("operadorId", "==", operadorId),
+        where("active", "==", true),
+        limit(50)
+      );
+      
+      const snapshot = await getDocs(q);
+      if (snapshot.empty) return null;
+      
+      // Ordenar em memória pela data (desc)
+      const vendas = snapshot.docs.map(doc => ({
+        ...doc.data(),
+        id: doc.id
+      } as Venda));
+      
+      vendas.sort((a, b) => {
+        const dateA = new Date(a.data || 0).getTime();
+        const dateB = new Date(b.data || 0).getTime();
+        return dateB - dateA;
+      });
+      
+      return vendas[0] || null;
+    } catch (fallbackError) {
+      console.error("Erro no fallback de getUltimaLeitura:", fallbackError);
+      return null;
+    }
+  }
   
-  const snapshot = await getDocs(q);
-  if (snapshot.empty) return null;
-  return snapshot.docs[0].data() as Venda;
+  return null;
 };
 
 /**
@@ -59,6 +97,20 @@ export const saveVenda = async (venda: Omit<Venda, 'id' | 'timestamp'>, userId: 
 
   await logAction(userId, 'create', 'vendas', docRef.id, `Nova leitura para operador ${venda.operadorId}`);
   return docRef.id;
+};
+
+/**
+ * Update an existing sale/reading.
+ */
+export const updateVenda = async (vendaId: string, updates: Partial<Omit<Venda, 'id' | 'timestamp'>>, userId: string) => {
+  const docRef = doc(db, "vendas", vendaId);
+  await updateDoc(docRef, {
+    ...updates,
+    active: true
+  });
+
+  await logAction(userId, 'update', 'vendas', vendaId, `Atualização de leitura`);
+  return vendaId;
 };
 
 /**

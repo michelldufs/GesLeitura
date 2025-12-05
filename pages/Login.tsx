@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { useLocalidade } from '../contexts/LocalidadeContext';
 import { useNavigate } from 'react-router-dom';
 import { User, Lock, Eye, EyeOff, MapPin, ArrowRight } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
@@ -16,7 +17,8 @@ const Login: React.FC = () => {
     const [step, setStep] = useState<'credentials' | 'localidade'>('credentials');
     const [localidades, setLocalidades] = useState<Localidade[]>([]);
     const [selectedLoc, setSelectedLoc] = useState('');
-    const { login, setSelectedLocalidade } = useAuth();
+    const { login } = useAuth();
+    const { setSelectedLocalidade } = useLocalidade();
     const navigate = useNavigate();
 
     const handleCredentialsSubmit = async (e: React.FormEvent) => {
@@ -44,7 +46,7 @@ const Login: React.FC = () => {
                     const locs = (await Promise.all(locPromises)).filter(Boolean) as Localidade[];
                     setLocalidades(locs);
                     if (locs.length === 1) {
-                        setSelectedLocalidade(locs[0].id);
+                        setSelectedLocalidade(locs[0].id, locs[0].nome);
                         navigate('/');
                     } else {
                         setStep('localidade');
@@ -67,7 +69,8 @@ const Login: React.FC = () => {
             setError('Selecione uma localidade.');
             return;
         }
-        setSelectedLocalidade(selectedLoc);
+        const selectedName = localidades.find(l => l.id === selectedLoc)?.nome || '';
+        setSelectedLocalidade(selectedLoc, selectedName);
         navigate('/');
     };
 

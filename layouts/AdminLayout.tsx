@@ -12,7 +12,7 @@ interface AdminLayoutProps {
   children?: React.ReactNode;
 }
 
-const Sidebar = () => {
+const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) => {
   const location = useLocation();
   const { userProfile } = useAuth();
   
@@ -21,6 +21,7 @@ const Sidebar = () => {
   const NavItem = ({ icon: Icon, label, path, badge }: any) => (
     <Link
       to={path}
+      onClick={onClose}
       className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm ${
         isActive(path)
           ? 'bg-blue-500/20 text-blue-600 shadow-sm'
@@ -28,14 +29,14 @@ const Sidebar = () => {
       }`}
     >
       <Icon size={18} />
-      <span className="flex-1">{label}</span>
+      <span className="flex-1 hidden sm:inline">{label}</span>
       {badge && <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{badge}</span>}
     </Link>
   );
 
   const SectionTitle = ({ title }: { title: string }) => (
     <div className="px-4 pt-4 pb-2 mt-2">
-      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</h3>
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:block">{title}</h3>
     </div>
   );
 
@@ -44,23 +45,22 @@ const Sidebar = () => {
   const canAccessFinanceiro = ['admin', 'gerente', 'financeiro'].includes(userProfile?.role || '');
   const canAccessAdmin = userProfile?.role === 'admin';
 
-  return (
-    <aside className="w-64 bg-gradient-to-b from-white/95 to-slate-50/95 backdrop-blur-xl border-r border-slate-200/30 min-h-screen p-4 flex flex-col shadow-sm">
-      {/* Logo */}
-      <div className="px-4 py-4 mb-8">
-        <div className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-blue-600 flex items-center justify-center">
-            <span className="text-white font-bold text-sm">G</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-slate-900">GesLeitura</h1>
-            <p className="text-xs text-slate-500">v1.0</p>
-          </div>
-        </div>
-      </div>
+  const sidebarClasses = `w-64 sm:w-64 md:w-64 bg-gradient-to-b from-white/95 to-slate-50/95 backdrop-blur-xl border-r border-slate-200/30 min-h-screen p-4 flex flex-col shadow-sm ${
+    isOpen ? 'fixed left-0 top-0 z-40 h-screen' : 'hidden sm:flex'
+  }`;
 
-      {/* Navigation */}
-      <nav className="space-y-1 flex-1 overflow-y-auto">
+  return (
+    <>
+      {/* Overlay mobile */}
+      {isOpen && (
+        <div 
+          className="fixed inset-0 bg-black/30 z-30 sm:hidden"
+          onClick={onClose}
+        />
+      )}
+      <aside className={sidebarClasses}>
+        {/* Navigation */}
+        <nav className="space-y-1 flex-1 overflow-y-auto mt-2">
         {/* Dashboard */}
         <SectionTitle title="Menu" />
         <NavItem icon={Home} label="Dashboard" path="/" />
@@ -108,10 +108,11 @@ const Sidebar = () => {
       <div className="px-2 space-y-2">
         <div className="px-4 py-3 rounded-lg bg-slate-100/50 border border-slate-200/30">
           <p className="text-xs text-slate-500">Logado como</p>
-          <p className="text-sm font-semibold text-slate-900 truncate">User Profile</p>
+          <p className="text-sm font-semibold text-slate-900 truncate hidden sm:block">{userProfile?.name || 'Usuário'}</p>
         </div>
       </div>
-    </aside>
+      </aside>
+    </>
   );
 };
 
@@ -121,6 +122,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState<string>('');
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(false);
 
   // Atualizar relógio a cada segundo
   useEffect(() => {
@@ -151,61 +153,68 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
   return (
     <div className="flex bg-gradient-to-br from-slate-50 via-slate-100 to-slate-200 min-h-screen">
-      <Sidebar />
-      <main className="flex-1 overflow-auto">
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
-        <header className="bg-white/95 backdrop-blur-xl border-b border-slate-200/30 sticky top-0 z-10 shadow-sm">
-          <div className="flex justify-between items-center px-8 py-4">
-            {/* Esquerda - Logo e Localidade */}
-            <div className="flex items-center gap-6">
-              <div>
-                <h2 className="text-lg font-semibold text-slate-900">GesLeitura</h2>
-                <p className="text-xs text-slate-500">{userProfile?.name} • {userProfile?.role}</p>
+        <header className="bg-white/95 backdrop-blur-xl border-b border-slate-200/30 sticky top-0 z-20 shadow-sm">
+          <div className="flex items-center justify-between px-4 sm:px-6 md:px-8 py-3 sm:py-4 gap-4 sm:gap-6">
+            {/* Menu Hamburger - Mobile */}
+            <button
+              onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+              className="sm:hidden p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            >
+              <svg className="w-6 h-6 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+            </button>
+
+            <div className="flex-1" />
+
+            {/* Direita - Relógio, Localidade e Usuário */}
+            <div className="flex items-center gap-3 sm:gap-4 md:gap-6 flex-wrap sm:flex-nowrap justify-end">
+              {/* Relógio - Hidden em mobile extra pequeno */}
+              <div className="hidden sm:flex items-center gap-2 text-slate-700">
+                <Clock size={16} className="text-slate-500 flex-shrink-0" />
+                <span className="text-xs sm:text-sm font-mono">{currentTime}</span>
               </div>
-              
-              {/* Localidade Selecionada */}
+
+              {/* Localidade entre relógio e usuário - Adaptável */}
               {selectedLocalidade && selectedLocalidadeName && (
                 <button
                   onClick={() => setIsModalOpen(true)}
-                  className="flex items-center gap-2 px-4 py-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors cursor-pointer"
+                  className="hidden md:flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors cursor-pointer text-xs md:text-sm"
                 >
-                  <MapPin size={16} className="text-blue-600" />
+                  <MapPin size={14} className="text-blue-600 flex-shrink-0" />
                   <div className="text-left">
                     <p className="text-xs text-blue-600 font-medium">Localidade</p>
-                    <p className="text-sm text-blue-900 font-semibold">{selectedLocalidadeName}</p>
+                    <p className="text-xs md:text-sm text-blue-900 font-semibold">{selectedLocalidadeName}</p>
                   </div>
                 </button>
               )}
-            </div>
 
-            {/* Direita - Relógio e Usuário */}
-            <div className="flex items-center gap-6">
-              {/* Relógio */}
-              <div className="flex items-center gap-2 text-slate-700">
-                <Clock size={18} className="text-slate-500" />
-                <span className="text-sm font-mono">{currentTime}</span>
-              </div>
-
-              {/* Usuário e Logout */}
-              <div className="flex items-center gap-3 pl-6 border-l border-slate-200">
-                <div className="text-right">
-                  <p className="text-sm font-medium text-slate-900">{userProfile?.name}</p>
+              {/* Usuário e Logout - Adaptável */}
+              <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-4 md:pl-6 border-l border-slate-200">
+                <div className="text-right hidden sm:block">
+                  <p className="text-xs sm:text-sm font-medium text-slate-900">{userProfile?.name}</p>
                   <p className="text-xs text-slate-500 capitalize">{userProfile?.role}</p>
                 </div>
                 <button
                   onClick={handleLogout}
-                  className="flex items-center gap-2 px-3 py-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-medium text-sm border border-transparent hover:border-red-200"
+                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-slate-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200 font-medium text-xs sm:text-sm border border-transparent hover:border-red-200"
                 >
-                  <LogOut size={16} />
+                  <LogOut size={14} className="sm:w-4 sm:h-4" />
+                  <span className="hidden sm:inline">Sair</span>
                 </button>
               </div>
             </div>
           </div>
         </header>
 
-        {/* Content */}
-        <div className="p-8">
-          {children}
+        {/* Content - Responsive padding */}
+        <div className="flex-1 overflow-auto">
+          <div className="p-4 sm:p-6 md:p-8">
+            {children}
+          </div>
         </div>
 
         {/* Modal de Trocar Localidade */}

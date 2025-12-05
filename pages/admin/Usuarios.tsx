@@ -43,7 +43,7 @@ const Usuarios: React.FC = () => {
             const firestoreUsers = await adminService.getUsers();
             console.log('Usuários do Firestore:', firestoreUsers);
             // Ordenar por nome crescente
-            (firestoreUsers as UserProfileWithSerial[]).sort((a, b) => (a.displayName || a.email || '').localeCompare(b.displayName || b.email || ''));
+            (firestoreUsers as UserProfileWithSerial[]).sort((a, b) => (a.displayName || a.name || a.email || '').localeCompare(b.displayName || b.name || b.email || ''));
             setUsers(firestoreUsers as UserProfileWithSerial[]);
         } catch (error) {
             console.error('Erro ao buscar usuários:', error);
@@ -190,7 +190,10 @@ const Usuarios: React.FC = () => {
             admin: 'primary',
             gerente: 'warning',
             socio: 'success',
-            coleta: 'secondary'
+            coleta: 'secondary',
+            financeiro: 'primary',
+            operacional: 'warning',
+            supervisor: 'warning'
         };
         return colors[role] || 'secondary';
     };

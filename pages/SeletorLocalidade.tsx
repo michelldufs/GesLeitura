@@ -4,8 +4,7 @@ import { useLocalidade } from '../contexts/LocalidadeContext';
 import { adminService } from '../services/adminService';
 import { ButtonPrimary, ButtonSecondary, SelectField } from '../components/MacOSDesign';
 import { MapPin, LogOut } from 'lucide-react';
-
-type Localidade = { id: string; nome: string; active: boolean };
+import { Localidade } from '../types';
 
 const SeletorLocalidade: React.FC = () => {
     const { userProfile, logout } = useAuth();

@@ -10,7 +10,7 @@ const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
       staleTime: 5 * 60 * 1000, // 5 minutos - dados considerados "frescos"
-      cacheTime: 10 * 60 * 1000, // 10 minutos - tempo em cache
+      gcTime: 10 * 60 * 1000, // 10 minutos - tempo em cache (TanStack v5)
       refetchOnWindowFocus: false, // Não refetch ao focar janela
       retry: 1, // Tentar 1x em caso de erro
     },

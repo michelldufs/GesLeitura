@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { MapPin, Plus, Edit2, Trash2 } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
+import { gerarProximoCodigoPonto, validarCodigoPonto } from '../../services/codigoValidator';
 
 interface Ponto {
   id: string;
@@ -13,6 +14,7 @@ interface Ponto {
   rotaId: string;
   localidadeId: string;
   comissao: number;
+  participaDespesa: boolean;
   endereco?: string;
   telefone?: string;
   qtdEquipamentos: number;
@@ -57,6 +59,7 @@ const Pontos: React.FC = () => {
     nome: '',
     rotaId: '',
     comissao: 0,
+    participaDespesa: true,
     endereco: '',
     telefone: ''
   });
@@ -166,22 +169,20 @@ const Pontos: React.FC = () => {
     const rota = rotas.find(r => r.id === formData.rotaId);
     if (!rota) return '';
 
-    // Encontrar próximo ID de ponto para esta rota
+    // Filtrar pontos da mesma rota para gerar sequência correta
     const pontosRota = pontos.filter(p => p.rotaId === formData.rotaId);
-    const proximoId = String(pontosRota.length + 1).padStart(2, '0');
-    
-    return `${rota.codigo}${proximoId}`;
+    return gerarProximoCodigoPonto(rota.codigo, pontosRota);
   };
 
   const handleOpenModal = () => {
-    setFormData({ nome: '', rotaId: '', comissao: 0, endereco: '', telefone: '' });
+    setFormData({ nome: '', rotaId: '', comissao: 0, participaDespesa: true, endereco: '', telefone: '' });
     setEditingId(null);
     setShowModal(true);
   };
 
   const handleCloseModal = () => {
     setShowModal(false);
-    setFormData({ nome: '', rotaId: '', comissao: 0, endereco: '', telefone: '' });
+    setFormData({ nome: '', rotaId: '', comissao: 0, participaDespesa: true, endereco: '', telefone: '' });
     setEditingId(null);
   };
 
@@ -201,6 +202,7 @@ const Pontos: React.FC = () => {
           nome: formData.nome.toUpperCase(),
           rotaId: formData.rotaId,
           comissao: formData.comissao,
+          participaDespesa: formData.participaDespesa,
           endereco: formData.endereco.toUpperCase(),
           telefone: formData.telefone
         });
@@ -210,12 +212,22 @@ const Pontos: React.FC = () => {
         const rota = rotas.find(r => r.id === formData.rotaId);
         if (!rota) throw new Error('Rota não encontrada');
 
+        // Validar se o código não é duplicado
+        const validacao = validarCodigoPonto(codigo, pontos);
+        if (!validacao.valido) {
+          setMessageType('error');
+          setMessage(validacao.erro || 'Código inválido');
+          setLoading(false);
+          return;
+        }
+
         await addDoc(collection(db, 'pontos'), {
           codigo,
           nome: formData.nome.toUpperCase(),
           rotaId: formData.rotaId,
           localidadeId: rota.localidadeId,
           comissao: formData.comissao,
+          participaDespesa: formData.participaDespesa,
           endereco: (formData.endereco || '').toUpperCase(),
           telefone: formData.telefone || '',
           qtdEquipamentos: 0,
@@ -240,6 +252,7 @@ const Pontos: React.FC = () => {
       nome: ponto.nome,
       rotaId: ponto.rotaId,
       comissao: ponto.comissao,
+      participaDespesa: ponto.participaDespesa ?? true,
       endereco: ponto.endereco || '',
       telefone: ponto.telefone || ''
     });
@@ -422,6 +435,24 @@ const Pontos: React.FC = () => {
             max="100"
             step="0.1"
           />
+
+          <div className="space-y-2">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={formData.participaDespesa}
+                onChange={(e) => setFormData({ ...formData, participaDespesa: e.target.checked })}
+                disabled={!isAuthorized}
+                className="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              />
+              <div>
+                <span className="text-sm font-semibold text-slate-700">Participa da Despesa</span>
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Quando marcado, a despesa é descontada antes da comissão
+                </p>
+              </div>
+            </label>
+          </div>
 
           <InputField
             label="Endereço (opcional)"

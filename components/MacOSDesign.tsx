@@ -17,7 +17,7 @@ export const GlassCard: React.FC<{
 // Button primário macOS style
 export const ButtonPrimary: React.FC<{
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e?: any) => void;
   disabled?: boolean;
   className?: string;
   type?: 'button' | 'submit' | 'reset';
@@ -35,15 +35,19 @@ export const ButtonPrimary: React.FC<{
 // Button secundário (outline) macOS style
 export const ButtonSecondary: React.FC<{
   children: React.ReactNode;
-  onClick?: () => void;
+  onClick?: (e?: any) => void;
   disabled?: boolean;
   className?: string;
-}> = ({ children, onClick, disabled = false, className = '' }) => (
+  type?: 'button' | 'submit' | 'reset';
+  icon?: React.ReactNode;
+}> = ({ children, onClick, disabled = false, className = '', type = 'button', icon }) => (
   <button
+    type={type}
     onClick={onClick}
     disabled={disabled}
     className={`bg-transparent border border-slate-300 hover:bg-slate-50 text-slate-700 font-semibold py-3 px-6 rounded-xl transition-all duration-300 disabled:opacity-50 ${className}`}
   >
+    {icon && <span className="mr-2 inline-flex items-center">{icon}</span>}
     {children}
   </button>
 );
@@ -52,14 +56,18 @@ export const ButtonSecondary: React.FC<{
 export const InputField: React.FC<{
   label?: string;
   placeholder?: string;
-  value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  value?: string | number;
+  onChange?: (e: any) => void;
   type?: string;
   disabled?: boolean;
   icon?: React.ReactNode;
   error?: string;
   className?: string;
-}> = ({ label, placeholder, value, onChange, type = 'text', disabled = false, icon, error, className = '' }) => (
+  required?: boolean;
+  min?: string | number;
+  max?: string | number;
+  step?: string | number;
+}> = ({ label, placeholder, value, onChange, type = 'text', disabled = false, icon, error, className = '', required, min, max, step }) => (
   <div className={className}>
     {label && <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>}
     <div className="relative">
@@ -74,6 +82,10 @@ export const InputField: React.FC<{
         value={value}
         onChange={onChange}
         disabled={disabled}
+        required={required}
+        min={min}
+        max={max}
+        step={step}
         className={`w-full ${icon ? 'pl-12' : 'pl-4'} pr-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 uppercase ${error ? 'border-red-300 focus:ring-red-400' : ''}`}
       />
     </div>
@@ -86,17 +98,19 @@ export const SelectField: React.FC<{
   label?: string;
   options: { value: string; label: string }[];
   value?: string;
-  onChange?: (e: React.ChangeEvent<HTMLSelectElement>) => void;
+  onChange?: (e: any) => void;
   disabled?: boolean;
   error?: string;
   className?: string;
-}> = ({ label, options, value, onChange, disabled = false, error, className = '' }) => (
+  required?: boolean;
+}> = ({ label, options, value, onChange, disabled = false, error, className = '', required }) => (
   <div className={className}>
     {label && <label className="block text-sm font-semibold text-slate-700 mb-2">{label}</label>}
     <select
       value={value}
       onChange={onChange}
       disabled={disabled}
+      required={required}
       className={`w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 ${error ? 'border-red-300 focus:ring-red-400' : ''}`}
     >
       {options.map(opt => (
@@ -112,7 +126,8 @@ export const AlertBox: React.FC<{
   type: 'success' | 'error' | 'warning' | 'info';
   message: string;
   icon?: React.ReactNode;
-}> = ({ type, message, icon }) => {
+  children?: React.ReactNode;
+}> = ({ type, message, icon, children }) => {
   const bgColors = {
     success: 'bg-green-50/80 border-green-200/50 text-green-600',
     error: 'bg-red-50/80 border-red-200/50 text-red-600',
@@ -121,14 +136,15 @@ export const AlertBox: React.FC<{
   };
 
   return (
-    <div className={`${bgColors[type]} border p-4 rounded-lg flex items-center gap-3`}>
-      {icon && <span className="flex-shrink-0">{icon}</span>}
-      <p className="text-sm font-medium">{message}</p>
+    <div className={`${bgColors[type]} border p-3 sm:p-4 rounded-lg flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-3 text-xs sm:text-sm`}>
+      {icon && <span className="flex-shrink-0 mt-0.5 sm:mt-0">{icon}</span>}
+      <p className="font-medium flex-1">{message}</p>
+      {children}
     </div>
   );
 };
 
-// Modal macOS style
+// Modal macOS style - Responsivo
 export const Modal: React.FC<{
   isOpen: boolean;
   onClose: () => void;
@@ -140,57 +156,57 @@ export const Modal: React.FC<{
 
   return (
     <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-      <GlassCard className="w-full max-w-lg p-8">
-        <h2 className="text-2xl font-semibold text-slate-900 mb-6">{title}</h2>
-        <div className="mb-8 max-h-96 overflow-y-auto">{children}</div>
-        {actions && <div className="flex gap-4 justify-end">{actions}</div>}
+      <GlassCard className="w-full max-w-sm md:max-w-lg lg:max-w-2xl p-4 sm:p-6 md:p-8 max-h-[90vh] overflow-y-auto">
+        <h2 className="text-xl sm:text-2xl font-semibold text-slate-900 mb-4 sm:mb-6">{title}</h2>
+        <div className="mb-4 sm:mb-8 max-h-96 overflow-y-auto">{children}</div>
+        {actions && <div className="flex flex-col sm:flex-row gap-2 sm:gap-4 justify-end">{actions}</div>}
       </GlassCard>
     </div>
   );
 };
 
-// Header com título e ação
+// Header com título e ação - Responsivo
 export const PageHeader: React.FC<{
   title: string;
   subtitle?: string;
   action?: React.ReactNode;
 }> = ({ title, subtitle, action }) => (
-  <div className="flex items-center justify-between mb-8">
+  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 sm:gap-0 mb-6 sm:mb-8">
     <div>
-      <h1 className="text-3xl font-semibold text-slate-900">{title}</h1>
-      {subtitle && <p className="text-slate-500 text-sm mt-1">{subtitle}</p>}
+      <h1 className="text-2xl sm:text-3xl font-semibold text-slate-900">{title}</h1>
+      {subtitle && <p className="text-slate-500 text-xs sm:text-sm mt-1">{subtitle}</p>}
     </div>
-    {action && <div>{action}</div>}
+    {action && <div className="flex-shrink-0">{action}</div>}
   </div>
 );
 
-// Table macOS style
+// Table macOS style - Responsivo com scroll mobile
 export const Table: React.FC<{
   columns: { key: string; label: string }[];
   data: Record<string, any>[];
   actions?: (row: any) => React.ReactNode;
 }> = ({ columns, data, actions }) => (
   <div className="overflow-x-auto rounded-xl border border-slate-200/50">
-    <table className="w-full text-sm text-left">
+    <table className="w-full text-xs sm:text-sm text-left">
       <thead className="bg-slate-50/50 border-b border-slate-200/50">
         <tr>
           {columns.map(col => (
-            <th key={col.key} className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">
+            <th key={col.key} className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 font-semibold text-slate-700 text-xs uppercase tracking-tight sm:tracking-wide">
               {col.label}
             </th>
           ))}
-          {actions && <th className="px-6 py-4 font-semibold text-slate-700 text-xs uppercase tracking-wide">Ações</th>}
+          {actions && <th className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 font-semibold text-slate-700 text-xs uppercase tracking-tight sm:tracking-wide">Ações</th>}
         </tr>
       </thead>
       <tbody>
         {data.map((row, idx) => (
           <tr key={idx} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
             {columns.map(col => (
-              <td key={col.key} className="px-6 py-4 text-slate-900">
+              <td key={col.key} className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 text-slate-900 truncate">
                 {row[col.key]}
               </td>
             ))}
-            {actions && <td className="px-6 py-4">{actions(row)}</td>}
+            {actions && <td className="px-2 sm:px-4 md:px-6 py-2 sm:py-3 md:py-4 whitespace-nowrap">{actions(row)}</td>}
           </tr>
         ))}
       </tbody>
@@ -205,6 +221,7 @@ export const Divider = () => <div className="h-px bg-slate-200/50 my-6" />;
 export const Badge: React.FC<{
   children: React.ReactNode;
   variant?: 'primary' | 'success' | 'error' | 'warning' | 'secondary';
+  type?: string; // compat
 }> = ({ children, variant = 'secondary' }) => {
   const colors = {
     primary: 'bg-blue-100/80 text-blue-700',

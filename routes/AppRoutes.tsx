@@ -85,7 +85,6 @@ const AppRoutes: React.FC = () => {
     return (
       <Routes>
         <Route path="/login" element={<Login />} />
-        <Route path="/mobile/setup" element={<ConfiguracaoTerminal />} />
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     );
@@ -133,8 +132,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/lancamento" element={<RequireOperacional><LancamentoManual /></RequireOperacional>} />
           
           {/* Relatórios - Restrito a Admin e Financeiro */}
-          <Route path="/relatorios/data" element={<RequireFinanceiro><Placeholder title="Relatório por Data" /></RequireFinanceiro>} />
-          <Route path="/relatorios/mes" element={<RequireFinanceiro><Placeholder title="Relatório por Mês" /></RequireFinanceiro>} />
+          <Route path="/relatorios" element={<RequireFinanceiro><Placeholder title="Relatórios" /></RequireFinanceiro>} />
           
           {/* Administração - Restrito a Admin */}
           <Route path="/localidades" element={<RequireAdmin><Localidades /></RequireAdmin>} />

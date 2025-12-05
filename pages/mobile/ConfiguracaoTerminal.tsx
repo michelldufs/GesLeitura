@@ -12,7 +12,8 @@ const ConfiguracaoTerminal: React.FC = () => {
         const fetchDeviceId = async () => {
             try {
                 const id = await Device.getId();
-                setDeviceId(id.uuid);
+                const uuid = (id as { uuid?: string }).uuid;
+                setDeviceId(uuid || id.identifier || '');
             } catch (error) {
                 console.error("Erro ao obter ID do dispositivo:", error);
                 setDeviceId("Erro/Browser - " + navigator.userAgent);

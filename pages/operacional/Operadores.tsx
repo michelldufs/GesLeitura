@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { Cpu, Plus, Edit2, Trash2 } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
+import { gerarProximoCodigoOperador, validarCodigoOperador } from '../../services/codigoValidator';
 
 interface Operador {
   id: string;
@@ -167,11 +168,9 @@ const Operadores: React.FC = () => {
     const ponto = pontos.find(p => p.id === formData.pontoId);
     if (!ponto) return '';
 
-    // Encontrar próximo ID de operador para este ponto
+    // Filtrar operadores do mesmo ponto para gerar sequência correta
     const opPonto = operadores.filter(op => op.pontoId === formData.pontoId);
-    const proximoId = String(opPonto.length + 1).padStart(2, '0');
-    
-    return `${ponto.codigo}${proximoId}`;
+    return gerarProximoCodigoOperador(ponto.codigo, opPonto);
   };
 
   const handleOpenModal = () => {
@@ -208,6 +207,15 @@ const Operadores: React.FC = () => {
       } else {
         const ponto = pontos.find(p => p.id === formData.pontoId);
         if (!ponto) throw new Error('Ponto não encontrado');
+
+        // Validar se o código não é duplicado
+        const validacao = validarCodigoOperador(codigo, operadores);
+        if (!validacao.valido) {
+          setMessageType('error');
+          setMessage(validacao.erro || 'Código inválido');
+          setLoading(false);
+          return;
+        }
 
         await addDoc(collection(db, 'operadores'), {
           codigo,
@@ -390,6 +398,9 @@ const Operadores: React.FC = () => {
             <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
               <p className="text-sm text-purple-900">
                 <span className="font-semibold">Código gerado:</span> {gerarCodigoOperador()}
+              </p>
+              <p className="text-xs text-purple-800 mt-1">
+                📋 Este código é gerado automaticamente e nunca será duplicado.
               </p>
             </div>
           )}

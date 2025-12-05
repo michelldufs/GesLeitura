@@ -5,6 +5,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { Route as RouteIcon, Plus, Edit2, Trash2 } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
+import { gerarProximoCodigoRota, validarCodigoRota } from '../../services/codigoValidator';
 
 interface Rota {
   id: string;
@@ -39,6 +40,7 @@ const Rotas: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [codigoValidacao, setCodigoValidacao] = useState<{ valido: boolean; erro?: string }>({ valido: true });
 
   const [formData, setFormData] = useState({
     nome: '',
@@ -59,7 +61,9 @@ const Rotas: React.FC = () => {
     if (!secao || !localidade) return '';
     if (!secao.codigo || !localidade.codigo) return '';
     
-    return `${localidade.codigo}${secao.codigo}`;
+    // Filtrar rotas da mesma seção para gerar sequência correta
+    const rotasDaSecao = rotas.filter(r => r.secaoId === formData.secaoId);
+    return gerarProximoCodigoRota(localidade.codigo, secao.codigo, rotasDaSecao);
   };
 
   const loadData = async () => {
@@ -130,6 +134,7 @@ const Rotas: React.FC = () => {
     setShowModal(false);
     setFormData({ nome: '', localidadeId: '', secaoId: '' });
     setEditingId(null);
+    setCodigoValidacao({ valido: true });
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -150,9 +155,19 @@ const Rotas: React.FC = () => {
         setMessageType('success');
         setMessage('Rota atualizada com sucesso!');
       } else {
-        const codigo = gerarCodigoRota();
+        const codigoGerado = gerarCodigoRota();
+        
+        // Validar se o código não é duplicado
+        const validacao = validarCodigoRota(codigoGerado, rotas);
+        if (!validacao.valido) {
+          setMessageType('error');
+          setMessage(validacao.erro || 'Código inválido');
+          setLoading(false);
+          return;
+        }
+
         await addDoc(collection(db, 'rotas'), {
-          codigo,
+          codigo: codigoGerado,
           nome: formData.nome.toUpperCase(),
           secaoId: formData.secaoId,
           localidadeId: formData.localidadeId,
@@ -340,6 +355,9 @@ const Rotas: React.FC = () => {
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
               <p className="text-sm text-green-900">
                 <span className="font-semibold">Código que será gerado:</span> {gerarCodigoRota()}
+              </p>
+              <p className="text-xs text-green-800 mt-1">
+                📋 Este código é gerado automaticamente e nunca será duplicado.
               </p>
             </div>
           )}

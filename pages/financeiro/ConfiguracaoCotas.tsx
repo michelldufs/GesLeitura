@@ -30,7 +30,7 @@ const ConfiguracaoCotas = () => {
   });
   const { register, handleSubmit, reset, formState: { errors }, watch, setValue } = useForm<any>();
 
-  const loadCotas = () => getActiveCollection('cotas').then(setCotas);
+  const loadCotas = () => getActiveCollection('cotas').then((items) => setCotas(items as Cota[]));
 
   useEffect(() => {
     loadCotas();
@@ -57,7 +57,7 @@ const ConfiguracaoCotas = () => {
     setMessageType('');
 
     try {
-      await saveCota({ ...formData, saldoAcumulado: 0 }, userProfile.uid);
+      await saveCota({ ...formData, saldoAcumulado: 0, active: true }, userProfile.uid);
       setMessageType('success');
       setMessage('Cota criada com sucesso!');
       handleCloseModal();
@@ -153,7 +153,7 @@ const ConfiguracaoCotas = () => {
                       R$ {(c.saldoAcumulado || 0).toFixed(2)}
                     </td>
                     <td className="px-6 py-2.5">
-                      <Badge type={c.participaPrejuizo ? 'warning' : 'info'}>
+                      <Badge variant={c.participaPrejuizo ? 'warning' : 'secondary'}>
                         {c.participaPrejuizo ? 'Sim' : 'Não'}
                       </Badge>
                     </td>

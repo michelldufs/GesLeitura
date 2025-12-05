@@ -20,11 +20,17 @@ const Despesas: React.FC = () => {
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
-  const [formData, setFormData] = useState({
+  const [formData, setFormData] = useState<{
+    data: string;
+    valor: number;
+    descricao: string;
+    tipo: 'operacional' | 'adiantamento';
+    centroCustoId: string;
+  }>({
     data: new Date().toISOString().split('T')[0],
-    valor: '' as any,
+    valor: 0,
     descricao: '',
-    tipo: 'operacional' as const,
+    tipo: 'operacional',
     centroCustoId: ''
   });
 
@@ -95,7 +101,7 @@ const Despesas: React.FC = () => {
   const handleOpenModal = () => {
     setFormData({
       data: new Date().toISOString().split('T')[0],
-      valor: '' as any,
+      valor: 0,
       descricao: '',
       tipo: 'operacional',
       centroCustoId: ''
@@ -108,7 +114,7 @@ const Despesas: React.FC = () => {
     setShowModal(false);
     setFormData({
       data: new Date().toISOString().split('T')[0],
-      valor: '' as any,
+      valor: 0,
       descricao: '',
       tipo: 'operacional',
       centroCustoId: ''
@@ -493,7 +499,7 @@ const Despesas: React.FC = () => {
               step="0.01"
               min="0"
               value={formData.valor}
-              onChange={(e) => setFormData({ ...formData, valor: e.target.value as any })}
+              onChange={(e) => setFormData({ ...formData, valor: parseFloat(e.target.value) || 0 })}
               disabled={!isAuthorized}
               required
               placeholder="0.00"

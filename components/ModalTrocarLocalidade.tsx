@@ -3,8 +3,7 @@ import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
 import { adminService } from '../services/adminService';
 import { MapPin, X } from 'lucide-react';
-
-type Localidade = { id: string; nome: string; active: boolean };
+import { Localidade } from '../types';
 
 interface ModalTrocarLocalidadeProps {
     isOpen: boolean;
