@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
-import { MapPin, Plus, Edit2, Trash2 } from 'lucide-react';
+import { MapPin, Plus, Edit2, Trash2, Ban } from 'lucide-react';
 import { Localidade } from '../../types';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
 
@@ -14,7 +14,7 @@ const Localidades: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
-  
+
   const [formData, setFormData] = useState({
     nome: ''
   });
@@ -112,23 +112,23 @@ const Localidades: React.FC = () => {
   const isAuthorized = userProfile && ['admin', 'gerente'].includes(userProfile.role);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <PageHeader 
+    <div className="w-full">
+      <PageHeader
         title="Gestão de Localidades"
         subtitle="Crie e gerencie todas as localidades do sistema"
         action={
-          <button
+          <ButtonPrimary
             onClick={handleOpenModal}
             disabled={!isAuthorized}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+            className="flex items-center gap-2"
           >
             <Plus size={20} /> Nova Localidade
-          </button>
+          </ButtonPrimary>
         }
       />
 
       {!isAuthorized && (
-        <AlertBox 
+        <AlertBox
           type="warning"
           message={`Seu perfil (${userProfile?.role}) não possui permissão para gerenciar localidades.`}
         />
@@ -136,7 +136,7 @@ const Localidades: React.FC = () => {
 
       {message && (
         <div className="mb-6">
-          <AlertBox 
+          <AlertBox
             type={messageType as 'success' | 'error' | 'warning' | 'info'}
             message={message}
           />
@@ -157,37 +157,37 @@ const Localidades: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {localidades.map((localidade) => (
                   <tr key={localidade.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-2.5 font-mono font-semibold text-slate-900">
+                    <td className="px-2 py-1 font-mono font-semibold text-slate-900">
                       {localidade.codigo || <span className="text-slate-400 italic">sem código</span>}
                     </td>
-                    <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
-                      <div className="p-2 bg-blue-100/50 rounded-lg">
-                        <MapPin className="text-blue-600" size={18} />
+                    <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2">
+                      <div className="p-1 bg-blue-100/50 rounded-lg">
+                        <MapPin className="text-blue-600" size={14} />
                       </div>
                       {localidade.nome}
                     </td>
-                    <td className="px-6 py-2.5 text-right flex justify-end gap-3">
+                    <td className="px-2 py-1 text-right flex justify-end gap-2">
                       <button
                         onClick={() => handleEdit(localidade)}
                         disabled={!isAuthorized}
                         className="text-blue-500 hover:text-blue-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
                       >
-                        <Edit2 size={16} /> Editar
+                        <Edit2 size={14} />
                       </button>
                       <button
                         onClick={() => handleDelete(localidade.id)}
                         disabled={!isAuthorized}
                         className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
                       >
-                        <Trash2 size={16} /> Desativar
+                        <Ban size={14} />
                       </button>
                     </td>
                   </tr>
@@ -199,7 +199,7 @@ const Localidades: React.FC = () => {
       </GlassCard>
 
       {/* Modal */}
-      <Modal 
+      <Modal
         isOpen={showModal}
         onClose={handleCloseModal}
         title={editingId ? 'Editar Localidade' : 'Nova Localidade'}
@@ -222,7 +222,7 @@ const Localidades: React.FC = () => {
               </p>
             </div>
           )}
-          
+
           <InputField
             label="Nome da Localidade"
             placeholder="Ex: MATRIZ"

@@ -3,7 +3,7 @@ import { useForm } from 'react-hook-form';
 import { useAuth } from '../../contexts/AuthContext';
 import { getActiveCollection, saveCota, softDelete } from '../../services/operacionalService';
 import { useLocation } from 'react-router-dom';
-import { Cota } from '../../types';
+import { Cota } from '../../types.ts';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
 import { Plus, Edit2, Trash2, Users } from 'lucide-react';
 
@@ -87,23 +87,23 @@ const ConfiguracaoCotas = () => {
   const isAuthorized = userProfile && ['admin', 'gerente', 'socio'].includes(userProfile.role);
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <PageHeader 
+    <div className="w-full">
+      <PageHeader
         title="Configuração de Sócios e Cotas"
         subtitle="Gerencie todas as cotas e sócios do sistema"
         action={
-          <button
+          <ButtonPrimary
             onClick={handleOpenModal}
             disabled={!isAuthorized}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+            className="flex items-center gap-2"
           >
             <Plus size={20} /> Nova Cota
-          </button>
+          </ButtonPrimary>
         }
       />
 
       {!isAuthorized && (
-        <AlertBox 
+        <AlertBox
           type="warning"
           message={`Seu perfil (${userProfile?.role}) não possui permissão para gerenciar cotas.`}
         />
@@ -111,7 +111,7 @@ const ConfiguracaoCotas = () => {
 
       {message && (
         <div className="mb-6">
-          <AlertBox 
+          <AlertBox
             type={messageType as 'success' | 'error' | 'warning' | 'info'}
             message={message}
           />
@@ -132,36 +132,36 @@ const ConfiguracaoCotas = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Porcentagem</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Prejuízo</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Porcentagem</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Prejuízo</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {cotas.map((c: Cota) => (
                   <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
-                      <div className="p-2 bg-indigo-100/50 rounded-lg">
-                        <Users className="text-indigo-600" size={18} />
+                    <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2">
+                      <div className="p-1 bg-indigo-100/50 rounded-lg">
+                        <Users className="text-indigo-600" size={16} />
                       </div>
                       {c.nome}
                     </td>
-                    <td className="px-6 py-2.5 text-slate-600 font-semibold">{c.porcentagem}%</td>
-                    <td className={`px-6 py-2.5 font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    <td className="px-2 py-1 text-slate-600 font-semibold">{c.porcentagem}%</td>
+                    <td className={`px-2 py-1 font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
                       R$ {(c.saldoAcumulado || 0).toFixed(2)}
                     </td>
-                    <td className="px-6 py-2.5">
+                    <td className="px-2 py-1">
                       <Badge variant={c.participaPrejuizo ? 'warning' : 'secondary'}>
                         {c.participaPrejuizo ? 'Sim' : 'Não'}
                       </Badge>
                     </td>
-                    <td className="px-6 py-2.5 text-right">
+                    <td className="px-2 py-1 text-right">
                       <button
                         onClick={() => handleDelete(c.id)}
                         disabled={!isAuthorized}
-                        className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
+                        className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center justify-end gap-1 disabled:opacity-50"
                       >
                         <Trash2 size={16} /> Desativar
                       </button>
@@ -175,7 +175,7 @@ const ConfiguracaoCotas = () => {
       </GlassCard>
 
       {/* Modal */}
-      <Modal 
+      <Modal
         isOpen={showModal}
         onClose={handleCloseModal}
         title="Nova Cota"

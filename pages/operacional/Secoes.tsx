@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { useSecoes, useCreateSecao, useUpdateSecao, useDeleteSecao } from '../../hooks/useSecoes';
-import { Layers, Plus, Edit2, Trash2 } from 'lucide-react';
-import { GlassCard, AlertBox, PageHeader } from '../../components/MacOSDesign';
+import { Layers, Plus, Edit2, Trash2, Ban } from 'lucide-react';
+import { GlassCard, AlertBox, PageHeader, ButtonPrimary, ButtonSecondary, Modal, SelectField, InputField, Badge } from '../../components/MacOSDesign';
 import { collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 
@@ -24,13 +24,13 @@ interface Localidade {
 const Secoes: React.FC = () => {
   const { userProfile } = useAuth();
   const { selectedLocalidade } = useLocalidade();
-  
+
   // React Query hooks
   const { data: secoes = [], isLoading: loadingSecoes, error } = useSecoes(selectedLocalidade);
   const createSecao = useCreateSecao();
   const updateSecao = useUpdateSecao();
   const deleteSecao = useDeleteSecao();
-  
+
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
   const [showModal, setShowModal] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -53,8 +53,8 @@ const Secoes: React.FC = () => {
       const locSnapshot = await getDocs(locQuery);
       const locData = locSnapshot.docs.map(doc => {
         const data = doc.data();
-        return { 
-          id: doc.id, 
+        return {
+          id: doc.id,
           codigo: data.codigo || '',
           nome: data.nome || ''
         } as Localidade;
@@ -68,11 +68,11 @@ const Secoes: React.FC = () => {
   const gerarCodigoSecao = (): string => {
     try {
       if (!formData.localidadeId) return '';
-      
+
       // Encontrar seções desta localidade para gerar próximo código sequencial
       const secoesLocalidade = secoes.filter(s => s.localidadeId === formData.localidadeId);
       const proximoId = secoesLocalidade.length + 1;
-      
+
       // Código da seção é apenas 2 dígitos (01, 02, 03...)
       return String(proximoId).padStart(2, '0');
     } catch (error) {
@@ -120,12 +120,12 @@ const Secoes: React.FC = () => {
           localidadeId: formData.localidadeId,
           active: true
         };
-        
+
         // Só adiciona código se foi gerado (localidade tem código)
         if (codigo) {
           secaoData.codigo = codigo;
         }
-        
+
         await createSecao.mutateAsync(secaoData);
         setMessageType('success');
         setMessage('Seção criada com sucesso!');
@@ -151,9 +151,9 @@ const Secoes: React.FC = () => {
     if (!confirm('Deseja realmente desativar esta seção?')) return;
 
     try {
-      await deleteSecao.mutateAsync({ 
-        id, 
-        localidadeId: selectedLocalidade || '' 
+      await deleteSecao.mutateAsync({
+        id,
+        localidadeId: selectedLocalidade || ''
       });
       setMessageType('success');
       setMessage('Seção desativada com sucesso!');
@@ -168,23 +168,23 @@ const Secoes: React.FC = () => {
   const getLocalidadeNome = (id: string) => localidades.find(l => l.id === id)?.nome || 'N/A';
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <PageHeader 
+    <div className="w-full">
+      <PageHeader
         title="Gestão de Seções"
         subtitle="Crie e gerencie todas as seções do sistema"
         action={
-          <button
+          <ButtonPrimary
             onClick={handleOpenModal}
             disabled={!isAuthorized}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+            className="flex items-center gap-2"
           >
             <Plus size={20} /> Nova Seção
-          </button>
+          </ButtonPrimary>
         }
       />
 
       {!isAuthorized && (
-        <AlertBox 
+        <AlertBox
           type="warning"
           message={`Seu perfil (${userProfile?.role}) não possui permissão para gerenciar seções.`}
         />
@@ -192,7 +192,7 @@ const Secoes: React.FC = () => {
 
       {message && (
         <div className="mb-6">
-          <AlertBox 
+          <AlertBox
             type={messageType as 'success' | 'error' | 'warning' | 'info'}
             message={message}
           />
@@ -209,7 +209,7 @@ const Secoes: React.FC = () => {
 
       {/* Error state */}
       {error && (
-        <AlertBox 
+        <AlertBox
           type="error"
           message="Erro ao carregar seções. Tente novamente."
         />
@@ -226,129 +226,129 @@ const Secoes: React.FC = () => {
               <p className="text-slate-400 text-sm mt-2">Clique em "Nova Seção" para criar a primeira.</p>
             </div>
           ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200/50">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-200/50">
-                <tr>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                {secoes.map((secao) => (
-                  <tr key={secao.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-2.5 font-mono font-semibold text-slate-900">
-                      {secao.codigo || <span className="text-slate-400 italic">sem código</span>}
-                    </td>
-                    <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
-                      <div className="p-2 bg-purple-100/50 rounded-lg">
-                        <Layers className="text-purple-600" size={18} />
-                      </div>
-                      {secao.nome}
-                    </td>
-                    <td className="px-6 py-2.5 text-slate-600">{getLocalidadeNome(secao.localidadeId)}</td>
-                    <td className="px-6 py-2.5 text-right flex justify-end gap-3">
-                      <button
-                        onClick={() => handleEdit(secao)}
-                        disabled={!isAuthorized}
-                        className="text-blue-500 hover:text-blue-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Edit2 size={16} /> Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(secao.id)}
-                        disabled={!isAuthorized}
-                        className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Trash2 size={16} /> Desativar
-                      </button>
-                    </td>
+            <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+              <table className="w-full text-sm text-left">
+                <thead className="bg-slate-50/50 border-b border-slate-200/50">
+                  <tr>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {secoes.map((secao) => (
+                    <tr key={secao.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                      <td className="px-2 py-1 font-semibold text-slate-950 text-sm">
+                        {secao.codigo || <span className="text-slate-400 italic">sem código</span>}
+                      </td>
+                      <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2 text-sm">
+                        <div className="p-1 bg-purple-100/50 rounded-lg">
+                          <Layers className="text-purple-600" size={14} />
+                        </div>
+                        {secao.nome}
+                      </td>
+                      <td className="px-2 py-1 text-slate-600 text-sm">{getLocalidadeNome(secao.localidadeId)}</td>
+                      <td className="px-2 py-1 text-center">
+                        <Badge variant={secao.active ? 'active' : 'inactive'}>
+                          {secao.active ? 'Ativo' : 'Inativo'}
+                        </Badge>
+                      </td>
+                      <td className="px-2 py-1 text-right flex justify-end gap-1">
+                        <button
+                          onClick={() => handleEdit(secao)}
+                          disabled={!isAuthorized}
+                          className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                          title="Editar"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(secao.id)}
+                          disabled={!isAuthorized}
+                          className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
+                          title="Desativar"
+                        >
+                          <Ban size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           )}
         </GlassCard>
       )}
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="backdrop-blur-xl bg-white/80 border border-white/30 rounded-2xl shadow-2xl w-full max-w-lg p-8">
-            <h2 className="text-2xl font-semibold text-slate-900 mb-6">{editingId ? 'Editar Seção' : 'Nova Seção'}</h2>
-            <div className="mb-8 max-h-96 overflow-y-auto">
-              <form onSubmit={handleSubmit} className="space-y-5">
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Localidade</label>
-                  <select
-                    value={formData.localidadeId}
-                    onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
-                    disabled={editingId ? true : false}
-                    required
-                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 disabled:bg-slate-100"
-                  >
-                    <option value="">Selecione a localidade</option>
-                    {localidades && localidades.length > 0 && localidades.map(loc => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                {!editingId && formData.localidadeId && localidades.length > 0 && (() => {
-                  const codigoGerado = gerarCodigoSecao();
-                  if (codigoGerado) {
-                    const localidade = localidades.find(l => l.id === formData.localidadeId);
-                    return (
-                      <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
-                        <p className="text-sm text-purple-900">
-                          <span className="font-semibold">Código que será gerado:</span> {codigoGerado}
-                        </p>
-                        <p className="text-xs text-purple-700 mt-1">
-                          Vinculada à: {localidade?.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade?.nome}
-                        </p>
-                      </div>
-                    );
-                  }
-                  return null;
-                })()}
-
-                <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Nome da Seção</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: SEÇÃO A"
-                    value={formData.nome}
-                    onChange={(e) => setFormData({ ...formData, nome: e.target.value.toUpperCase() })}
-                    disabled={!isAuthorized}
-                    className="w-full px-4 py-3 bg-slate-50/50 border border-slate-200/50 rounded-xl text-slate-900 placeholder-slate-400 focus:ring-2 focus:ring-blue-400 focus:border-transparent outline-none transition-all disabled:opacity-50 uppercase"
-                  />
-                </div>
-              </form>
-            </div>
-            <div className="flex gap-4 justify-end">
-              <button
-                onClick={handleSubmit}
-                disabled={loading}
-                className="bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
-              >
-                {loading ? 'Salvando...' : 'Salvar'}
-              </button>
-              <button
-                onClick={handleCloseModal}
-                className="bg-slate-200 hover:bg-slate-300 text-slate-900 font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300"
-              >
-                Cancelar
-              </button>
-            </div>
+      <Modal
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        title={editingId ? 'Editar Seção' : 'Nova Seção'}
+        actions={
+          <div className="flex gap-3">
+            <ButtonPrimary
+              onClick={handleSubmit}
+              disabled={loading}
+              type="submit"
+            >
+              {loading ? 'Salvando...' : 'Salvar'}
+            </ButtonPrimary>
+            <ButtonSecondary
+              onClick={handleCloseModal}
+            >
+              Cancelar
+            </ButtonSecondary>
           </div>
-        </div>
-      )}
-    </div>
+        }
+      >
+        <form onSubmit={handleSubmit} className="space-y-5">
+          <SelectField
+            label="Localidade"
+            value={formData.localidadeId}
+            onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value })}
+            disabled={editingId ? true : false}
+            required
+            options={[
+              { value: '', label: 'Selecione a localidade' },
+              ...(localidades && localidades.length > 0 ? localidades.map(loc => ({
+                value: loc.id,
+                label: loc.codigo ? `${loc.codigo} - ${loc.nome}` : loc.nome
+              })) : [])
+            ]}
+          />
+
+          {!editingId && formData.localidadeId && localidades.length > 0 && (() => {
+            const codigoGerado = gerarCodigoSecao();
+            if (codigoGerado) {
+              const localidade = localidades.find(l => l.id === formData.localidadeId);
+              return (
+                <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
+                  <p className="text-sm text-purple-900">
+                    <span className="font-semibold">Código que será gerado:</span> {codigoGerado}
+                  </p>
+                  <p className="text-xs text-purple-700 mt-1">
+                    Vinculada à: {localidade?.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade?.nome}
+                  </p>
+                </div>
+              );
+            }
+            return null;
+          })()}
+
+          <InputField
+            label="Nome da Seção"
+            placeholder="Ex: SEÇÃO A"
+            value={formData.nome}
+            onChange={(e) => setFormData({ ...formData, nome: e.target.value.toUpperCase() })}
+            disabled={!isAuthorized}
+            className="uppercase"
+          />
+        </form>
+      </Modal>
+    </div >
   );
 };
 

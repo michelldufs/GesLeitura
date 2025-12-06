@@ -45,7 +45,7 @@ const LancamentoManual: React.FC = () => {
   const [editandoDetalhe, setEditandoDetalhe] = useState(false);
   const [detalheEditado, setDetalheEditado] = useState<any>(null);
   const [loadingSalvarDetalhe, setLoadingSalvarDetalhe] = useState(false);
-  
+
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<Venda>({
     defaultValues: {
       data: getTodayDateString(),
@@ -76,18 +76,18 @@ const LancamentoManual: React.FC = () => {
   const totalEntrada = toSafeNumber(entradaAtual - entradaAnterior);
   const totalSaida = toSafeNumber(saidaAtual - saidaAnterior);
   const entradaMenosSaida = toSafeNumber(totalEntrada - totalSaida);
-  
+
   // Aplicar fator de conversão para obter líquido da máquina
   const fatorConversao = toSafeNumber(selectedOperador?.fatorConversao) || 1;
   const liquidoDaMaquina = toSafeNumber(entradaMenosSaida * fatorConversao);
-  
+
   // Verificar se ponto participa da despesa
   const pontoParticipaDespesa = selectedPonto?.participaDespesa ?? true;
-  
+
   // Calcular comissão e lucro baseado na regra do ponto
   let valorComissao = 0;
   let totalFinal = 0;
-  
+
   if (pontoParticipaDespesa) {
     // Participa: Líquido - Despesa, depois Comissão
     const liquidoAposDespesa = toSafeNumber(liquidoDaMaquina - despesa);
@@ -98,7 +98,7 @@ const LancamentoManual: React.FC = () => {
     valorComissao = liquidoDaMaquina > 0 ? toSafeNumber(liquidoDaMaquina * (comissaoPorcentagem / 100)) : 0;
     totalFinal = toSafeNumber(liquidoDaMaquina - valorComissao);
   }
-  
+
   // totalGeral mantido para compatibilidade (será líquido da máquina)
   const totalGeral = liquidoDaMaquina;
 
@@ -243,10 +243,10 @@ const LancamentoManual: React.FC = () => {
     setLoadingVendas(true);
     try {
       console.log('Carregando vendas para localidade:', selectedLocalidade);
-      
+
       let snapshot;
       let vendasData: any[] = [];
-      
+
       // Tentar query com active e localidadeId
       try {
         const vendasQuery = query(
@@ -255,7 +255,7 @@ const LancamentoManual: React.FC = () => {
           limit(50)
         );
         snapshot = await getDocs(vendasQuery);
-        
+
         // Filtrar manualmente por active (caso o campo exista)
         vendasData = snapshot.docs
           .map(doc => ({
@@ -263,11 +263,11 @@ const LancamentoManual: React.FC = () => {
             ...doc.data()
           }))
           .filter((venda: any) => venda.active !== false); // Inclui documentos sem o campo active
-        
+
         console.log('Query 1 - Total documentos:', snapshot.docs.length, 'Após filtro active:', vendasData.length);
       } catch (error1: any) {
         console.warn('Erro na query 1:', error1.message);
-        
+
         // Fallback: buscar todas as vendas e filtrar manualmente
         try {
           const allVendasQuery = query(
@@ -275,33 +275,33 @@ const LancamentoManual: React.FC = () => {
             limit(100)
           );
           snapshot = await getDocs(allVendasQuery);
-          
+
           vendasData = snapshot.docs
             .map(doc => ({
               id: doc.id,
               ...doc.data()
             }))
-            .filter((venda: any) => 
-              venda.localidadeId === selectedLocalidade && 
+            .filter((venda: any) =>
+              venda.localidadeId === selectedLocalidade &&
               venda.active !== false
             );
-          
+
           console.log('Query 2 (fallback) - Total documentos:', snapshot.docs.length, 'Após filtros:', vendasData.length);
         } catch (error2) {
           console.error('Erro na query fallback:', error2);
         }
       }
-      
+
       // Ordenar manualmente por data
       vendasData.sort((a: any, b: any) => {
         const dateA = new Date(a.data || 0).getTime();
         const dateB = new Date(b.data || 0).getTime();
         return dateB - dateA; // Decrescente (mais recente primeiro)
       });
-      
+
       console.log('Vendas carregadas:', vendasData.length, vendasData);
       setVendas(vendasData);
-      
+
       if (vendasData.length === 0) {
         console.warn('Nenhuma venda encontrada. Verifique se as vendas no Firebase têm localidadeId:', selectedLocalidade);
       }
@@ -321,10 +321,10 @@ const LancamentoManual: React.FC = () => {
     setSelectedOperadorId('');
     setSelectedOperador(null);
     setValue('operadorId', '');
-    
+
     const ponto = pontos.find(p => p.id === pontoId);
     setSelectedPonto(ponto || null);
-    
+
     if (ponto && ponto.comissao !== undefined) {
       setValue('comissaoPorcentagem', ponto.comissao);
     }
@@ -334,11 +334,11 @@ const LancamentoManual: React.FC = () => {
     const opId = e.target.value;
     setSelectedOperadorId(opId);
     setValue('operadorId', opId);
-    
+
     // Sempre inicializar com 0 por segurança
     setValue('entradaAnterior', 0);
     setValue('saidaAnterior', 0);
-    
+
     if (!opId) {
       setSelectedOperador(null);
       return;
@@ -348,11 +348,11 @@ const LancamentoManual: React.FC = () => {
     try {
       const operador = operadoresFiltrados.find(op => op.id === opId);
       setSelectedOperador(operador);
-      
+
       // Verificar se já existe leitura para este operador hoje
       const hoje = getTodayDateString();
       const jemLeituraHoje = vendas.some(v => v.operadorId === opId && v.data === hoje);
-      
+
       if (jemLeituraHoje) {
         setMessage(`⚠️ Já existe uma leitura para esta máquina hoje (${hoje}). Não é permitido registrar duas leituras no mesmo dia.`);
         setMessageType('warning');
@@ -362,10 +362,10 @@ const LancamentoManual: React.FC = () => {
         setLoadingHistory(false);
         return;
       }
-      
+
       console.log('Buscando última leitura para operador ID:', opId, 'Nome:', operador?.nome);
       const last = await getUltimaLeitura(opId);
-      
+
       if (last) {
         console.log('Última leitura encontrada - Entrada:', last.entradaAtual, 'Saída:', last.saidaAtual);
         setValue('entradaAnterior', last.entradaAtual || 0);
@@ -445,10 +445,10 @@ const LancamentoManual: React.FC = () => {
 
       // Verificar se ponto participa da despesa
       const pontoParticipaDespesa = detalheEditado.participaDespesa ?? vendaSelecionada.participaDespesa ?? true;
-      
+
       let valorComissaoEditado = 0;
       let totalFinalEditado = 0;
-      
+
       if (pontoParticipaDespesa) {
         // Participa: Líquido - Despesa, depois Comissão
         const liquidoAposDespesa = toSafeNumber(liquidoDaMaquinaEditado - despesaEditada);
@@ -480,12 +480,12 @@ const LancamentoManual: React.FC = () => {
       };
 
       await updateVenda(vendaSelecionada.id, payload, userProfile.uid);
-      
+
       setMessage('Leitura atualizada com sucesso!');
       setMessageType('success');
       setEditandoDetalhe(false);
       setDetalheEditado(null);
-      
+
       // Recarregar vendas após 1 segundo
       setTimeout(() => {
         loadVendas();
@@ -516,13 +516,13 @@ const LancamentoManual: React.FC = () => {
     const totalSaida = toSafeNumber(saidaAtual - saidaAnterior);
     const entradaMenosSaida = toSafeNumber(totalEntrada - totalSaida);
     const liquidoDaMaquina = toSafeNumber(entradaMenosSaida * fatorConversao);
-    
+
     // Verificar se ponto participa da despesa (usar valor salvo na venda)
     const pontoParticipaDespesa = novoDetalhe.participaDespesa ?? vendaSelecionada?.participaDespesa ?? true;
-    
+
     let valorComissao = 0;
     let totalFinal = 0;
-    
+
     if (pontoParticipaDespesa) {
       // Participa: Líquido - Despesa, depois Comissão
       const liquidoAposDespesa = toSafeNumber(liquidoDaMaquina - despesa);
@@ -551,28 +551,28 @@ const LancamentoManual: React.FC = () => {
 
   const onSubmit = async (data: Venda) => {
     if (!userProfile) return;
-    
+
     // Validar localidade selecionada
     if (!selectedLocalidade) {
       setMessage('Por favor, selecione uma localidade antes de salvar a leitura.');
       setMessageType('error');
       return;
     }
-    
+
     // Validar centro de custo se houver despesa
     if (data.despesa > 0 && !data.centroCustoId) {
       setMessage('Por favor, selecione um Centro de Custo para a despesa informada.');
       setMessageType('error');
       return;
     }
-    
+
     setLoading(true);
     setMessage('');
     setMessageType('');
 
     try {
       const operador = operadores.find(o => o.id === data.operadorId);
-      
+
       // Garantir que a data é tratada corretamente (sem conversão UTC)
       // Se vier como string simples, mantém; se vier como outro formato, converte
       let dataFormatada = data.data;
@@ -580,7 +580,7 @@ const LancamentoManual: React.FC = () => {
         // Se vier em formato ISO (YYYY-MM-DDTHH:MM:SS), extrair apenas a data
         dataFormatada = dataFormatada.split('T')[0];
       }
-      
+
       const payload = {
         ...data,
         data: dataFormatada, // Usar a data sanitizada
@@ -601,7 +601,7 @@ const LancamentoManual: React.FC = () => {
         localidadeId: selectedLocalidade,
         ...(data.centroCustoId ? { centroCustoId: data.centroCustoId } : {})
       };
-      
+
       console.log('Salvando venda com payload:', payload, 'Data original:', data.data, 'Data formatada:', dataFormatada);
 
       await saveVenda(payload, userProfile.uid);
@@ -609,7 +609,7 @@ const LancamentoManual: React.FC = () => {
       setMessageType('success');
       handleCloseModal();
       loadVendas(); // Recarregar listagem
-      
+
       // Limpar mensagem após 3s
       setTimeout(() => {
         setMessage('');
@@ -628,26 +628,26 @@ const LancamentoManual: React.FC = () => {
 
   return (
     <>
-      <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto">
-        <PageHeader 
+      <div className="w-full">
+        <PageHeader
           title="Lançamento de Leitura"
           subtitle="Registre leituras manuais de máquinas e operadores"
           action={
             isAuthorized ? (
-              <button 
+              <ButtonPrimary
                 onClick={handleOpenModal}
-                className="flex items-center gap-2 px-4 py-2 bg-blue-500 hover:bg-blue-600 text-white font-semibold rounded-lg text-sm transition-colors"
+                className="flex items-center gap-2"
               >
                 <Plus size={18} />
                 <span className="hidden sm:inline">Nova Leitura</span>
                 <span className="sm:hidden">+</span>
-              </button>
+              </ButtonPrimary>
             ) : undefined
           }
         />
 
         {!isAuthorized && (
-          <AlertBox 
+          <AlertBox
             type="warning"
             message={`Seu perfil (${userProfile?.role}) não possui permissão para lançar leituras.`}
           />
@@ -655,7 +655,7 @@ const LancamentoManual: React.FC = () => {
 
         {message && (
           <div className="mb-6">
-            <AlertBox 
+            <AlertBox
               type={messageType as 'success' | 'error' | 'warning' | 'info'}
               message={message}
             />
@@ -664,423 +664,409 @@ const LancamentoManual: React.FC = () => {
 
         {/* Tabela de Leituras Cadastradas */}
         <GlassCard className="overflow-hidden">
-        {/* Filtro por Data */}
-        <div className="p-6 border-b border-slate-200 flex items-center justify-between">
-          <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
-            <FileText size={20} />
-            Leituras Cadastradas
-            <span className="text-xs text-slate-500 font-normal ml-2">({vendas.filter(v => v.data === filtroData).length} hoje)</span>
-          </h2>
-          <div className="flex items-center gap-2">
-            <label className="text-sm font-semibold text-slate-600">Filtrar por data:</label>
-            <input 
-              type="date"
-              value={filtroData}
-              onChange={(e) => setFiltroData(e.target.value)}
-              className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            />
+          {/* Filtro por Data */}
+          <div className="p-6 border-b border-slate-200 flex items-center justify-between">
+            <h2 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+              <FileText size={20} />
+              Leituras Cadastradas
+              <span className="text-xs text-slate-500 font-normal ml-2">({vendas.filter(v => v.data === filtroData).length} hoje)</span>
+            </h2>
+            <div className="flex items-center gap-2">
+              <label className="text-sm font-semibold text-slate-600">Filtrar por data:</label>
+              <input
+                type="date"
+                value={filtroData}
+                onChange={(e) => setFiltroData(e.target.value)}
+                className="px-3 py-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
           </div>
-        </div>
 
-        {loadingVendas ? (
-          <div className="p-12 text-center">
-            <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="mt-4 text-slate-600">Carregando leituras...</p>
-          </div>
-        ) : vendas.length === 0 ? (
-          <div className="p-12 text-center">
-            <FileText size={48} className="mx-auto text-slate-300 mb-4" />
-            <p className="text-slate-500 font-medium">Nenhuma leitura encontrada para esta localidade.</p>
-            <p className="text-sm text-slate-400 mt-2">Clique em "Nova Leitura" para cadastrar a primeira leitura.</p>
-            {!selectedLocalidade && (
-              <p className="text-xs text-orange-600 mt-2">⚠️ Selecione uma localidade no topo da página</p>
-            )}
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="bg-slate-50/80 border-b-2 border-slate-200 sticky top-0">
-                <tr>
-                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Data</th>
-                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden sm:table-cell">Ponto</th>
-                  <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden md:table-cell">Operador</th>
-                  <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Total</th>
-                  <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden lg:table-cell">Comissão</th>
-                  <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden md:table-cell">Despesa</th>
-                  <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Final</th>
-                  <th className="px-2 sm:px-3 py-2 text-center text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden sm:table-cell">Status</th>
-                  <th className="px-2 sm:px-3 py-2 text-center text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Ações</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100">
-                {vendas
-                  .map((v: any) => {
-                    let dataVenda = v.data;
-                    if (dataVenda && dataVenda.length > 10) {
-                      dataVenda = dataVenda.split('T')[0];
-                    }
-                    return { ...v, data: dataVenda };
-                  })
-                  .filter(v => v.data === filtroData)
-                  .map((venda) => {
-                  const ponto = pontos.find(p => p.id === venda.pontoId);
-                  const operador = operadores.find(o => o.id === venda.operadorId);
-                  
-                  return (
-                    <tr key={venda.id} className="hover:bg-slate-50 transition-colors">
-                      <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-xs text-slate-700">
-                        {venda.data ? venda.data.split('-').reverse().join('/') : '--'}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-xs text-slate-700 hidden sm:table-cell">
-                        <span className="font-semibold">{ponto?.codigo}</span> {ponto?.nome || 'N/A'}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-xs text-slate-700 hidden md:table-cell">
-                        <span className="font-semibold">{operador?.codigo}</span> {operador?.nome || 'N/A'}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-right font-mono font-semibold text-slate-900 text-xs">
-                        R$ {(venda.totalGeral || 0).toFixed(2)}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-right font-mono text-yellow-700 font-semibold text-xs hidden lg:table-cell">
-                        R$ {(venda.valorComissao || 0).toFixed(2)}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 text-right text-xs hidden md:table-cell">
-                        {venda.despesa > 0 ? (
-                          <div className="flex flex-col items-end gap-0.5">
-                            <span className="font-mono text-orange-700 font-semibold text-xs">
-                              R$ {venda.despesa.toFixed(2)}
-                            </span>
-                            {venda.centroCustoId && (
-                              <span className="text-xs text-slate-500 max-w-[100px] truncate" title={centrosCusto.find(c => c.id === venda.centroCustoId)?.nome}>
-                                {centrosCusto.find(c => c.id === venda.centroCustoId)?.nome || 'N/A'}
-                              </span>
+          {loadingVendas ? (
+            <div className="p-12 text-center">
+              <div className="inline-block w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
+              <p className="mt-4 text-slate-600">Carregando leituras...</p>
+            </div>
+          ) : vendas.length === 0 ? (
+            <div className="p-12 text-center">
+              <FileText size={48} className="mx-auto text-slate-300 mb-4" />
+              <p className="text-slate-500 font-medium">Nenhuma leitura encontrada para esta localidade.</p>
+              <p className="text-sm text-slate-400 mt-2">Clique em "Nova Leitura" para cadastrar a primeira leitura.</p>
+              {!selectedLocalidade && (
+                <p className="text-xs text-orange-600 mt-2">⚠️ Selecione uma localidade no topo da página</p>
+              )}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50/80 border-b-2 border-slate-200 sticky top-0">
+                  <tr>
+                    <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Data</th>
+                    <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden sm:table-cell">Ponto</th>
+                    <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden md:table-cell">Operador</th>
+                    <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Total</th>
+                    <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden lg:table-cell">Comissão</th>
+                    <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden md:table-cell">Despesa</th>
+                    <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Final</th>
+                    <th className="px-2 sm:px-3 py-2 text-center text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden sm:table-cell">Status</th>
+                    <th className="px-2 sm:px-3 py-2 text-center text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Ações</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {vendas
+                    .map((v: any) => {
+                      let dataVenda = v.data;
+                      if (dataVenda && dataVenda.length > 10) {
+                        dataVenda = dataVenda.split('T')[0];
+                      }
+                      return { ...v, data: dataVenda };
+                    })
+                    .filter(v => v.data === filtroData)
+                    .map((venda) => {
+                      const ponto = pontos.find(p => p.id === venda.pontoId);
+                      const operador = operadores.find(o => o.id === venda.operadorId);
+
+                      return (
+                        <tr key={venda.id} className="hover:bg-slate-50 transition-colors">
+                          <td className="px-2 py-1 whitespace-nowrap text-xs text-slate-700">
+                            {venda.data ? venda.data.split('-').reverse().join('/') : '--'}
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap text-xs text-slate-700 hidden sm:table-cell">
+                            <span className="font-semibold">{ponto?.codigo}</span> {ponto?.nome || 'N/A'}
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap text-xs text-slate-700 hidden md:table-cell">
+                            <span className="font-semibold">{operador?.codigo}</span> {operador?.nome || 'N/A'}
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap text-right font-mono font-semibold text-slate-900 text-xs">
+                            R$ {(venda.totalGeral || 0).toFixed(2)}
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap text-right font-mono text-yellow-700 font-semibold text-xs hidden lg:table-cell">
+                            R$ {(venda.valorComissao || 0).toFixed(2)}
+                          </td>
+                          <td className="px-2 py-1 text-right text-xs hidden md:table-cell">
+                            {venda.despesa > 0 ? (
+                              <div className="flex flex-col items-end gap-0.5">
+                                <span className="font-mono text-orange-700 font-semibold text-xs">
+                                  R$ {venda.despesa.toFixed(2)}
+                                </span>
+                                {venda.centroCustoId && (
+                                  <span className="text-xs text-slate-500 max-w-[100px] truncate" title={centrosCusto.find(c => c.id === venda.centroCustoId)?.nome}>
+                                    {centrosCusto.find(c => c.id === venda.centroCustoId)?.nome || 'N/A'}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="font-mono text-slate-400 text-xs">-</span>
                             )}
-                          </div>
-                        ) : (
-                          <span className="font-mono text-slate-400 text-xs">-</span>
-                        )}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-right font-mono font-bold text-blue-600 text-xs">
-                        R$ {(venda.totalFinal || 0).toFixed(2)}
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-center hidden sm:table-cell">
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold ${
-                          venda.status_conferencia === 'conferido' 
-                            ? 'bg-green-100 text-green-700' 
-                            : 'bg-yellow-100 text-yellow-700'
-                        }`}>
-                          {venda.status_conferencia === 'conferido' ? '✓' : '◐'}
-                        </span>
-                      </td>
-                      <td className="px-2 sm:px-3 py-2 whitespace-nowrap text-center">
-                        <button
-                          onClick={() => handleAbrirDetalhe(venda)}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors text-xs font-semibold"
-                          title="Detalhes"
-                        >
-                          <Eye size={14} />
-                          <span className="hidden sm:inline">Ver</span>
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap text-right font-mono font-bold text-blue-600 text-xs">
+                            R$ {(venda.totalFinal || 0).toFixed(2)}
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap text-center hidden sm:table-cell">
+                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold ${venda.status_conferencia === 'conferido'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-yellow-100 text-yellow-700'
+                              }`}>
+                              {venda.status_conferencia === 'conferido' ? '✓' : '◐'}
+                            </span>
+                          </td>
+                          <td className="px-2 py-1 whitespace-nowrap text-center">
+                            <button
+                              onClick={() => handleAbrirDetalhe(venda)}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors text-xs font-semibold"
+                              title="Detalhes"
+                            >
+                              <Eye size={14} />
+                              <span className="hidden sm:inline">Ver</span>
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                </tbody>
+              </table>
+            </div>
+          )}
         </GlassCard>
       </div>
 
       {/* Modal de Nova Leitura */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-sm sm:max-w-2xl md:max-w-4xl my-4 sm:my-8 max-h-[95vh] overflow-y-auto">
-            <div className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-slate-200 px-4 sm:px-6 md:px-8 py-4 sm:py-6 flex items-center justify-between z-10">
-              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Nova Leitura</h2>
-              <button
-                onClick={handleCloseModal}
-                type="button"
-                className="text-slate-400 hover:text-slate-600 transition-colors flex-shrink-0"
-              >
-                <svg className="w-5 h-5 sm:w-6 sm:h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+      <Modal
+        isOpen={showModal}
+        onClose={handleCloseModal}
+        title="Nova Leitura"
+        size="xl"
+        actions={
+          <>
+            <ButtonSecondary onClick={handleCloseModal} disabled={loading}>
+              Cancelar
+            </ButtonSecondary>
+            <ButtonPrimary
+              type="submit"
+              form="form-nova-leitura"
+              disabled={loading}
+            >
+              {loading ? 'Salvando...' : 'Salvar'}
+            </ButtonPrimary>
+          </>
+        }
+      >
 
-            <form onSubmit={handleSubmit(onSubmit)} className="p-4 sm:p-6 md:p-8 space-y-4 sm:space-y-6">
-        
-        {/* Header Selection - Data, Rota, Ponto/Máquina - Responsivo */}
-        <GlassCard className="p-3 sm:p-4">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
-            {/* Data */}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-600">
-                Data <span className="text-red-500">*</span>
-              </label>
-              <input 
-                type="date" 
-                {...register('data', { required: 'Obrigatório' })} 
-                disabled={!isAuthorized}
-                className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
-              />
-            </div>
+        <form id="form-nova-leitura" onSubmit={handleSubmit(onSubmit)} className="space-y-6">
 
-            {/* Ponto de Venda */}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-600">
-                Ponto <span className="text-red-500">*</span>
-              </label>
-              <select 
-                value={selectedPontoId}
-                onChange={(e) => handlePontoChange(e.target.value)}
-                disabled={!isAuthorized}
-                className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
-              >
-                <option value="">Selecione...</option>
-                {pontos.map(ponto => (
-                  <option key={ponto.id} value={ponto.id}>
-                    {ponto.codigo} - {ponto.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            {/* Operador/Máquina */}
-            <div className="space-y-1">
-              <label className="block text-xs font-semibold text-slate-600">
-                Máquina <span className="text-red-500">*</span>
-              </label>
-              <select 
-                {...register('operadorId', { required: 'Obrigatório' })}
-                onChange={handleOperadorChange}
-                disabled={!isAuthorized || !selectedPontoId}
-                className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
-              >
-                <option value="">Selecione...</option>
-                {(() => {
-                  const hoje = getTodayDateString();
-                  const operadoresDisponiveis = operadoresFiltrados.filter(op => !vendas.some(v => v.operadorId === op.id && v.data === hoje));
-                  
-                  return operadoresDisponiveis.length === 0 ? (
-                    <option disabled>✓ Todos lidos hoje</option>
-                  ) : (
-                    operadoresDisponiveis.map(op => (
-                      <option key={op.id} value={op.id}>
-                        {op.codigo} - {op.nome}
-                      </option>
-                    ))
-                  );
-                })()}
-              </select>
-              {loadingHistory && <p className="text-xs text-blue-500 mt-1">Buscando...</p>}
-            </div>
-          </div>
-        </GlassCard>
-
-        {/* Counters Grid - Responsivo */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
-          {/* Entradas */}
-          <div className="bg-green-50/30 border border-green-200 rounded-lg p-2 sm:p-3">
-            <h3 className="text-xs font-bold text-green-700 mb-2">Entradas</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Anterior <span className="text-red-500">*</span>
+          {/* Header Selection - Data, Rota, Ponto/Máquina - Responsivo */}
+          <GlassCard className="p-3 sm:p-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-2 sm:gap-3">
+              {/* Data */}
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-600">
+                  Data <span className="text-red-500">*</span>
                 </label>
-                <input 
-                  type="number"
-                  {...register('entradaAnterior', { valueAsNumber: true })} 
-                  readOnly 
-                  className="w-full bg-slate-100 border border-slate-300 rounded px-2 py-1 text-slate-700 font-mono text-xs"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Atual <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="number" 
-                  {...register('entradaAtual', { valueAsNumber: true, required: 'Obrigatório' })} 
+                <input
+                  type="date"
+                  {...register('data', { required: 'Obrigatório' })}
                   disabled={!isAuthorized}
-                  placeholder="0"
-                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs text-slate-900 focus:ring-2 focus:ring-green-500 outline-none disabled:bg-slate-50 font-mono"
-                />
-              </div>
-            </div>
-            <div className="mt-2 pt-2 border-t border-green-300 flex justify-between items-center">
-              <span className="text-xs font-semibold text-slate-600">Total:</span>
-              <span className="text-sm font-bold text-green-600">{totalEntrada.toFixed(0)}</span>
-            </div>
-          </div>
-
-          {/* Saídas */}
-          <div className="bg-red-50/30 border border-red-200 rounded-lg p-2 sm:p-3">
-            <h3 className="text-xs font-bold text-red-700 mb-2">Saídas (Prêmios)</h3>
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Anterior <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="number"
-                  {...register('saidaAnterior', { valueAsNumber: true })} 
-                  readOnly 
-                  className="w-full bg-slate-100 border border-slate-300 rounded px-2 py-1 text-slate-700 font-mono text-xs"
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  Atual <span className="text-red-500">*</span>
-                </label>
-                <input 
-                  type="number" 
-                  {...register('saidaAtual', { valueAsNumber: true, required: 'Obrigatório' })} 
-                  disabled={!isAuthorized}
-                  placeholder="0"
-                  className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs text-slate-900 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-slate-50 font-mono"
-                />
-              </div>
-            </div>
-            <div className="mt-2 pt-2 border-t border-red-300 flex justify-between items-center">
-              <span className="text-xs font-semibold text-slate-600">Total:</span>
-              <span className="text-sm font-bold text-red-600">{totalSaida.toFixed(0)}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Resumo Financeiro em Linha - Compacto */}
-        {!isColeta && (
-          <GlassCard className="p-3">
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
-              {/* Entrada-Saída */}
-              <div className="bg-blue-50 border border-blue-200 rounded p-2">
-                <label className="block text-xs font-semibold text-slate-600 mb-0.5">Entrada-Saída</label>
-                <div className="text-sm font-bold font-mono text-blue-700">{entradaMenosSaida.toFixed(0)}</div>
-                <div className="text-xs text-slate-500">F: {fatorConversao}</div>
-              </div>
-
-              {/* Líquido da Máquina */}
-              <div className="bg-slate-50 border border-slate-200 rounded p-2">
-                <label className="block text-xs font-semibold text-slate-600 mb-0.5">Líquido</label>
-                <div className={`text-sm font-bold font-mono ${totalGeral < 0 ? 'text-red-600' : 'text-slate-900'}`}>
-                  R$ {totalGeral.toFixed(2)}
-                </div>
-              </div>
-
-              {/* % Ponto */}
-              <div className="bg-slate-50 border border-slate-200 rounded p-2">
-                <label className="block text-xs font-semibold text-slate-600 mb-0.5">% Ponto</label>
-                <input 
-                  type="number" 
-                  {...register('comissaoPorcentagem', { valueAsNumber: true })} 
-                  readOnly
-                  disabled
-                  className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-900 text-xs font-mono font-bold"
+                  className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
                 />
               </div>
 
-              {/* Comissão */}
-              <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
-                <label className="block text-xs font-semibold text-slate-600 mb-0.5">Comissão</label>
-                <div className="text-sm font-bold font-mono text-yellow-700">
-                  R$ {valorComissao.toFixed(2)}
-                </div>
-              </div>
-
-              {/* Despesa */}
-              <div className="bg-slate-50 border border-slate-200 rounded p-2">
-                <label className="block text-xs font-semibold text-slate-600 mb-0.5">💰 Despesa</label>
-                <input 
-                  type="number" 
-                  step="0.01" 
-                  {...register('despesa', { valueAsNumber: true })} 
-                  disabled={!isAuthorized}
-                  placeholder="0"
-                  className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-900 text-xs font-mono font-bold"
-                />
-              </div>
-            </div>
-
-            {/* Centro de Custo - Aparece apenas se despesa > 0 */}
-            {despesa > 0 && (
-              <div className="bg-orange-50 border border-orange-200 rounded p-2 mb-3">
-                <label className="block text-xs font-semibold text-slate-600 mb-1">
-                  🎯 Centro de Custo <span className="text-red-500">*</span>
+              {/* Ponto de Venda */}
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-600">
+                  Ponto <span className="text-red-500">*</span>
                 </label>
                 <select
-                  {...register('centroCustoId', { 
-                    required: despesa > 0 ? 'Centro de Custo é obrigatório quando há despesa' : false 
-                  })}
+                  value={selectedPontoId}
+                  onChange={(e) => handlePontoChange(e.target.value)}
                   disabled={!isAuthorized}
-                  className="w-full bg-white border border-orange-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-orange-500 outline-none disabled:bg-slate-50"
+                  className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
                 >
-                  <option value="">Selecione o centro de custo...</option>
-                  {centrosCusto.map(centro => (
-                    <option key={centro.id} value={centro.id}>
-                      {centro.nome}
+                  <option value="">Selecione...</option>
+                  {pontos.map(ponto => (
+                    <option key={ponto.id} value={ponto.id}>
+                      {ponto.codigo} - {ponto.nome}
                     </option>
                   ))}
                 </select>
-                {centrosCusto.length === 0 && (
-                  <p className="text-xs text-orange-600 mt-2">
-                    ⚠️ Nenhum centro de custo cadastrado para esta localidade. 
-                    Vá em Financeiro → Despesas para cadastrar centros de custo.
-                  </p>
-                )}
               </div>
-            )}
 
-            {/* Total Final (Caixa) em Destaque - Compacto */}
-            <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-300 rounded p-3">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-bold text-slate-700">💰 Lucro Líquido</span>
-                <div className={`text-lg font-bold font-mono ${totalFinal < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                  R$ {totalFinal.toFixed(2)}
-                </div>
+              {/* Operador/Máquina */}
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-600">
+                  Máquina <span className="text-red-500">*</span>
+                </label>
+                <select
+                  {...register('operadorId', { required: 'Obrigatório' })}
+                  onChange={handleOperadorChange}
+                  disabled={!isAuthorized || !selectedPontoId}
+                  className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
+                >
+                  <option value="">Selecione...</option>
+                  {(() => {
+                    const hoje = getTodayDateString();
+                    const operadoresDisponiveis = operadoresFiltrados.filter(op => !vendas.some(v => v.operadorId === op.id && v.data === hoje));
+
+                    return operadoresDisponiveis.length === 0 ? (
+                      <option disabled>✓ Todos lidos hoje</option>
+                    ) : (
+                      operadoresDisponiveis.map(op => (
+                        <option key={op.id} value={op.id}>
+                          {op.codigo} - {op.nome}
+                        </option>
+                      ))
+                    );
+                  })()}
+                </select>
+                {loadingHistory && <p className="text-xs text-blue-500 mt-1">Buscando...</p>}
               </div>
             </div>
           </GlassCard>
-        )}
-        
-        {/* File Upload - Responsivo */}
-        <div className="border border-dashed border-slate-300 rounded p-2 sm:p-3 bg-slate-50/50 hover:bg-slate-100/50 transition-colors cursor-pointer">
-          <input 
-            type="file" 
-            accept="image/*"
-            disabled={!isAuthorized}
-            className="hidden"
-            id="fileUpload"
-          />
-          <label htmlFor="fileUpload" className="cursor-pointer flex items-center justify-center gap-2">
-            <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="text-xs text-slate-600">📷 Adicionar imagem (opcional)</span>
-          </label>
-        </div>
 
-              <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 sticky bottom-0 bg-white/95 backdrop-blur-xl border-t border-slate-200 px-4 sm:px-6 md:px-8 py-3 sm:py-4 -mx-4 sm:-mx-6 md:-mx-8 -mb-4 sm:-mb-6 md:-mb-8 mt-4">
-                <button
-                  onClick={handleCloseModal}
-                  type="button"
-                  className="flex-1 px-4 py-2 bg-slate-200 hover:bg-slate-300 text-slate-700 font-semibold rounded text-xs sm:text-sm transition-colors"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 px-4 py-2 bg-blue-500 hover:bg-blue-600 disabled:bg-slate-400 text-white font-semibold rounded text-xs sm:text-sm transition-colors disabled:cursor-not-allowed"
-                >
-                  {loading ? 'Salvando...' : 'Salvar'}
-                </button>
+          {/* Counters Grid - Responsivo */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 sm:gap-4">
+            {/* Entradas */}
+            <div className="bg-green-50/30 border border-green-200 rounded-lg p-2 sm:p-3">
+              <h3 className="text-xs font-bold text-green-700 mb-2">Entradas</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Anterior <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    {...register('entradaAnterior', { valueAsNumber: true })}
+                    readOnly
+                    className="w-full bg-slate-100 border border-slate-300 rounded px-2 py-1 text-slate-700 font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Atual <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    {...register('entradaAtual', { valueAsNumber: true, required: 'Obrigatório' })}
+                    disabled={!isAuthorized}
+                    placeholder="0"
+                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs text-slate-900 focus:ring-2 focus:ring-green-500 outline-none disabled:bg-slate-50 font-mono"
+                  />
+                </div>
               </div>
-            </form>
+              <div className="mt-2 pt-2 border-t border-green-300 flex justify-between items-center">
+                <span className="text-xs font-semibold text-slate-600">Total:</span>
+                <span className="text-sm font-bold text-green-600">{totalEntrada.toFixed(0)}</span>
+              </div>
+            </div>
+
+            {/* Saídas */}
+            <div className="bg-red-50/30 border border-red-200 rounded-lg p-2 sm:p-3">
+              <h3 className="text-xs font-bold text-red-700 mb-2">Saídas (Prêmios)</h3>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Anterior <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    {...register('saidaAnterior', { valueAsNumber: true })}
+                    readOnly
+                    className="w-full bg-slate-100 border border-slate-300 rounded px-2 py-1 text-slate-700 font-mono text-xs"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    Atual <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="number"
+                    {...register('saidaAtual', { valueAsNumber: true, required: 'Obrigatório' })}
+                    disabled={!isAuthorized}
+                    placeholder="0"
+                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs text-slate-900 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-slate-50 font-mono"
+                  />
+                </div>
+              </div>
+              <div className="mt-2 pt-2 border-t border-red-300 flex justify-between items-center">
+                <span className="text-xs font-semibold text-slate-600">Total:</span>
+                <span className="text-sm font-bold text-red-600">{totalSaida.toFixed(0)}</span>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+
+          {/* Resumo Financeiro em Linha - Compacto */}
+          {!isColeta && (
+            <GlassCard className="p-3">
+              <div className="grid grid-cols-2 md:grid-cols-5 gap-2 mb-3">
+                {/* Entrada-Saída */}
+                <div className="bg-blue-50 border border-blue-200 rounded p-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-0.5">Entrada-Saída</label>
+                  <div className="text-sm font-bold font-mono text-blue-700">{entradaMenosSaida.toFixed(0)}</div>
+                  <div className="text-xs text-slate-500">F: {fatorConversao}</div>
+                </div>
+
+                {/* Líquido da Máquina */}
+                <div className="bg-slate-50 border border-slate-200 rounded p-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-0.5">Líquido</label>
+                  <div className={`text-sm font-bold font-mono ${totalGeral < 0 ? 'text-red-600' : 'text-slate-900'}`}>
+                    R$ {totalGeral.toFixed(2)}
+                  </div>
+                </div>
+
+                {/* % Ponto */}
+                <div className="bg-slate-50 border border-slate-200 rounded p-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-0.5">% Ponto</label>
+                  <input
+                    type="number"
+                    {...register('comissaoPorcentagem', { valueAsNumber: true })}
+                    readOnly
+                    disabled
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-900 text-xs font-mono font-bold"
+                  />
+                </div>
+
+                {/* Comissão */}
+                <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-0.5">Comissão</label>
+                  <div className="text-sm font-bold font-mono text-yellow-700">
+                    R$ {valorComissao.toFixed(2)}
+                  </div>
+                </div>
+
+                {/* Despesa */}
+                <div className="bg-slate-50 border border-slate-200 rounded p-2">
+                  <label className="block text-xs font-semibold text-slate-600 mb-0.5">💰 Despesa</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    {...register('despesa', { valueAsNumber: true })}
+                    disabled={!isAuthorized}
+                    placeholder="0"
+                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-900 text-xs font-mono font-bold"
+                  />
+                </div>
+              </div>
+
+              {/* Centro de Custo - Aparece apenas se despesa > 0 */}
+              {despesa > 0 && (
+                <div className="bg-orange-50 border border-orange-200 rounded p-2 mb-3">
+                  <label className="block text-xs font-semibold text-slate-600 mb-1">
+                    🎯 Centro de Custo <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    {...register('centroCustoId', {
+                      required: despesa > 0 ? 'Centro de Custo é obrigatório quando há despesa' : false
+                    })}
+                    disabled={!isAuthorized}
+                    className="w-full bg-white border border-orange-300 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-orange-500 outline-none disabled:bg-slate-50"
+                  >
+                    <option value="">Selecione o centro de custo...</option>
+                    {centrosCusto.map(centro => (
+                      <option key={centro.id} value={centro.id}>
+                        {centro.nome}
+                      </option>
+                    ))}
+                  </select>
+                  {centrosCusto.length === 0 && (
+                    <p className="text-xs text-orange-600 mt-2">
+                      ⚠️ Nenhum centro de custo cadastrado para esta localidade.
+                      Vá em Financeiro → Despesas para cadastrar centros de custo.
+                    </p>
+                  )}
+                </div>
+              )}
+
+              {/* Total Final (Caixa) em Destaque - Compacto */}
+              <div className="bg-gradient-to-r from-emerald-50 to-emerald-100 border border-emerald-300 rounded p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-bold text-slate-700">💰 Lucro Líquido</span>
+                  <div className={`text-lg font-bold font-mono ${totalFinal < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
+                    R$ {totalFinal.toFixed(2)}
+                  </div>
+                </div>
+              </div>
+            </GlassCard>
+          )}
+
+          {/* File Upload - Responsivo */}
+          <div className="border border-dashed border-slate-300 rounded p-2 sm:p-3 bg-slate-50/50 hover:bg-slate-100/50 transition-colors cursor-pointer">
+            <input
+              type="file"
+              accept="image/*"
+              disabled={!isAuthorized}
+              className="hidden"
+              id="fileUpload"
+            />
+            <label htmlFor="fileUpload" className="cursor-pointer flex items-center justify-center gap-2">
+              <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="text-xs text-slate-600">📷 Adicionar imagem (opcional)</span>
+            </label>
+          </div>
+
+        </form>
+      </Modal>
 
       {/* Modal de Detalhes / Edição */}
       {showDetalheModal && vendaSelecionada && (
@@ -1227,11 +1213,10 @@ const LancamentoManual: React.FC = () => {
                       className="w-full text-lg font-bold text-orange-700 mt-1 bg-white border border-orange-200 rounded px-2 py-1 focus:outline-none focus:ring-2 focus:ring-orange-500"
                     />
                   </div>
-                  <div className={`bg-emerald-50 rounded-lg p-4 border-2 border-emerald-200 md:col-span-2 ${
-                    (detalheEditado.totalFinal || 0) < 0 ? 'border-red-300 bg-red-50' : ''
-                  }`}>
+                  <div className={`bg-emerald-50 rounded-lg p-4 border-2 border-emerald-200 md:col-span-2 ${(detalheEditado.totalFinal || 0) < 0 ? 'border-red-300 bg-red-50' : ''
+                    }`}>
                     <label className="text-xs font-semibold text-slate-600">Lucro Líquido (calculado)</label>
-                    <p className={`text-lg font-bold mt-1 ${ (detalheEditado.totalFinal || 0) < 0 ? 'text-red-700' : 'text-emerald-700' }`}>
+                    <p className={`text-lg font-bold mt-1 ${(detalheEditado.totalFinal || 0) < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                       R$ {(detalheEditado.totalFinal || 0).toFixed(2)}{(detalheEditado.totalFinal || 0) < 0 ? ' (negativo)' : ''}
                     </p>
                   </div>
@@ -1250,11 +1235,10 @@ const LancamentoManual: React.FC = () => {
                     <label className="text-xs font-semibold text-slate-600">Despesa</label>
                     <p className="text-lg font-bold text-orange-700 mt-1">R$ {(vendaSelecionada.despesa || 0).toFixed(2)}</p>
                   </div>
-                  <div className={`bg-emerald-50 rounded-lg p-4 border-2 border-emerald-200 ${
-                    (vendaSelecionada.totalFinal || 0) < 0 ? 'border-red-300 bg-red-50' : ''
-                  }`}>
+                  <div className={`bg-emerald-50 rounded-lg p-4 border-2 border-emerald-200 ${(vendaSelecionada.totalFinal || 0) < 0 ? 'border-red-300 bg-red-50' : ''
+                    }`}>
                     <label className="text-xs font-semibold text-slate-600">Lucro Líquido</label>
-                    <p className={`text-lg font-bold mt-1 ${ (vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-700' : 'text-emerald-700' }`}>
+                    <p className={`text-lg font-bold mt-1 ${(vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
                       R$ {(vendaSelecionada.totalFinal || 0).toFixed(2)}{(vendaSelecionada.totalFinal || 0) < 0 ? ' (negativo)' : ''}
                     </p>
                   </div>
@@ -1320,11 +1304,10 @@ const LancamentoManual: React.FC = () => {
                       setEditandoDetalhe(!editandoDetalhe);
                     }}
                     type="button"
-                    className={`px-6 py-2.5 font-semibold rounded-lg transition-colors flex items-center gap-2 ${
-                      editandoDetalhe
-                        ? 'bg-red-500 hover:bg-red-600 text-white'
-                        : 'bg-amber-500 hover:bg-amber-600 text-white'
-                    }`}
+                    className={`px-6 py-2.5 font-semibold rounded-lg transition-colors flex items-center gap-2 ${editandoDetalhe
+                      ? 'bg-red-500 hover:bg-red-600 text-white'
+                      : 'bg-amber-500 hover:bg-amber-600 text-white'
+                      }`}
                   >
                     <Edit2 size={16} />
                     {editandoDetalhe ? 'Cancelar Edição' : 'Editar'}

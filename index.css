@@ -1,88 +1,49 @@
-/* Windows 11 inspired design system */
-@font-face {
-  font-family: 'Ubuntu';
-  src: url('https://fonts.gstatic.com/s/ubuntu/v20/4iCs6KVjbNBYlgo6eAT3v02QFg.ttf') format('truetype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
+@import url('https://fonts.googleapis.com/css2?family=Ubuntu:wght@300;400;500;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Ubuntu', 'Segoe UI', system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  /* Global Table Compact Override */
+  td,
+  th {
+    @apply py-1 px-2 text-sm;
+  }
 }
 
-:root {
-  --font-system: 'Ubuntu', 'Segoe UI', system-ui, -apple-system, sans-serif;
-  --color-primary: #0a6df2;
-  --color-success: #16a34a;
-  --color-error: #d70015;
-  --color-surface: #ffffff;
-  --color-surface-alt: #f6f7f9;
-  --color-border: #e5e7eb;
-  --color-text-strong: #111827;
-  --color-text: #374151;
-  --shadow-lg: 0 18px 40px rgba(0, 0, 0, 0.08);
+/* Scrollbar Customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
-* { font-family: var(--font-system); }
-html { scroll-behavior: smooth; }
-body {
-  background: var(--color-surface-alt);
-  color: var(--color-text-strong);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
 }
 
-::-webkit-scrollbar { width: 8px; } ::-webkit-scrollbar-track { background: #f1f5f9; }
-::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
-
-/* Buttons */
-.bg-blue-600, .bg-purple-600 { background: linear-gradient(135deg, #0a6df2 0%, #0a5fd4 100%); box-shadow: 0 6px 14px rgba(10, 109, 242, 0.25); }
-.hover\:bg-blue-700:hover, .hover\:bg-purple-700:hover { background: linear-gradient(135deg, #0a5fd4 0%, #084fb0 100%); }
-.bg-gray-300 { background: #e5e7eb; }
-.bg-red-600 { background: #d70015; }
-.bg-green-100 { background: rgba(22, 163, 74, 0.1); color: #15803d; }
-.bg-red-100 { background: rgba(215, 0, 21, 0.08); color: #d70015; }
-.bg-yellow-50 { background: rgba(251, 191, 36, 0.08); }
-
-/* Cards & Containers */
-.bg-white {
-  background: var(--color-surface);
-  border: 1px solid var(--color-border);
-  backdrop-filter: blur(6px);
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
-.rounded-lg { border-radius: 12px; }
-.rounded-xl { border-radius: 16px; }
-.rounded-2xl { border-radius: 20px; }
-.shadow-md, .shadow-lg, .shadow-xl { box-shadow: var(--shadow-lg); }
-
-/* Forms */
-input, select, textarea {
-  background: rgba(248, 250, 252, 0.7);
-  border: 1px solid #d9dde3;
-  color: var(--color-text-strong);
-  border-radius: 10px;
-  transition: all 200ms ease;
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 
-input:focus, select:focus, textarea:focus {
-  background: #ffffff;
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px rgba(10, 109, 242, 0.12);
-  outline: none;
+/* Custom Utilities */
+@layer components {
+  .btn-primary {
+    @apply bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors shadow-sm;
+  }
+
+  .input-field {
+    @apply w-full bg-white border border-slate-300 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all;
+  }
 }
-
-/* Tables */
-table { background: var(--color-surface); }
-thead { background: #f3f4f6; border-color: #e5e7eb; }
-tbody tr:hover { background: #f9fafb; }
-.border-b { border-color: #e5e7eb; }
-
-/* Text Colors */
-.text-gray-800, .text-gray-900, .text-slate-900 { color: var(--color-text-strong); }
-.text-gray-700, .text-slate-700 { color: #374151; }
-.text-gray-500, .text-slate-500 { color: #6b7280; }
-.text-gray-600 { color: #4b5563; }
-.text-blue-600, .text-blue-700 { color: var(--color-primary); }
-.text-red-600, .text-red-700 { color: #d70015; }
-.text-green-600 { color: var(--color-success); }
-
-/* Modals */
-.fixed.inset-0.bg-black { background: rgba(0, 0, 0, 0.3); backdrop-filter: blur(4px); }

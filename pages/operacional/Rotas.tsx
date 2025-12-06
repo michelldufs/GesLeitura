@@ -3,8 +3,8 @@ import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'fireb
 import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
-import { Route as RouteIcon, Plus, Edit2, Trash2 } from 'lucide-react';
-import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
+import { Route as RouteIcon, Plus, Edit2, Trash2, Ban } from 'lucide-react';
+import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
 import { gerarProximoCodigoRota, validarCodigoRota } from '../../services/codigoValidator';
 
 interface Rota {
@@ -54,13 +54,13 @@ const Rotas: React.FC = () => {
 
   const gerarCodigoRota = (): string => {
     if (!formData.secaoId || !formData.localidadeId) return '';
-    
+
     const secao = secoes.find(s => s.id === formData.secaoId);
     const localidade = localidades.find(l => l.id === formData.localidadeId);
-    
+
     if (!secao || !localidade) return '';
     if (!secao.codigo || !localidade.codigo) return '';
-    
+
     // Filtrar rotas da mesma seção para gerar sequência correta
     const rotasDaSecao = rotas.filter(r => r.secaoId === formData.secaoId);
     return gerarProximoCodigoRota(localidade.codigo, secao.codigo, rotasDaSecao);
@@ -156,7 +156,7 @@ const Rotas: React.FC = () => {
         setMessage('Rota atualizada com sucesso!');
       } else {
         const codigoGerado = gerarCodigoRota();
-        
+
         // Validar se o código não é duplicado
         const validacao = validarCodigoRota(codigoGerado, rotas);
         if (!validacao.valido) {
@@ -214,23 +214,23 @@ const Rotas: React.FC = () => {
   const getSecaoNome = (id: string) => secoes.find(s => s.id === id)?.nome || 'N/A';
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <PageHeader 
+    <div className="w-full">
+      <PageHeader
         title="Gestão de Rotas"
         subtitle="Crie e gerencie todas as rotas do sistema"
         action={
-          <button
+          <ButtonPrimary
             onClick={handleOpenModal}
             disabled={!isAuthorized}
-            className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+            className="flex items-center gap-2"
           >
             <Plus size={20} /> Nova Rota
-          </button>
+          </ButtonPrimary>
         }
       />
 
       {!isAuthorized && (
-        <AlertBox 
+        <AlertBox
           type="warning"
           message={`Seu perfil (${userProfile?.role}) não possui permissão para gerenciar rotas.`}
         />
@@ -238,7 +238,7 @@ const Rotas: React.FC = () => {
 
       {message && (
         <div className="mb-6">
-          <AlertBox 
+          <AlertBox
             type={messageType as 'success' | 'error' | 'warning' | 'info'}
             message={message}
           />
@@ -259,39 +259,47 @@ const Rotas: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Seção</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Seção</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {rotas.map((rota) => (
                   <tr key={rota.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-2.5 font-mono font-semibold text-slate-900">{rota.codigo || 'sem código'}</td>
-                    <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
-                      <div className="p-2 bg-green-100/50 rounded-lg">
-                        <RouteIcon className="text-green-600" size={18} />
+                    <td className="px-2 py-1 font-semibold text-slate-950 text-sm">{rota.codigo || 'sem código'}</td>
+                    <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2 text-sm">
+                      <div className="p-1 bg-green-100/50 rounded-lg">
+                        <RouteIcon className="text-green-600" size={14} />
                       </div>
                       {rota.nome}
                     </td>
-                    <td className="px-6 py-2.5 text-slate-600">{getLocalidadeNome(rota.localidadeId)}</td>
-                    <td className="px-6 py-2.5 text-slate-600">{getSecaoNome(rota.secaoId)}</td>
-                    <td className="px-6 py-2.5 text-right flex justify-end gap-3">
+                    <td className="px-2 py-1 text-slate-600 text-sm">{getLocalidadeNome(rota.localidadeId)}</td>
+                    <td className="px-2 py-1 text-slate-600 text-sm">{getSecaoNome(rota.secaoId)}</td>
+                    <td className="px-2 py-1 text-center">
+                      <Badge variant={rota.active ? 'active' : 'inactive'}>
+                        {rota.active ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </td>
+                    <td className="px-2 py-1 text-right flex justify-end gap-1">
                       <button
                         onClick={() => handleEdit(rota)}
                         disabled={!isAuthorized}
-                        className="text-blue-500 hover:text-blue-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
+                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                        title="Editar"
                       >
-                        <Edit2 size={16} /> Editar
+                        <Edit2 size={16} />
                       </button>
                       <button
                         onClick={() => handleDelete(rota.id)}
                         disabled={!isAuthorized}
-                        className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
+                        className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
+                        title="Desativar"
                       >
-                        <Trash2 size={16} /> Desativar
+                        <Ban size={16} />
                       </button>
                     </td>
                   </tr>
@@ -303,53 +311,45 @@ const Rotas: React.FC = () => {
       </GlassCard>
 
       {/* Modal */}
-      <Modal 
+      < Modal
         isOpen={showModal}
         onClose={handleCloseModal}
         title={editingId ? 'Editar Rota' : 'Nova Rota'}
         actions={
-          <div className="flex gap-3">
+          < div className="flex gap-3" >
             <ButtonPrimary onClick={handleSubmit} disabled={loading} type="submit">
               {loading ? 'Salvando...' : 'Salvar'}
             </ButtonPrimary>
             <ButtonSecondary onClick={handleCloseModal}>
               Cancelar
             </ButtonSecondary>
-          </div>
+          </div >
         }
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">Localidade</label>
-            <select
-              value={formData.localidadeId}
-              onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value, secaoId: '' })}
-              disabled={true}
-              required
-              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
-            >
-              <option value="">Selecione a localidade</option>
-              {localidades.map(loc => (
-                <option key={loc.id} value={loc.id}>{loc.nome}</option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Localidade"
+            value={formData.localidadeId}
+            onChange={(e) => setFormData({ ...formData, localidadeId: e.target.value, secaoId: '' })}
+            disabled={true}
+            required
+            options={[
+              { value: '', label: 'Selecione a localidade' },
+              ...localidades.map(loc => ({ value: loc.id, label: loc.nome }))
+            ]}
+          />
 
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">Seção</label>
-            <select
-              value={formData.secaoId}
-              onChange={(e) => setFormData({ ...formData, secaoId: e.target.value })}
-              disabled={!isAuthorized || !formData.localidadeId}
-              required
-              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
-            >
-              <option value="">Selecione a seção</option>
-              {filteredSecoes.map(sec => (
-                <option key={sec.id} value={sec.id}>{sec.nome}</option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Seção"
+            value={formData.secaoId}
+            onChange={(e) => setFormData({ ...formData, secaoId: e.target.value })}
+            disabled={!isAuthorized || !formData.localidadeId}
+            required
+            options={[
+              { value: '', label: 'Selecione a seção' },
+              ...filteredSecoes.map(sec => ({ value: sec.id, label: sec.nome }))
+            ]}
+          />
 
           {formData.secaoId && formData.localidadeId && (
             <div className="p-3 bg-green-50 rounded-lg border border-green-200">
@@ -371,8 +371,8 @@ const Rotas: React.FC = () => {
             required
           />
         </form>
-      </Modal>
-    </div>
+      </Modal >
+    </div >
   );
 };
 

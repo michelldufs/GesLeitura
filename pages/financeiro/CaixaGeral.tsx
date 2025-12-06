@@ -2,20 +2,20 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { getActiveCollection } from '../../services/operacionalService';
 import { fecharMes } from '../../services/financeiroService';
-import { Cota } from '../../types';
-import { GlassCard, AlertBox, PageHeader, Badge } from '../../components/MacOSDesign';
+import { Cota } from '../../types.ts';
+import { GlassCard, AlertBox, PageHeader, Badge, ButtonPrimary, ButtonSecondary, SelectField, InputField } from '../../components/MacOSDesign';
 import { Lock, Calculator, Download, TrendingUp } from 'lucide-react';
 import { collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 
 const CaixaGeral: React.FC = () => {
   const { userProfile } = useAuth();
-  
+
   // State
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
   const [localidadeId, setLocalidadeId] = useState('');
-  
+
   const [cotas, setCotas] = useState<Cota[]>([]);
   const [vendasTotal, setVendasTotal] = useState(0);
   const [despesasOp, setDespesasOp] = useState(0);
@@ -23,7 +23,7 @@ const CaixaGeral: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
-  
+
   // Calculated
   const lucroLiquido = vendasTotal - despesasOp;
   const baseRateio = lucroLiquido - valorRetido;
@@ -39,7 +39,7 @@ const CaixaGeral: React.FC = () => {
       setMessageType('error');
       return;
     }
-    
+
     // Mock data - would query Firestore for real data
     setVendasTotal(15000);
     setDespesasOp(2000);
@@ -57,7 +57,7 @@ const CaixaGeral: React.FC = () => {
 
     try {
       await fecharMes(
-        localidadeId, mes, ano, valorRetido, userProfile.uid, cotas, 
+        localidadeId, mes, ano, valorRetido, userProfile.uid, cotas,
         { lucroLiquido }
       );
       setMessage('Mês fechado com sucesso!');
@@ -73,14 +73,14 @@ const CaixaGeral: React.FC = () => {
   const isAuthorized = userProfile && ['admin', 'gerente', 'socio'].includes(userProfile.role);
 
   return (
-    <div className="p-8 max-w-7xl mx-auto">
-      <PageHeader 
+    <div className="w-full">
+      <PageHeader
         title="Caixa Geral & Fechamento"
         subtitle="Visualize resumos financeiros e feche períodos"
       />
 
       {!isAuthorized && (
-        <AlertBox 
+        <AlertBox
           type="warning"
           message={`Seu perfil (${userProfile?.role}) não possui permissão para acessar a caixa.`}
         />
@@ -88,7 +88,7 @@ const CaixaGeral: React.FC = () => {
 
       {message && (
         <div className="mb-6">
-          <AlertBox 
+          <AlertBox
             type={messageType as 'success' | 'error' | 'warning' | 'info'}
             message={message}
           />
@@ -100,36 +100,46 @@ const CaixaGeral: React.FC = () => {
         <h2 className="text-xl font-semibold text-slate-900 mb-6">Filtros e Cálculo</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Mês</label>
-            <select value={mes} onChange={e => setMes(Number(e.target.value))} disabled={!isAuthorized} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50">
-              {[...Array(12)].map((_, i) => <option key={i} value={i+1}>Mês {i+1}</option>)}
-            </select>
+            <SelectField
+              label="Mês"
+              value={String(mes)}
+              onChange={e => setMes(Number(e.target.value))}
+              disabled={!isAuthorized}
+              options={[...Array(12)].map((_, i) => ({ value: String(i + 1), label: `Mês ${i + 1}` }))}
+            />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Ano</label>
-            <input type="number" value={ano} onChange={e => setAno(Number(e.target.value))} disabled={!isAuthorized} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50" />
+            <InputField
+              label="Ano"
+              type="number"
+              value={ano}
+              onChange={e => setAno(Number(e.target.value))}
+              disabled={!isAuthorized}
+            />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">Localidade</label>
-            <select value={localidadeId} onChange={e => setLocalidadeId(e.target.value)} disabled={!isAuthorized} className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50">
-              <option value="">Selecione...</option>
-              <option value="loc1">Matriz (Demo)</option>
-            </select>
+            <SelectField
+              label="Localidade"
+              value={localidadeId}
+              onChange={e => setLocalidadeId(e.target.value)}
+              disabled={!isAuthorized}
+              options={[{ value: 'loc1', label: 'Matriz (Demo)' }]} // TODO: Load real localities
+            />
           </div>
           <div className="flex items-end">
-            <button 
+            <ButtonPrimary
               onClick={calcularPrevia}
               disabled={!isAuthorized}
-              className="w-full flex items-center justify-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-2 px-4 rounded-lg shadow transition-all duration-300"
+              className="w-full h-[50px] flex items-center justify-center gap-2"
             >
               <Calculator size={18} /> Calcular
-            </button>
+            </ButtonPrimary>
           </div>
         </div>
       </GlassCard>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
-        
+
         {/* Totals Card */}
         <GlassCard className="p-8">
           <div className="flex items-center gap-3 mb-6">
@@ -152,18 +162,18 @@ const CaixaGeral: React.FC = () => {
               <span className="text-slate-900 font-bold text-lg">Lucro Líquido</span>
               <span className="font-bold text-lg text-blue-600">R$ {lucroLiquido.toFixed(2)}</span>
             </div>
-            
+
             <div className="bg-yellow-50/50 p-4 rounded-lg border border-yellow-200/50 mt-4">
               <label className="block text-sm font-semibold text-slate-900 mb-2">Retenção (Capital de Giro)</label>
-              <input 
-                type="number" 
-                value={valorRetido} 
+              <input
+                type="number"
+                value={valorRetido}
                 onChange={e => setValorRetido(Number(e.target.value))}
                 disabled={!isAuthorized}
                 className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-yellow-500 outline-none disabled:bg-slate-50"
               />
             </div>
-            
+
             <div className="flex justify-between pt-4 font-semibold text-lg">
               <span className="text-slate-900">Base Rateio:</span>
               <span className="text-purple-600">R$ {baseRateio.toFixed(2)}</span>
@@ -179,33 +189,33 @@ const CaixaGeral: React.FC = () => {
               <table className="w-full text-sm text-left">
                 <thead className="bg-slate-50/50 border-b border-slate-200/50">
                   <tr>
-                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Sócio</th>
-                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">%</th>
-                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Parte (R$)</th>
-                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo Ant.</th>
-                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Previsão Final</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Sócio</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">%</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Parte (R$)</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo Ant.</th>
+                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Previsão Final</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cotas.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-2.5 text-center text-slate-500">Nenhuma cota cadastrada</td>
+                      <td colSpan={5} className="px-2 py-1 text-center text-slate-500">Nenhuma cota cadastrada</td>
                     </tr>
                   ) : (
                     cotas.map(cota => {
                       let parte = baseRateio * (cota.porcentagem / 100);
                       if (baseRateio < 0 && !cota.participaPrejuizo) parte = 0;
                       const final = parte + cota.saldoAcumulado;
-                      
+
                       return (
                         <tr key={cota.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                          <td className="px-6 py-2.5 font-medium text-slate-900">{cota.nome}</td>
-                          <td className="px-6 py-2.5 text-slate-600">{cota.porcentagem}%</td>
-                          <td className={`px-6 py-2.5 font-semibold ${parte >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+                          <td className="px-2 py-1 font-medium text-slate-900">{cota.nome}</td>
+                          <td className="px-2 py-1 text-slate-600">{cota.porcentagem}%</td>
+                          <td className={`px-2 py-1 font-semibold ${parte >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             R$ {parte.toFixed(2)}
                           </td>
-                          <td className="px-6 py-2.5 text-slate-600">R$ {(cota.saldoAcumulado || 0).toFixed(2)}</td>
-                          <td className="px-6 py-2.5 font-bold text-slate-900 text-right">R$ {final.toFixed(2)}</td>
+                          <td className="px-2 py-1 text-slate-600">R$ {(cota.saldoAcumulado || 0).toFixed(2)}</td>
+                          <td className="px-2 py-1 font-bold text-slate-900 text-right">R$ {final.toFixed(2)}</td>
                         </tr>
                       );
                     })
@@ -215,21 +225,20 @@ const CaixaGeral: React.FC = () => {
             </div>
 
             <div className="flex justify-end gap-3">
-              <button 
+              <button
                 disabled={!isAuthorized}
                 className="flex items-center gap-2 border border-slate-200/50 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Download size={18} /> Exportar PDF
               </button>
-              <button 
+              <ButtonPrimary
                 onClick={handleFecharMes}
                 disabled={!isAuthorized || loading || !localidadeId}
-                className={`flex items-center gap-2 text-white px-6 py-2 rounded-lg font-semibold shadow-lg transition-all duration-300 ${
-                  isAuthorized && !loading && localidadeId ? 'bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700' : 'bg-slate-400 cursor-not-allowed'
-                }`}
+                className={`flex items-center gap-2 ${isAuthorized && !loading && localidadeId ? 'bg-[#ef4444] hover:bg-[#dc2626] active:bg-[#b91c1c]' : ''
+                  }`}
               >
                 <Lock size={18} /> {loading ? 'Fechando...' : 'FECHAR MÊS'}
-              </button>
+              </ButtonPrimary>
             </div>
           </GlassCard>
         </div>

@@ -81,7 +81,7 @@ const EditarUsuarioLocalidades: React.FC = () => {
     if (!user) {
         return (
             <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-                <PageHeader 
+                <PageHeader
                     title="Erro"
                     subtitle="Usuário não encontrado"
                     action={
@@ -100,7 +100,7 @@ const EditarUsuarioLocalidades: React.FC = () => {
 
     return (
         <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-6">
-            <PageHeader 
+            <PageHeader
                 title={`Localidades de ${user.name}`}
                 subtitle={`Configure as localidades que ${user.name} tem permissão de acessar`}
                 action={
@@ -116,13 +116,15 @@ const EditarUsuarioLocalidades: React.FC = () => {
                 </div>
             )}
 
-            <div className="max-w-4xl mx-auto space-y-6">
+            {/* ... */}
+            {/* ... */}
+            <div className="w-full space-y-4">
                 {/* Informações do usuário */}
-                <GlassCard className="p-6">
+                <GlassCard className="p-4">
                     <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
                         <div>
                             <p className="text-xs text-slate-600 uppercase font-semibold tracking-wide">Nome</p>
-                            <p className="text-lg font-semibold text-slate-900 mt-1">{user.name}</p>
+                            <p className="text-sm font-semibold text-slate-900 mt-1">{user.name}</p>
                         </div>
                         <div>
                             <p className="text-xs text-slate-600 uppercase font-semibold tracking-wide">Email</p>
@@ -146,29 +148,29 @@ const EditarUsuarioLocalidades: React.FC = () => {
                 </GlassCard>
 
                 {/* Seleção de localidades */}
-                <GlassCard className="p-8">
-                    <div className="flex items-center justify-between mb-6">
+                <GlassCard className="p-4">
+                    <div className="flex items-center justify-between mb-4">
                         <div>
-                            <h2 className="text-2xl font-semibold text-slate-900 flex items-center gap-2">
-                                <MapPin className="h-6 w-6 text-blue-600" />
+                            <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+                                <MapPin className="h-5 w-5 text-blue-600" />
                                 Localidades Permitidas
                             </h2>
-                            <p className="text-sm text-slate-600 mt-1">
+                            <p className="text-xs text-slate-600 mt-1">
                                 {selectedCount} de {totalCount} localidade(s) selecionada(s)
                             </p>
                         </div>
-                        <div className="flex gap-3">
+                        <div className="flex gap-2">
                             <button
                                 type="button"
                                 onClick={handleSelectAll}
-                                className="text-sm text-blue-600 hover:text-blue-700 font-semibold px-4 py-2 rounded-lg hover:bg-blue-50 transition-colors"
+                                className="text-xs text-blue-600 hover:text-blue-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-50 transition-colors"
                             >
                                 Selecionar Todas
                             </button>
                             <button
                                 type="button"
                                 onClick={handleDeselectAll}
-                                className="text-sm text-slate-600 hover:text-slate-700 font-semibold px-4 py-2 rounded-lg hover:bg-slate-100 transition-colors"
+                                className="text-xs text-slate-600 hover:text-slate-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-slate-100 transition-colors"
                             >
                                 Limpar
                             </button>
@@ -176,32 +178,32 @@ const EditarUsuarioLocalidades: React.FC = () => {
                     </div>
 
                     {activeLocalidades.length === 0 ? (
-                        <div className="text-center py-12 text-slate-500">
-                            <MapPin className="h-12 w-12 mx-auto mb-3 opacity-50" />
-                            <p className="font-medium text-lg">Nenhuma localidade cadastrada</p>
-                            <p className="text-sm mt-1">Crie localidades para atribuir aos usuários</p>
+                        <div className="text-center py-8 text-slate-500">
+                            <MapPin className="h-10 w-10 mx-auto mb-2 opacity-50" />
+                            <p className="font-medium text-base">Nenhuma localidade cadastrada</p>
+                            <p className="text-xs mt-1">Crie localidades para atribuir aos usuários</p>
                         </div>
                     ) : (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                             {activeLocalidades.map((localidade) => {
                                 const isSelected = allowedLocalidades.includes(localidade.id);
                                 return (
                                     <label
                                         key={localidade.id}
                                         className={`
-                                            relative p-6 rounded-2xl border-2 cursor-pointer transition-all duration-200
+                                            relative p-3 rounded-xl border cursor-pointer transition-all duration-200
                                             ${isSelected
-                                                ? 'bg-blue-50 border-blue-300 shadow-md'
+                                                ? 'bg-blue-50 border-blue-300 shadow-sm'
                                                 : 'bg-white border-slate-200/50 hover:border-slate-300 hover:shadow-sm'
                                             }
                                         `}
                                     >
-                                        <div className="flex items-start gap-4">
-                                            <div className="flex-shrink-0 mt-1">
+                                        <div className="flex items-start gap-3">
+                                            <div className="flex-shrink-0 mt-0.5">
                                                 {isSelected ? (
-                                                    <CheckCircle2 className="h-6 w-6 text-blue-600" />
+                                                    <CheckCircle2 className="h-5 w-5 text-blue-600" />
                                                 ) : (
-                                                    <Circle className="h-6 w-6 text-slate-300" />
+                                                    <Circle className="h-5 w-5 text-slate-300" />
                                                 )}
                                             </div>
                                             <div className="flex-1">
@@ -211,12 +213,11 @@ const EditarUsuarioLocalidades: React.FC = () => {
                                                     onChange={() => handleToggleLocalidade(localidade.id)}
                                                     className="sr-only"
                                                 />
-                                                <p className={`text-lg font-semibold ${
-                                                    isSelected ? 'text-blue-900' : 'text-slate-900'
-                                                }`}>
+                                                <p className={`text-sm font-semibold ${isSelected ? 'text-blue-900' : 'text-slate-900'
+                                                    }`}>
                                                     {localidade.codigo ? `${localidade.codigo} - ${localidade.nome}` : localidade.nome}
                                                 </p>
-                                                <p className="text-xs text-slate-500 mt-1">
+                                                <p className="text-[10px] text-slate-500 mt-0.5 truncate">
                                                     {localidade.id}
                                                 </p>
                                             </div>
@@ -230,13 +231,13 @@ const EditarUsuarioLocalidades: React.FC = () => {
 
                 {/* Botões de ação */}
                 <div className="flex gap-4 justify-end">
-                    <ButtonSecondary 
+                    <ButtonSecondary
                         onClick={() => navigate(-1)}
                         disabled={loading}
                     >
                         Cancelar
                     </ButtonSecondary>
-                    <ButtonPrimary 
+                    <ButtonPrimary
                         onClick={handleSave}
                         disabled={loading}
                     >

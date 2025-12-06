@@ -3,7 +3,7 @@ import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
 import ModalTrocarLocalidade from '../components/ModalTrocarLocalidade';
-import { 
+import {
   Home, Layers, Route, MapPin, Users, FileText, BarChart3, Settings, LogOut, Clock,
   ChevronRight, Circle, DollarSign
 } from 'lucide-react';
@@ -15,18 +15,17 @@ interface AdminLayoutProps {
 const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }) => {
   const location = useLocation();
   const { userProfile } = useAuth();
-  
+
   const isActive = (path: string) => location.pathname === path || location.pathname.startsWith(path + '/');
-  
+
   const NavItem = ({ icon: Icon, label, path, badge }: any) => (
     <Link
       to={path}
       onClick={onClose}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm ${
-        isActive(path)
-          ? 'bg-blue-500/20 text-blue-600 shadow-sm'
-          : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
-      }`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm ${isActive(path)
+        ? 'bg-blue-500/20 text-blue-600 shadow-sm'
+        : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/50'
+        }`}
     >
       <Icon size={18} />
       <span className="flex-1 hidden sm:inline">{label}</span>
@@ -45,15 +44,14 @@ const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }
   const canAccessFinanceiro = ['admin', 'gerente', 'financeiro'].includes(userProfile?.role || '');
   const canAccessAdmin = userProfile?.role === 'admin';
 
-  const sidebarClasses = `w-64 sm:w-64 md:w-64 bg-gradient-to-b from-white/95 to-slate-50/95 backdrop-blur-xl border-r border-slate-200/30 min-h-screen p-4 flex flex-col shadow-sm ${
-    isOpen ? 'fixed left-0 top-0 z-40 h-screen' : 'hidden sm:flex'
-  }`;
+  const sidebarClasses = `w-64 sm:w-64 md:w-64 bg-gradient-to-b from-white/95 to-slate-50/95 backdrop-blur-xl border-r border-slate-200/30 min-h-screen p-4 flex flex-col shadow-sm ${isOpen ? 'fixed left-0 top-0 z-40 h-screen' : 'hidden sm:flex'
+    }`;
 
   return (
     <>
       {/* Overlay mobile */}
       {isOpen && (
-        <div 
+        <div
           className="fixed inset-0 bg-black/30 z-30 sm:hidden"
           onClick={onClose}
         />
@@ -61,56 +59,54 @@ const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }
       <aside className={sidebarClasses}>
         {/* Navigation */}
         <nav className="space-y-1 flex-1 overflow-y-auto mt-2">
-        {/* Dashboard */}
-        <SectionTitle title="Menu" />
-        <NavItem icon={Home} label="Dashboard" path="/" />
 
-        {/* Operacional - Apenas para admin, gerente, supervisor, operacional */}
-        {canAccessOperacional && (
-          <>
-            <SectionTitle title="Operacional" />
-            {canAccessAdmin && <NavItem icon={MapPin} label="Localidades" path="/localidades" />}
-            <NavItem icon={Layers} label="Seções" path="/secao" />
-            <NavItem icon={Route} label="Rotas" path="/rota" />
-            <NavItem icon={MapPin} label="Pontos" path="/ponto" />
-            <NavItem icon={Users} label="Operadores" path="/operador" />
-            <NavItem icon={FileText} label="Leitura Manual" path="/lancamento" />
-          </>
-        )}
+          {/* Operacional - Apenas para admin, gerente, supervisor, operacional */}
+          {canAccessOperacional && (
+            <>
+              <SectionTitle title="Operacional" />
+              {canAccessAdmin && <NavItem icon={MapPin} label="Localidades" path="/localidades" />}
+              <NavItem icon={Layers} label="Seções" path="/secao" />
+              <NavItem icon={Route} label="Rotas" path="/rota" />
+              <NavItem icon={MapPin} label="Pontos" path="/ponto" />
+              <NavItem icon={Users} label="Operadores" path="/operador" />
+              <NavItem icon={FileText} label="Leitura Manual" path="/lancamento" />
+            </>
+          )}
 
-        {/* Financeiro - Apenas para admin e financeiro */}
-        {canAccessFinanceiro && (
-          <>
-            <SectionTitle title="Financeiro" />
-            <NavItem icon={BarChart3} label="Caixa Geral" path="/caixa-geral" />
-            <NavItem icon={Settings} label="Cotas & Sócios" path="/cotas" />
-            <NavItem icon={DollarSign} label="Despesas" path="/despesas" />
+          {/* Financeiro - Apenas para admin e financeiro */}
+          {canAccessFinanceiro && (
+            <>
+              <SectionTitle title="Financeiro" />
+              <NavItem icon={BarChart3} label="Caixa Geral" path="/caixa-geral" />
+              <NavItem icon={Settings} label="Cotas & Sócios" path="/cotas" />
+              <NavItem icon={DollarSign} label="Despesas" path="/despesas" />
 
-            <SectionTitle title="Relatórios" />
-            <NavItem icon={FileText} label="Vendas/Data" path="/relatorios/data" />
-            <NavItem icon={FileText} label="Vendas/Mês" path="/relatorios/mes" />
-          </>
-        )}
+              <SectionTitle title="Relatórios" />
+              <NavItem icon={Home} label="Dashboard" path="/" />
+              <NavItem icon={FileText} label="Vendas/Data" path="/relatorios/data" />
+              <NavItem icon={FileText} label="Vendas/Mês" path="/relatorios/mes" />
+            </>
+          )}
 
-        {/* Admin - Apenas para admin */}
-        {canAccessAdmin && (
-          <>
-            <SectionTitle title="Administração" />
-            <NavItem icon={Users} label="Usuários" path="/usuarios" />
-          </>
-        )}
-      </nav>
+          {/* Admin - Apenas para admin */}
+          {canAccessAdmin && (
+            <>
+              <SectionTitle title="Administração" />
+              <NavItem icon={Users} label="Usuários" path="/usuarios" />
+            </>
+          )}
+        </nav>
 
-      {/* Divider */}
-      <div className="h-px bg-slate-200/50 my-4" />
+        {/* Divider */}
+        <div className="h-px bg-slate-200/50 my-4" />
 
-      {/* User & Logout */}
-      <div className="px-2 space-y-2">
-        <div className="px-4 py-3 rounded-lg bg-slate-100/50 border border-slate-200/30">
-          <p className="text-xs text-slate-500">Logado como</p>
-          <p className="text-sm font-semibold text-slate-900 truncate hidden sm:block">{userProfile?.name || 'Usuário'}</p>
+        {/* User & Logout */}
+        <div className="px-2 space-y-2">
+          <div className="px-4 py-3 rounded-lg bg-slate-100/50 border border-slate-200/30">
+            <p className="text-xs text-slate-500">Logado como</p>
+            <p className="text-sm font-semibold text-slate-900 truncate hidden sm:block">{userProfile?.name || 'Usuário'}</p>
+          </div>
         </div>
-      </div>
       </aside>
     </>
   );
@@ -128,8 +124,8 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const timeString = now.toLocaleTimeString('pt-BR', { 
-        hour: '2-digit', 
+      const timeString = now.toLocaleTimeString('pt-BR', {
+        hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
       });
@@ -218,9 +214,9 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         </div>
 
         {/* Modal de Trocar Localidade */}
-        <ModalTrocarLocalidade 
-          isOpen={isModalOpen} 
-          onClose={() => setIsModalOpen(false)} 
+        <ModalTrocarLocalidade
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
         />
       </main>
     </div>

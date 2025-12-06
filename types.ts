@@ -61,7 +61,7 @@ export interface Ponto {
   endereco?: string;
   telefone?: string;
   qtdEquipamentos?: number;
-   participaDespesa?: boolean;
+  participaDespesa?: boolean;
   active: boolean;
 }
 
@@ -93,25 +93,25 @@ export interface Venda {
   pontoId: string;
   rotaId: string;
   localidadeId: string;
-  
+
   // Readings
   entradaAnterior: number;
   entradaAtual: number;
   totalEntrada: number;
-  
+
   saidaAnterior: number;
   saidaAtual: number;
   totalSaida: number;
-  
+
   totalGeral: number; // (Entrada - Saída)
-  
+
   // Financials
   comissaoPorcentagem: number;
   valorComissao: number;
   despesa: number; // Expenses paid at the machine
   centroCustoId?: string; // Centro de custo da despesa
   totalFinal: number; // Net cash to company
-  
+
   status_conferencia: 'pendente' | 'conferido';
   fotoUrl: string; // URL da foto no Firebase Storage
   userId: string;
@@ -124,6 +124,7 @@ export interface DespesaGeral {
   valor: number;
   descricao: string;
   userId: string;
+  userName?: string;
   localidadeId: string;
   tipo: 'operacional' | 'adiantamento';
   centroCustoId?: string; // ID do centro de custo

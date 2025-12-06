@@ -4,7 +4,7 @@ import { adminService, CreateUserData } from '../../services/adminService';
 import { UserRole, UserProfile } from '../../types';
 import { useAuth } from '../../contexts/AuthContext';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
-import { Plus, Edit2, Check, X, MapPin } from 'lucide-react';
+import { Plus, Edit2, Check, X, MapPin, Search } from 'lucide-react';
 
 type UserProfileWithSerial = UserProfile & { allowedDeviceSerial?: string | null; missingProfile?: boolean; authOnly?: boolean };
 type Localidade = { id: string; nome: string; active: boolean };
@@ -36,6 +36,29 @@ const Usuarios: React.FC = () => {
         active: true,
         allowedLocalidades: [] as string[]
     });
+
+    // Novos estados de Filtro/Busca
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterRole, setFilterRole] = useState<'todos' | UserRole>('todos');
+
+    // Lógica de filtragem
+    const filteredUsers = users.filter(user => {
+        const matchesSearch = (user.name?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
+            (user.email?.toLowerCase() || '').includes(searchTerm.toLowerCase());
+
+        const matchesRole = filterRole === 'todos' || user.role === filterRole;
+
+        return matchesSearch && matchesRole;
+    });
+
+    const filterOptions = [
+        { id: 'todos', label: 'Todos' },
+        { id: 'admin', label: 'Admins' },
+        { id: 'coleta', label: 'Coleta' },
+        { id: 'gerente', label: 'Gerentes' },
+        { id: 'socio', label: 'Sócios' },
+        { id: 'financeiro', label: 'Financeiro' },
+    ];
 
     const fetchUsers = async () => {
         try {
@@ -199,8 +222,8 @@ const Usuarios: React.FC = () => {
     };
 
     return (
-        <div className="p-8 max-w-7xl mx-auto">
-            <PageHeader 
+        <div className="w-full">
+            <PageHeader
                 title="Gerenciar Usuários"
                 subtitle="Crie e gerencie todos os usuários do sistema"
                 action={
@@ -215,7 +238,7 @@ const Usuarios: React.FC = () => {
             />
 
             {!isAdmin && (
-                <AlertBox 
+                <AlertBox
                     type="warning"
                     message="Apenas administradores podem gerenciar usuários. Solicite acesso ao administrador do sistema."
                 />
@@ -223,79 +246,121 @@ const Usuarios: React.FC = () => {
 
             {message && (
                 <div className="mb-6">
-                    <AlertBox 
+                    <AlertBox
                         type={messageType as 'success' | 'error' | 'warning' | 'info'}
                         message={message}
                     />
                 </div>
             )}
 
-            {/* Usuários Card */}
-            <GlassCard className="p-8">
-                <div className="flex items-center justify-between mb-6">
-                    <h2 className="text-2xl font-semibold text-slate-900">Usuários Cadastrados</h2>
-                    <button
-                        onClick={fetchUsers}
-                        className="px-4 py-2 text-sm text-slate-600 hover:text-slate-900 font-medium transition-colors"
-                    >
-                        ↻ Atualizar
-                    </button>
+            {/* Usuários Card com Design WhatsApp */}
+            <GlassCard className="p-0 overflow-hidden">
+                {/* Header da Lista com Busca e Filtros */}
+                <div className="p-6 pb-2 border-b border-slate-100 bg-white">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-4">
+                        <h2 className="text-2xl font-bold text-slate-800">Usuários</h2>
+                        <button
+                            onClick={fetchUsers}
+                            className="px-4 py-2 text-sm text-[#008069] font-semibold bg-[#e7fce3] hover:bg-[#dcf8c6] rounded-full transition-colors"
+                        >
+                            ↻ Atualizar Lista
+                        </button>
+                    </div>
+
+                    {/* Barra de Busca Estilo WhatsApp */}
+                    <div className="mb-4">
+                        <InputField
+                            placeholder="Pesquisar usuário por nome ou email..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            icon={<Search size={20} />}
+                            className="w-full"
+                        />
+                    </div>
+
+                    {/* Chips de Filtro Estilo WhatsApp */}
+                    <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+                        {filterOptions.map((opt) => (
+                            <button
+                                key={opt.id}
+                                onClick={() => setFilterRole(opt.id as any)}
+                                className={`
+                                    whitespace-nowrap px-4 py-1.5 rounded-full text-sm font-medium transition-all
+                                    ${filterRole === opt.id
+                                        ? 'bg-[#e7fce3] text-[#008069]'
+                                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}
+                                `}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
-                {users.length === 0 ? (
-                    <div className="text-center py-12">
-                        <p className="text-slate-500 text-lg">Nenhum usuário cadastrado ainda.</p>
-                        <p className="text-slate-400 text-sm mt-2">Clique em "Novo Usuário" para criar o primeiro usuário.</p>
+                {filteredUsers.length === 0 ? (
+                    <div className="text-center py-16 bg-slate-50/50">
+                        <div className="w-16 h-16 bg-slate-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                            <Search size={32} className="text-slate-400" />
+                        </div>
+                        <p className="text-slate-600 text-lg font-medium">Nenhum usuário encontrado</p>
+                        <p className="text-slate-400 text-sm mt-1">Tente ajustar seus filtros de pesquisa</p>
                     </div>
                 ) : (
-                    <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+                    <div className="overflow-x-auto">
                         <table className="w-full text-sm text-left">
-                            <thead className="bg-slate-50/50 border-b border-slate-200/50">
+                            <thead className="bg-[#f0f2f5] border-b border-slate-200">
                                 <tr>
-                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Email</th>
-                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Função</th>
-                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Status</th>
-                                    <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Ações</th>
+                                    <th className="px-2 py-1 font-semibold text-slate-600 text-xs uppercase tracking-wider">Nome / Email</th>
+                                    <th className="px-2 py-1 font-semibold text-slate-600 text-xs uppercase tracking-wider">Função</th>
+                                    <th className="px-2 py-1 font-semibold text-slate-600 text-xs uppercase tracking-wider">Status</th>
+                                    <th className="px-2 py-1 font-semibold text-slate-600 text-xs uppercase tracking-wider text-right">Ações</th>
                                 </tr>
                             </thead>
-                            <tbody>
-                                {users.map((user) => (
-                                    <tr key={user.uid} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                                        <td className="px-6 py-2.5 font-medium text-slate-900">{user.name}</td>
-                                        <td className="px-6 py-2.5 text-slate-600">{user.email}</td>
-                                        <td className="px-6 py-2.5">
+                            <tbody className="divide-y divide-slate-100 bg-white">
+                                {filteredUsers.map((user) => (
+                                    <tr key={user.uid} className="hover:bg-slate-50 transition-colors">
+                                        <td className="px-2 py-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 font-bold text-sm">
+                                                    {user.name?.charAt(0).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <p className="font-semibold text-slate-900">{user.name}</p>
+                                                    <p className="text-slate-500 text-xs">{user.email}</p>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-2 py-1">
                                             <Badge variant={getRoleBadgeColor(user.role)}>
                                                 {user.role}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-2.5">
+                                        <td className="px-2 py-1">
                                             <Badge variant={user.active !== false ? 'success' : 'error'}>
                                                 {user.active !== false ? 'Ativo' : 'Inativo'}
                                             </Badge>
                                         </td>
-                                        <td className="px-6 py-2.5 flex gap-3">
-                                            <button
-                                                onClick={() => openEditModal(user)}
-                                                className="text-blue-500 hover:text-blue-700 font-medium transition-colors flex items-center gap-1"
-                                            >
-                                                <Edit2 size={16} /> Editar
-                                            </button>
-                                            <button
-                                                onClick={() => handleToggleActive(user)}
-                                                disabled={loading}
-                                                className={`font-medium transition-colors flex items-center gap-1 ${
-                                                    user.active !== false
-                                                        ? 'text-red-500 hover:text-red-700'
-                                                        : 'text-green-500 hover:text-green-700'
-                                                } ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                                            >
-                                                {user.active !== false ? (
-                                                    <>< X size={16} /> Desativar</>
-                                                ) : (
-                                                    <>< Check size={16} /> Ativar</>
-                                                )}
-                                            </button>
+                                        <td className="px-2 py-1 text-right">
+                                            <div className="flex items-center justify-end gap-1">
+                                                <button
+                                                    onClick={() => openEditModal(user)}
+                                                    className="p-1 text-slate-400 hover:text-blue-600 rounded-full hover:bg-blue-50 transition-colors"
+                                                    title="Editar"
+                                                >
+                                                    <Edit2 size={16} />
+                                                </button>
+                                                <button
+                                                    onClick={() => handleToggleActive(user)}
+                                                    disabled={loading}
+                                                    className={`p-1 rounded-full transition-colors ${user.active !== false
+                                                        ? 'text-slate-400 hover:text-red-600 hover:bg-red-50'
+                                                        : 'text-slate-400 hover:text-green-600 hover:bg-green-50'
+                                                        }`}
+                                                    title={user.active !== false ? 'Desativar' : 'Ativar'}
+                                                >
+                                                    {user.active !== false ? <X size={16} /> : <Check size={16} />}
+                                                </button>
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}
@@ -306,7 +371,7 @@ const Usuarios: React.FC = () => {
             </GlassCard>
 
             {/* Modal Novo Usuário */}
-            <Modal 
+            <Modal
                 isOpen={showNewUserModal}
                 onClose={() => setShowNewUserModal(false)}
                 title="Criar Novo Usuário"
@@ -367,7 +432,7 @@ const Usuarios: React.FC = () => {
             </Modal>
 
             {/* Modal Editar Usuário */}
-            <Modal 
+            <Modal
                 isOpen={!!editingUser}
                 onClose={closeEditModal}
                 title={`Editar: ${editingUser?.name || ''}`}
@@ -409,7 +474,7 @@ const Usuarios: React.FC = () => {
                         />
 
                         <div className="flex gap-2 pt-2">
-                            <ButtonSecondary 
+                            <ButtonSecondary
                                 type="button"
                                 onClick={() => {
                                     closeEditModal();

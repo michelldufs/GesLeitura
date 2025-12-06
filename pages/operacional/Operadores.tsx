@@ -3,8 +3,8 @@ import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'fireb
 import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
-import { Cpu, Plus, Edit2, Trash2 } from 'lucide-react';
-import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader } from '../../components/MacOSDesign';
+import { Cpu, Plus, Edit2, Trash2, Ban } from 'lucide-react';
+import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
 import { gerarProximoCodigoOperador, validarCodigoOperador } from '../../services/codigoValidator';
 
 interface Operador {
@@ -164,7 +164,7 @@ const Operadores: React.FC = () => {
 
   const gerarCodigoOperador = (): string => {
     if (!formData.pontoId) return '';
-    
+
     const ponto = pontos.find(p => p.id === formData.pontoId);
     if (!ponto) return '';
 
@@ -195,7 +195,7 @@ const Operadores: React.FC = () => {
 
     try {
       const codigo = gerarCodigoOperador();
-      
+
       if (editingId) {
         await updateDoc(doc(db, 'operadores', editingId), {
           nome: formData.nome.toUpperCase(),
@@ -273,23 +273,23 @@ const Operadores: React.FC = () => {
   };
 
   return (
-    <div className="p-8 max-w-6xl mx-auto">
-      <PageHeader 
+    <div className="w-full">
+      <PageHeader
         title="Gestão de Operadores"
         subtitle="Crie e gerencie equipamentos e operadores do sistema"
         action={
-          <button
+          <ButtonPrimary
             onClick={handleOpenModal}
             disabled={!isAuthorized}
-            className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
+            className="flex items-center gap-2"
           >
             <Plus size={20} /> Novo Operador
-          </button>
+          </ButtonPrimary>
         }
       />
 
       {!isAuthorized && (
-        <AlertBox 
+        <AlertBox
           type="warning"
           message={`Seu perfil (${userProfile?.role}) não possui permissão para gerenciar operadores.`}
         />
@@ -297,7 +297,7 @@ const Operadores: React.FC = () => {
 
       {message && (
         <div className="mb-6">
-          <AlertBox 
+          <AlertBox
             type={messageType as 'success' | 'error' | 'warning' | 'info'}
             message={message}
           />
@@ -318,40 +318,47 @@ const Operadores: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Ponto</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide">Fator de Conversão</th>
-                  <th className="px-6 py-2.5 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Ponto</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Fator</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {operadores.map((operador) => (
-                  <tr key={operador.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-6 py-2.5 font-mono font-semibold text-slate-900">{operador.codigo}</td>
-                    <td className="px-6 py-2.5 font-medium text-slate-900 flex items-center gap-3">
-                      <div className="p-2 bg-purple-100/50 rounded-lg">
-                        <Cpu className="text-purple-600" size={18} />
-                      </div>
-                      {operador.nome}
+                  <tr key={operador.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="px-2 py-1 text-slate-600 font-medium">{operador.codigo}</td>
+                    <td className="px-2 py-1 text-slate-600">{operador.nome}</td>
+                    <td className="px-2 py-1 text-slate-600">
+                      <Badge variant="secondary">{getPontoNome(operador.pontoId)}</Badge>
                     </td>
-                    <td className="px-6 py-2.5 text-slate-600">{getPontoNome(operador.pontoId)}</td>
-                    <td className="px-6 py-2.5 text-slate-600 font-medium">{formatFator(operador.fatorConversao)}</td>
-                    <td className="px-6 py-2.5 text-right flex justify-end gap-3">
-                      <button
-                        onClick={() => handleEdit(operador)}
-                        disabled={!isAuthorized}
-                        className="text-blue-500 hover:text-blue-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Edit2 size={16} /> Editar
-                      </button>
-                      <button
-                        onClick={() => handleDelete(operador.id)}
-                        disabled={!isAuthorized}
-                        className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Trash2 size={16} /> Desativar
-                      </button>
+                    <td className="px-2 py-1 text-slate-600">
+                      <Badge variant="secondary">{formatFator(operador.fatorConversao)}</Badge>
+                    </td>
+                    <td className="px-2 py-1 text-center ">
+                      <Badge variant={operador.active ? 'success' : 'error'}>
+                        {operador.active ? 'Ativo' : 'Inativo'}
+                      </Badge>
+                    </td>
+                    <td className="px-2 py-1 text-right">
+                      <div className="flex items-center justify-end gap-1">
+                        <button
+                          onClick={() => handleEdit(operador)}
+                          className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Editar"
+                        >
+                          <Edit2 size={14} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(operador.id)}
+                          className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          title="Desativar"
+                        >
+                          <Ban size={14} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -362,37 +369,33 @@ const Operadores: React.FC = () => {
       </GlassCard>
 
       {/* Modal */}
-      <Modal 
+      < Modal
         isOpen={showModal}
         onClose={handleCloseModal}
         title={editingId ? 'Editar Operador' : 'Novo Operador'}
         actions={
-          <div className="flex gap-3">
+          < div className="flex gap-3" >
             <ButtonPrimary onClick={handleSubmit} disabled={loading} type="submit">
               {loading ? 'Salvando...' : 'Salvar'}
             </ButtonPrimary>
             <ButtonSecondary onClick={handleCloseModal}>
               Cancelar
             </ButtonSecondary>
-          </div>
+          </div >
         }
       >
         <form onSubmit={handleSubmit} className="space-y-5">
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">Ponto</label>
-            <select
-              value={formData.pontoId}
-              onChange={(e) => setFormData({ ...formData, pontoId: e.target.value })}
-              disabled={!isAuthorized}
-              required
-              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
-            >
-              <option value="">Selecione o ponto</option>
-              {pontos.map(ponto => (
-                <option key={ponto.id} value={ponto.id}>{ponto.nome}</option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Ponto"
+            value={formData.pontoId}
+            onChange={(e) => setFormData({ ...formData, pontoId: e.target.value })}
+            disabled={!isAuthorized}
+            required
+            options={[
+              { value: '', label: 'Selecione o ponto' },
+              ...pontos.map(ponto => ({ value: ponto.id, label: ponto.nome }))
+            ]}
+          />
 
           {formData.pontoId && (
             <div className="p-3 bg-purple-50 rounded-lg border border-purple-200">
@@ -414,24 +417,20 @@ const Operadores: React.FC = () => {
             required
           />
 
-          <div className="space-y-2">
-            <label className="block text-sm font-semibold text-slate-700">Fator de Conversão</label>
-            <select
-              value={formData.fatorConversao}
-              onChange={(e) => setFormData({ ...formData, fatorConversao: parseFloat(e.target.value) })}
-              disabled={!isAuthorized}
-              required
-              className="w-full px-4 py-2.5 bg-white/80 border border-slate-200 rounded-xl text-slate-900 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/50 focus:border-blue-500 transition-all duration-200 disabled:bg-slate-100 disabled:cursor-not-allowed"
-            >
-              <option value="">Selecione o fator</option>
-              {factoresConversao.map(fator => (
-                <option key={fator} value={fator}>{formatFator(fator)}</option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Fator de Conversão"
+            value={formData.fatorConversao.toString()}
+            onChange={(e) => setFormData({ ...formData, fatorConversao: parseFloat(e.target.value) })}
+            disabled={!isAuthorized}
+            required
+            options={[
+              { value: '', label: 'Selecione o fator' },
+              ...factoresConversao.map(fator => ({ value: fator.toString(), label: formatFator(fator) }))
+            ]}
+          />
         </form>
-      </Modal>
-    </div>
+      </Modal >
+    </div >
   );
 };
 
