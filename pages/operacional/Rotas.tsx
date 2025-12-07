@@ -97,10 +97,9 @@ const Rotas: React.FC = () => {
       });
       setSecoes(secoesData);
 
-      // Carregar rotas da localidade selecionada
+      // Carregar rotas da localidade selecionada (ativos e inativos)
       const rotQuery = query(
         collection(db, 'rotas'),
-        where('active', '==', true),
         where('localidadeId', '==', selectedLocalidade)
       );
 
@@ -193,18 +192,20 @@ const Rotas: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente desativar esta rota?')) return;
+  const handleToggleStatus = async (rota: Rota) => {
+    const novoStatus = !rota.active;
+    const acao = novoStatus ? 'ativar' : 'desativar';
+    if (!confirm(`Deseja realmente ${acao} esta rota?`)) return;
 
     try {
-      await updateDoc(doc(db, 'rotas', id), { active: false });
+      await updateDoc(doc(db, 'rotas', rota.id), { active: novoStatus });
       setMessageType('success');
-      setMessage('Rota desativada com sucesso!');
+      setMessage(`Rota ${novoStatus ? 'ativada' : 'desativada'} com sucesso!`);
       loadData();
     } catch (error: any) {
-      console.error('Erro ao desativar:', error);
+      console.error(`Erro ao ${acao}:`, error);
       setMessageType('error');
-      setMessage(error?.message || 'Erro ao desativar rota');
+      setMessage(error?.message || `Erro ao ${acao} rota`);
     }
   };
 
@@ -269,7 +270,7 @@ const Rotas: React.FC = () => {
               </thead>
               <tbody>
                 {rotas.map((rota) => (
-                  <tr key={rota.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                  <tr key={rota.id} className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${!rota.active ? 'opacity-50' : ''}`}>
                     <td className="px-2 py-1 font-semibold text-slate-950 text-sm">{rota.codigo || 'sem código'}</td>
                     <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2 text-sm">
                       <div className="p-1 bg-green-100/50 rounded-lg">
@@ -280,9 +281,17 @@ const Rotas: React.FC = () => {
                     <td className="px-2 py-1 text-slate-600 text-sm">{getLocalidadeNome(rota.localidadeId)}</td>
                     <td className="px-2 py-1 text-slate-600 text-sm">{getSecaoNome(rota.secaoId)}</td>
                     <td className="px-2 py-1 text-center">
-                      <Badge variant={rota.active ? 'active' : 'inactive'}>
-                        {rota.active ? 'Ativo' : 'Inativo'}
-                      </Badge>
+                      <button
+                        onClick={() => handleToggleStatus(rota)}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                          rota.active 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        }`}
+                        title={rota.active ? 'Clique para desativar' : 'Clique para ativar'}
+                      >
+                        {rota.active ? '✓ Ativo' : '✕ Inativo'}
+                      </button>
                     </td>
                     <td className="px-2 py-1 text-right flex justify-end gap-1">
                       <button
@@ -292,14 +301,6 @@ const Rotas: React.FC = () => {
                         title="Editar"
                       >
                         <Edit2 size={16} />
-                      </button>
-                      <button
-                        onClick={() => handleDelete(rota.id)}
-                        disabled={!isAuthorized}
-                        className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
-                        title="Desativar"
-                      >
-                        <Ban size={16} />
                       </button>
                     </td>
                   </tr>

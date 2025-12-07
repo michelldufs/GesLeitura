@@ -3,7 +3,7 @@ import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'fireb
 import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
-import { MapPin, Plus, Edit2, Trash2, Ban } from 'lucide-react';
+import { MapPin, Plus, Edit2, Trash2, Ban, Users } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
 import { gerarProximoCodigoPonto, validarCodigoPonto } from '../../services/codigoValidator';
 
@@ -18,6 +18,7 @@ interface Ponto {
   endereco?: string;
   telefone?: string;
   qtdEquipamentos: number;
+  coletoresVinculados?: string[];
   active: boolean;
 }
 
@@ -42,6 +43,13 @@ interface Localidade {
   nome: string;
 }
 
+interface Operador {
+  id: string;
+  codigo: string;
+  nome: string;
+  pontoId: string;
+}
+
 const Pontos: React.FC = () => {
   const { userProfile } = useAuth();
   const { selectedLocalidade } = useLocalidade();
@@ -49,7 +57,12 @@ const Pontos: React.FC = () => {
   const [rotas, setRotas] = useState<Rota[]>([]);
   const [secoes, setSecoes] = useState<Secao[]>([]);
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
+  const [operadores, setOperadores] = useState<Operador[]>([]);
+  const [coletores, setColetores] = useState<Array<{uid: string; name: string}>>([]);
   const [showModal, setShowModal] = useState(false);
+  const [showColetoresModal, setShowColetoresModal] = useState(false);
+  const [pontoSelecionado, setPontoSelecionado] = useState<Ponto | null>(null);
+  const [pontoExpandido, setPontoExpandido] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
@@ -68,6 +81,7 @@ const Pontos: React.FC = () => {
 
   useEffect(() => {
     loadData();
+    loadColetores();
   }, [selectedLocalidade]);
 
   const loadData = async () => {
@@ -132,10 +146,9 @@ const Pontos: React.FC = () => {
       });
       setRotas(rotasData);
 
-      // Carregar pontos
+      // Carregar pontos (ativos e inativos)
       const pontosQuery = query(
         collection(db, 'pontos'),
-        where('active', '==', true),
         where('localidadeId', '==', selectedLocalidade)
       );
 
@@ -152,14 +165,52 @@ const Pontos: React.FC = () => {
           endereco: data.endereco,
           telefone: data.telefone,
           qtdEquipamentos: data.qtdEquipamentos || 0,
+          coletoresVinculados: data.coletoresVinculados || [],
+          participaDespesa: data.participaDespesa !== false,
           active: data.active
         } as Ponto;
       });
       // Ordenar por código crescente
       pontosData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
       setPontos(pontosData);
+
+      // Carregar operadores
+      const opQuery = query(
+        collection(db, 'operadores'),
+        where('active', '==', true),
+        where('localidadeId', '==', selectedLocalidade)
+      );
+      const opSnapshot = await getDocs(opQuery);
+      const opData = opSnapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          codigo: data.codigo,
+          nome: data.nome,
+          pontoId: data.pontoId
+        } as Operador;
+      });
+      setOperadores(opData);
     } catch (error) {
       console.error('Erro ao carregar dados:', error);
+    }
+  };
+
+  const loadColetores = async () => {
+    try {
+      const usersQuery = query(
+        collection(db, 'users'),
+        where('role', '==', 'coleta'),
+        where('active', '==', true)
+      );
+      const snapshot = await getDocs(usersQuery);
+      const coletoresData = snapshot.docs.map(doc => ({
+        uid: doc.id,
+        name: doc.data().name || doc.data().email
+      }));
+      setColetores(coletoresData);
+    } catch (error) {
+      console.error('Erro ao carregar coletores:', error);
     }
   };
 
@@ -260,24 +311,58 @@ const Pontos: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente desativar este ponto?')) return;
+  const handleToggleStatus = async (ponto: Ponto) => {
+    const novoStatus = !ponto.active;
+    const acao = novoStatus ? 'ativar' : 'desativar';
+    if (!confirm(`Deseja realmente ${acao} este ponto?`)) return;
 
     try {
-      await updateDoc(doc(db, 'pontos', id), { active: false });
+      await updateDoc(doc(db, 'pontos', ponto.id), { active: novoStatus });
       setMessageType('success');
-      setMessage('Ponto desativado com sucesso!');
+      setMessage(`Ponto ${novoStatus ? 'ativado' : 'desativado'} com sucesso!`);
       loadData();
     } catch (error: any) {
-      console.error('Erro ao desativar:', error);
+      console.error(`Erro ao ${acao}:`, error);
       setMessageType('error');
-      setMessage(error?.message || 'Erro ao desativar ponto');
+      setMessage(error?.message || `Erro ao ${acao} ponto`);
+    }
+  };
+
+  const handleGerenciarColetores = (ponto: Ponto) => {
+    setPontoSelecionado(ponto);
+    setShowColetoresModal(true);
+  };
+
+  const handleToggleColetor = async (coletorUid: string) => {
+    if (!pontoSelecionado) return;
+    
+    try {
+      const coletoresAtuais = pontoSelecionado.coletoresVinculados || [];
+      const novaLista = coletoresAtuais.includes(coletorUid)
+        ? coletoresAtuais.filter(uid => uid !== coletorUid)
+        : [...coletoresAtuais, coletorUid];
+
+      await updateDoc(doc(db, 'pontos', pontoSelecionado.id), {
+        coletoresVinculados: novaLista
+      });
+
+      setPontoSelecionado({ ...pontoSelecionado, coletoresVinculados: novaLista });
+      loadData();
+    } catch (error: any) {
+      setMessageType('error');
+      setMessage(error?.message || 'Erro ao atualizar coletores');
     }
   };
 
   const isAuthorized = userProfile && ['admin', 'gerente'].includes(userProfile.role);
   const getRotaNome = (id: string) => rotas.find(r => r.id === id)?.nome || 'N/A';
   const getRotaCodigo = (id: string) => rotas.find(r => r.id === id)?.codigo || '';
+  const getOperadoresPorPonto = (pontoId: string) => operadores.filter(op => op.pontoId === pontoId);
+  const getRotaColor = (rotaId: string) => {
+    const index = rotas.findIndex(r => r.id === rotaId);
+    const colors = ['bg-blue-100 text-blue-700', 'bg-green-100 text-green-700', 'bg-purple-100 text-purple-700', 'bg-orange-100 text-orange-700', 'bg-pink-100 text-pink-700', 'bg-indigo-100 text-indigo-700'];
+    return colors[index % colors.length] || 'bg-slate-100 text-slate-700';
+  };
 
   const rotasFiltradas = filterRotaId
     ? rotas.filter(r => r.id === filterRotaId)
@@ -334,29 +419,72 @@ const Pontos: React.FC = () => {
                   <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Rota</th>
                   <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Comissão</th>
                   <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Equipamentos</th>
+                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Coletores</th>
                   <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
                   <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {pontos.map((ponto) => (
-                  <tr key={ponto.id} className="hover:bg-slate-50/80 transition-colors">
+                {pontos.map((ponto) => {
+                  const operadoresDoPonto = getOperadoresPorPonto(ponto.id);
+                  const isExpanded = pontoExpandido === ponto.id;
+                  return (
+                  <React.Fragment key={ponto.id}>
+                  <tr className={`hover:bg-slate-50/80 transition-colors ${!ponto.active ? 'opacity-50' : ''}`}>
                     <td className="px-2 py-1 text-slate-600 font-medium">{ponto.codigo}</td>
                     <td className="px-2 py-1 text-slate-600 truncate max-w-[200px]">{ponto.nome}</td>
-                    <td className="px-2 py-1 text-slate-600">
-                      <Badge variant="secondary">{getRotaNome(ponto.rotaId)}</Badge>
+                    <td className="px-2 py-1">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${getRotaColor(ponto.rotaId)}`}>
+                        {getRotaNome(ponto.rotaId)}
+                      </span>
                     </td>
                     <td className="px-2 py-1 text-slate-600">{ponto.comissao}%</td>
-                    <td className="px-2 py-1 text-slate-600">
-                      <div className="flex items-center gap-1">
-                        <span className="font-semibold">{ponto.qtdEquipamentos}</span>
-                        <span className="text-xs text-slate-400">ativos</span>
-                      </div>
+                    <td className="px-2 py-1">
+                      <button
+                        onClick={() => setPontoExpandido(isExpanded ? null : ponto.id)}
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
+                          operadoresDoPonto.length > 0
+                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
+                            : 'bg-slate-100 text-slate-500'
+                        }`}
+                        disabled={operadoresDoPonto.length === 0}
+                      >
+                        <span className="font-semibold">{operadoresDoPonto.length}</span>
+                        <span>{operadoresDoPonto.length === 1 ? 'operador' : 'operadores'}</span>
+                        {operadoresDoPonto.length > 0 && (
+                          <svg 
+                            className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        )}
+                      </button>
                     </td>
-                    <td className="px-2 py-1 text-center ">
-                      <Badge variant={ponto.active ? 'success' : 'error'}>
-                        {ponto.active ? 'Ativo' : 'Inativo'}
-                      </Badge>
+                    <td className="px-2 py-1">
+                      <button
+                        onClick={() => handleGerenciarColetores(ponto)}
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                        title="Gerenciar coletores"
+                      >
+                        <Users size={12} />
+                        <span>{(ponto.coletoresVinculados || []).length}</span>
+                      </button>
+                    </td>
+                    <td className="px-2 py-1 text-center">
+                      <button
+                        onClick={() => handleToggleStatus(ponto)}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                          ponto.active 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        }`}
+                        title={ponto.active ? 'Clique para desativar' : 'Clique para ativar'}
+                      >
+                        {ponto.active ? '✓ Ativo' : '✕ Inativo'}
+                      </button>
                     </td>
                     <td className="px-2 py-1 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -367,17 +495,31 @@ const Pontos: React.FC = () => {
                         >
                           <Edit2 size={14} />
                         </button>
-                        <button
-                          onClick={() => handleDelete(ponto.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Desativar"
-                        >
-                          <Ban size={14} />
-                        </button>
                       </div>
                     </td>
                   </tr>
-                ))}
+                  
+                  {/* Linha expansível com lista de operadores */}
+                  {isExpanded && operadoresDoPonto.length > 0 && (
+                    <tr className="bg-blue-50/30">
+                      <td colSpan={8} className="px-4 py-3">
+                        <div className="text-xs">
+                          <p className="font-semibold text-slate-700 mb-2">Operadores vinculados:</p>
+                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                            {operadoresDoPonto.map(op => (
+                              <div key={op.id} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
+                                <span className="font-mono font-semibold text-blue-600">{op.codigo}</span>
+                                <span className="text-slate-700">{op.nome}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                  </React.Fragment>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -477,6 +619,52 @@ const Pontos: React.FC = () => {
           />
         </form>
       </Modal >
+
+      {/* Modal de Gerenciamento de Coletores */}
+      <Modal
+        isOpen={showColetoresModal}
+        onClose={() => setShowColetoresModal(false)}
+        title={`Coletores - ${pontoSelecionado?.nome || ''}`}
+      >
+        <div className="space-y-3">
+          <p className="text-sm text-slate-600 mb-4">
+            Selecione os coletores autorizados a registrar leituras neste ponto:
+          </p>
+          {coletores.length === 0 ? (
+            <div className="text-center py-8">
+              <Users className="mx-auto text-slate-300 mb-2" size={32} />
+              <p className="text-slate-500 text-sm">Nenhum coletor cadastrado no sistema.</p>
+            </div>
+          ) : (
+            <div className="space-y-2 max-h-96 overflow-y-auto">
+              {coletores.map((coletor) => {
+                const isVinculado = (pontoSelecionado?.coletoresVinculados || []).includes(coletor.uid);
+                return (
+                  <label
+                    key={coletor.uid}
+                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                      isVinculado
+                        ? 'border-blue-500 bg-blue-50'
+                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                    }`}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isVinculado}
+                      onChange={() => handleToggleColetor(coletor.uid)}
+                      className="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500"
+                    />
+                    <div className="flex-1">
+                      <p className="font-medium text-slate-900">{coletor.name}</p>
+                      <p className="text-xs text-slate-500">{coletor.uid.substring(0, 8)}...</p>
+                    </div>
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div >
   );
 };

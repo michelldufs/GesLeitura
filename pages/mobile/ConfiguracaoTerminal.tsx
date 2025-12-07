@@ -3,20 +3,20 @@ import { Device } from '@capacitor/device';
 import { Preferences } from '@capacitor/preferences';
 
 const ConfiguracaoTerminal: React.FC = () => {
-    const [deviceId, setDeviceId] = useState < string > ('');
-    const [localidadeId, setLocalidadeId] = useState < string > ('');
-    const [senhaTecnica, setSenhaTecnica] = useState < string > ('');
-    const [mensagem, setMensagem] = useState < string > ('');
+    const [deviceId, setDeviceId] = useState<string>('');
+    const [localidadeId, setLocalidadeId] = useState<string>('');
+    const [senhaTecnica, setSenhaTecnica] = useState<string>('');
+    const [mensagem, setMensagem] = useState<string>('');
 
     useEffect(() => {
         const fetchDeviceId = async () => {
             try {
                 const id = await Device.getId();
-                const uuid = (id as { uuid?: string }).uuid;
-                setDeviceId(uuid || id.identifier || '');
+                const uuid = (id as any).uuid || (id as any).identifier || '';
+                setDeviceId(uuid);
             } catch (error) {
                 console.error("Erro ao obter ID do dispositivo:", error);
-                setDeviceId("Erro/Browser - " + navigator.userAgent);
+                setDeviceId("Web-" + Date.now());
             }
         };
         fetchDeviceId();

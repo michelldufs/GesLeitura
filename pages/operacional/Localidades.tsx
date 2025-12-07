@@ -25,7 +25,7 @@ const Localidades: React.FC = () => {
 
   const loadLocalidades = async () => {
     try {
-      const q = query(collection(db, 'localidades'), where('active', '==', true));
+      const q = query(collection(db, 'localidades'));
       const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Localidade));
       // Ordenar por código crescente
@@ -94,18 +94,20 @@ const Localidades: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente desativar esta localidade?')) return;
+  const handleToggleStatus = async (localidade: Localidade) => {
+    const novoStatus = !localidade.active;
+    const acao = novoStatus ? 'ativar' : 'desativar';
+    if (!confirm(`Deseja realmente ${acao} esta localidade?`)) return;
 
     try {
-      await updateDoc(doc(db, 'localidades', id), { active: false });
+      await updateDoc(doc(db, 'localidades', localidade.id), { active: novoStatus });
       setMessageType('success');
-      setMessage('Localidade desativada com sucesso!');
+      setMessage(`Localidade ${novoStatus ? 'ativada' : 'desativada'} com sucesso!`);
       loadLocalidades();
     } catch (error: any) {
-      console.error('Erro ao desativar localidade:', error);
+      console.error(`Erro ao ${acao} localidade:`, error);
       setMessageType('error');
-      setMessage(error?.message || 'Erro ao desativar localidade');
+      setMessage(error?.message || `Erro ao ${acao} localidade`);
     }
   };
 
@@ -157,38 +159,50 @@ const Localidades: React.FC = () => {
             <table className="w-full text-sm text-left">
               <thead className="bg-slate-50/50 border-b border-slate-200/50">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-3 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-3 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-3 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-3 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-slate-100">
                 {localidades.map((localidade) => (
-                  <tr key={localidade.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-2 py-1 font-mono font-semibold text-slate-900">
-                      {localidade.codigo || <span className="text-slate-400 italic">sem código</span>}
+                  <tr key={localidade.id} className={`hover:bg-slate-50/80 transition-colors ${!localidade.active ? 'opacity-50' : ''}`}>
+                    <td className="px-3 py-3 font-mono font-semibold text-slate-900 text-sm">
+                      {localidade.codigo || <span className="text-slate-400 italic text-xs">sem código</span>}
                     </td>
-                    <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2">
-                      <div className="p-1 bg-blue-100/50 rounded-lg">
-                        <MapPin className="text-blue-600" size={14} />
+                    <td className="px-3 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="p-2 bg-blue-100/50 rounded-lg flex-shrink-0">
+                          <MapPin className="text-blue-600" size={16} />
+                        </div>
+                        <span className="font-medium text-slate-900 text-sm">{localidade.nome}</span>
                       </div>
-                      {localidade.nome}
                     </td>
-                    <td className="px-2 py-1 text-right flex justify-end gap-2">
+                    <td className="px-3 py-3 text-center">
                       <button
-                        onClick={() => handleEdit(localidade)}
-                        disabled={!isAuthorized}
-                        className="text-blue-500 hover:text-blue-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
+                        onClick={() => handleToggleStatus(localidade)}
+                        className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
+                          localidade.active 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        }`}
+                        title={localidade.active ? 'Clique para desativar' : 'Clique para ativar'}
                       >
-                        <Edit2 size={14} />
+                        {localidade.active ? '✓ Ativo' : '✕ Inativo'}
                       </button>
-                      <button
-                        onClick={() => handleDelete(localidade.id)}
-                        disabled={!isAuthorized}
-                        className="text-red-500 hover:text-red-700 font-medium transition-colors flex items-center gap-1 disabled:opacity-50"
-                      >
-                        <Ban size={14} />
-                      </button>
+                    </td>
+                    <td className="px-3 py-3 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <button
+                          onClick={() => handleEdit(localidade)}
+                          disabled={!isAuthorized}
+                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+                          title="Editar"
+                        >
+                          <Edit2 size={16} />
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}

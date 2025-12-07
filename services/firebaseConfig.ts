@@ -10,7 +10,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyBQwWOT8h-NJN4C_3j93otxpUGDLLPPLjY",
   authDomain: "gesleitura.firebaseapp.com",
   projectId: "gesleitura",
-  storageBucket: "gesleitura.firebasestorage.app",
+  storageBucket: "gesleitura.appspot.com",
   messagingSenderId: "369503909416",
   appId: "1:369503909416:web:f4165398ff62b92a5f271d",
   measurementId: "G-KW1Y4MPF8R"

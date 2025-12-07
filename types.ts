@@ -62,6 +62,7 @@ export interface Ponto {
   telefone?: string;
   qtdEquipamentos?: number;
   participaDespesa?: boolean;
+  coletoresVinculados?: string[]; // UIDs dos coletores autorizados
   active: boolean;
 }
 
@@ -93,6 +94,8 @@ export interface Venda {
   pontoId: string;
   rotaId: string;
   localidadeId: string;
+  coletorId?: string; // UID do coletor que registrou (para histórico)
+  coletorNome?: string; // Nome do coletor (para relatórios)
 
   // Readings
   entradaAnterior: number;

@@ -15,20 +15,30 @@ interface Ponto {
   codigo: string;
   nome: string;
   localidadeId: string;
+  rotaId?: string;
   comissao?: number;
   participaDespesa?: boolean;
+}
+
+interface Rota {
+  id: string;
+  codigo: string;
+  nome: string;
+  localidadeId: string;
 }
 
 const LancamentoManual: React.FC = () => {
   const { userProfile } = useAuth();
   const { selectedLocalidade } = useLocalidade();
   const [pontos, setPontos] = useState<Ponto[]>([]);
+  const [pontosFiltrados, setPontosFiltrados] = useState<Ponto[]>([]);
   const [operadores, setOperadores] = useState<any[]>([]); // Lista completa para tabela
   const [operadoresFiltrados, setOperadoresFiltrados] = useState<any[]>([]); // Filtrados por ponto
   const [rotas, setRotas] = useState<any[]>([]);
   const [rotasIndex, setRotasIndex] = useState<Record<string, any>>({});
   const [vendas, setVendas] = useState<any[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<any[]>([]);
+  const [selectedRotaId, setSelectedRotaId] = useState<string>('');
   const [selectedPontoId, setSelectedPontoId] = useState<string>('');
   const [selectedOperadorId, setSelectedOperadorId] = useState<string>('');
   const [selectedPonto, setSelectedPonto] = useState<Ponto | null>(null);
@@ -195,14 +205,53 @@ const LancamentoManual: React.FC = () => {
     }
   };
 
+  // Filtrar pontos quando rota é selecionada
   useEffect(() => {
-    if (selectedPontoId) {
-      const filtered = operadores.filter(op => op.pontoId === selectedPontoId);
-      setOperadoresFiltrados(filtered);
-    } else {
-      setOperadoresFiltrados([]);
+    if (selectedRotaId) {
+      const pontosDaRota = pontos.filter(p => p.rotaId === selectedRotaId);
+      setPontosFiltrados(pontosDaRota);
+      setSelectedPontoId('');
+      setSelectedOperadorId('');
+      setValue('pontoId', '');
       setValue('operadorId', '');
+    } else {
+      setPontosFiltrados(pontos); // Mostra todos se nenhuma rota selecionada
+      setSelectedPontoId('');
+      setSelectedOperadorId('');
     }
+  }, [selectedRotaId, pontos]);
+
+  // Filtrar operadores por ponto e remover já lidos hoje
+  useEffect(() => {
+    const loadOperadoresPendentes = async () => {
+      if (selectedPontoId) {
+        const filtered = operadores.filter(op => op.pontoId === selectedPontoId);
+        
+        // Buscar leituras do dia atual para este ponto
+        try {
+          const hoje = getTodayDateString();
+          const vendasHojeQuery = query(
+            collection(db, 'vendas'),
+            where('pontoId', '==', selectedPontoId),
+            where('data', '==', hoje)
+          );
+          const vendasSnap = await getDocs(vendasHojeQuery);
+          const operadoresLidosHoje = vendasSnap.docs.map(doc => doc.data().operadorId);
+          
+          // Filtrar operadores não lidos hoje
+          const pendentes = filtered.filter(op => !operadoresLidosHoje.includes(op.id));
+          setOperadoresFiltrados(pendentes);
+        } catch (error) {
+          console.error('Erro ao filtrar operadores:', error);
+          setOperadoresFiltrados(filtered);
+        }
+      } else {
+        setOperadoresFiltrados([]);
+        setValue('operadorId', '');
+      }
+    };
+
+    loadOperadoresPendentes();
   }, [selectedPontoId, operadores]);
 
   const loadPontos = async () => {
@@ -390,6 +439,7 @@ const LancamentoManual: React.FC = () => {
       entradaAtual: undefined,
       saidaAtual: undefined
     });
+    setSelectedRotaId('');
     setSelectedPontoId('');
     setSelectedOperadorId('');
     setSelectedPonto(null);
@@ -598,6 +648,8 @@ const LancamentoManual: React.FC = () => {
         userId: userProfile.uid,
         userName: userProfile.displayName || userProfile.name || userProfile.email || userProfile.uid,
         userDisplayName: userProfile.displayName || userProfile.name || userProfile.email || userProfile.uid,
+        coletorId: userProfile.uid, // Registrar quem coletou
+        coletorNome: userProfile.name, // Nome do coletor para relatórios
         localidadeId: selectedLocalidade,
         ...(data.centroCustoId ? { centroCustoId: data.centroCustoId } : {})
       };
@@ -830,19 +882,40 @@ const LancamentoManual: React.FC = () => {
                 />
               </div>
 
+              {/* Rota */}
+              <div className="space-y-1">
+                <label className="block text-xs font-semibold text-slate-600">
+                  1. Rota <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={selectedRotaId}
+                  onChange={(e) => setSelectedRotaId(e.target.value)}
+                  disabled={!isAuthorized}
+                  className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
+                >
+                  <option value="">Selecione a rota...</option>
+                  {rotas.map(rota => (
+                    <option key={rota.id} value={rota.id}>
+                      {rota.codigo} - {rota.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
               {/* Ponto de Venda */}
               <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-600">
-                  Ponto <span className="text-red-500">*</span>
+                  2. Ponto {pontosFiltrados.length > 0 && `(${pontosFiltrados.length} disponíveis)`}
+                  <span className="text-red-500"> *</span>
                 </label>
                 <select
                   value={selectedPontoId}
                   onChange={(e) => handlePontoChange(e.target.value)}
-                  disabled={!isAuthorized}
+                  disabled={!isAuthorized || !selectedRotaId}
                   className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
                 >
-                  <option value="">Selecione...</option>
-                  {pontos.map(ponto => (
+                  <option value="">{!selectedRotaId ? 'Selecione uma rota primeiro' : 'Selecione o ponto...'}</option>
+                  {pontosFiltrados.map(ponto => (
                     <option key={ponto.id} value={ponto.id}>
                       {ponto.codigo} - {ponto.nome}
                     </option>
@@ -853,7 +926,8 @@ const LancamentoManual: React.FC = () => {
               {/* Operador/Máquina */}
               <div className="space-y-1">
                 <label className="block text-xs font-semibold text-slate-600">
-                  Máquina <span className="text-red-500">*</span>
+                  3. Máquina {operadoresFiltrados.length > 0 && `(${operadoresFiltrados.length} pendentes)`}
+                  <span className="text-red-500"> *</span>
                 </label>
                 <select
                   {...register('operadorId', { required: 'Obrigatório' })}
@@ -861,21 +935,16 @@ const LancamentoManual: React.FC = () => {
                   disabled={!isAuthorized || !selectedPontoId}
                   className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
                 >
-                  <option value="">Selecione...</option>
-                  {(() => {
-                    const hoje = getTodayDateString();
-                    const operadoresDisponiveis = operadoresFiltrados.filter(op => !vendas.some(v => v.operadorId === op.id && v.data === hoje));
-
-                    return operadoresDisponiveis.length === 0 ? (
-                      <option disabled>✓ Todos lidos hoje</option>
-                    ) : (
-                      operadoresDisponiveis.map(op => (
-                        <option key={op.id} value={op.id}>
-                          {op.codigo} - {op.nome}
-                        </option>
-                      ))
-                    );
-                  })()}
+                  <option value="">{!selectedPontoId ? 'Selecione um ponto primeiro' : 'Selecione a máquina...'}</option>
+                  {operadoresFiltrados.length === 0 && selectedPontoId ? (
+                    <option disabled>✓ Todos lidos hoje</option>
+                  ) : (
+                    operadoresFiltrados.map(op => (
+                      <option key={op.id} value={op.id}>
+                        {op.codigo} - {op.nome}
+                      </option>
+                    ))
+                  )}
                 </select>
                 {loadingHistory && <p className="text-xs text-blue-500 mt-1">Buscando...</p>}
               </div>

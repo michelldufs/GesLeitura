@@ -28,14 +28,14 @@ const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }
         }`}
     >
       <Icon size={18} />
-      <span className="flex-1 hidden sm:inline">{label}</span>
+      <span className="flex-1">{label}</span>
       {badge && <span className="bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">{badge}</span>}
     </Link>
   );
 
   const SectionTitle = ({ title }: { title: string }) => (
     <div className="px-4 pt-4 pb-2 mt-2">
-      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider hidden sm:block">{title}</h3>
+      <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider">{title}</h3>
     </div>
   );
 
@@ -104,7 +104,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }
         <div className="px-2 space-y-2">
           <div className="px-4 py-3 rounded-lg bg-slate-100/50 border border-slate-200/30">
             <p className="text-xs text-slate-500">Logado como</p>
-            <p className="text-sm font-semibold text-slate-900 truncate hidden sm:block">{userProfile?.name || 'Usuário'}</p>
+            <p className="text-sm font-semibold text-slate-900 truncate">{userProfile?.name || 'Usuário'}</p>
           </div>
         </div>
       </aside>

@@ -13,6 +13,7 @@ import Dashboard from '../pages/Dashboard';
 // Lazy-loaded pages (code splitting)
 const ConfiguracaoTerminal = lazy(() => import('../pages/mobile/ConfiguracaoTerminal'));
 const NovaLeituraMobile = lazy(() => import('../pages/mobile/NovaLeituraMobile'));
+const HistoricoLeituras = lazy(() => import('../pages/mobile/HistoricoLeituras'));
 const LancamentoManual = lazy(() => import('../pages/financeiro/LancamentoManual'));
 const CaixaGeral = lazy(() => import('../pages/financeiro/CaixaGeral'));
 const ConfiguracaoCotas = lazy(() => import('../pages/financeiro/ConfiguracaoCotas'));
@@ -107,10 +108,10 @@ const AppRoutes: React.FC = () => {
       <MobileLayout>
         <Suspense fallback={<PageLoader />}>
           <Routes>
-            <Route path="/app/nova-leitura" element={<NovaLeituraMobile />} />
-            <Route path="/app/historico" element={<Placeholder title="Histórico de Leituras" />} />
+            <Route path="/mobile/historico" element={<HistoricoLeituras />} />
+            <Route path="/mobile/nova-leitura" element={<NovaLeituraMobile />} />
             <Route path="/mobile/setup" element={<ConfiguracaoTerminal />} />
-            <Route path="*" element={<Navigate to="/app/nova-leitura" replace />} />
+            <Route path="*" element={<Navigate to="/mobile/nova-leitura" replace />} />
           </Routes>
         </Suspense>
       </MobileLayout>

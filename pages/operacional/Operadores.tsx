@@ -134,10 +134,9 @@ const Operadores: React.FC = () => {
       });
       setPontos(pontosData);
 
-      // Carregar operadores da localidade selecionada
+      // Carregar operadores da localidade selecionada (ativos e inativos)
       const opQuery = query(
         collection(db, 'operadores'),
-        where('active', '==', true),
         where('localidadeId', '==', selectedLocalidade)
       );
 
@@ -249,18 +248,20 @@ const Operadores: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente desativar este operador?')) return;
+  const handleToggleStatus = async (operador: Operador) => {
+    const novoStatus = !operador.active;
+    const acao = novoStatus ? 'ativar' : 'desativar';
+    if (!confirm(`Deseja realmente ${acao} este operador?`)) return;
 
     try {
-      await updateDoc(doc(db, 'operadores', id), { active: false });
+      await updateDoc(doc(db, 'operadores', operador.id), { active: novoStatus });
       setMessageType('success');
-      setMessage('Operador desativado com sucesso!');
+      setMessage(`Operador ${novoStatus ? 'ativado' : 'desativado'} com sucesso!`);
       loadData();
     } catch (error: any) {
-      console.error('Erro ao desativar:', error);
+      console.error(`Erro ao ${acao}:`, error);
       setMessageType('error');
-      setMessage(error?.message || 'Erro ao desativar operador');
+      setMessage(error?.message || `Erro ao ${acao} operador`);
     }
   };
 
@@ -328,7 +329,7 @@ const Operadores: React.FC = () => {
               </thead>
               <tbody className="divide-y divide-slate-100">
                 {operadores.map((operador) => (
-                  <tr key={operador.id} className="hover:bg-slate-50/80 transition-colors">
+                  <tr key={operador.id} className={`hover:bg-slate-50/80 transition-colors ${!operador.active ? 'opacity-50' : ''}`}>
                     <td className="px-2 py-1 text-slate-600 font-medium">{operador.codigo}</td>
                     <td className="px-2 py-1 text-slate-600">{operador.nome}</td>
                     <td className="px-2 py-1 text-slate-600">
@@ -337,10 +338,18 @@ const Operadores: React.FC = () => {
                     <td className="px-2 py-1 text-slate-600">
                       <Badge variant="secondary">{formatFator(operador.fatorConversao)}</Badge>
                     </td>
-                    <td className="px-2 py-1 text-center ">
-                      <Badge variant={operador.active ? 'success' : 'error'}>
-                        {operador.active ? 'Ativo' : 'Inativo'}
-                      </Badge>
+                    <td className="px-2 py-1 text-center">
+                      <button
+                        onClick={() => handleToggleStatus(operador)}
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                          operador.active 
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        }`}
+                        title={operador.active ? 'Clique para desativar' : 'Clique para ativar'}
+                      >
+                        {operador.active ? '✓ Ativo' : '✕ Inativo'}
+                      </button>
                     </td>
                     <td className="px-2 py-1 text-right">
                       <div className="flex items-center justify-end gap-1">
@@ -350,13 +359,6 @@ const Operadores: React.FC = () => {
                           title="Editar"
                         >
                           <Edit2 size={14} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(operador.id)}
-                          className="p-1 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Desativar"
-                        >
-                          <Ban size={14} />
                         </button>
                       </div>
                     </td>

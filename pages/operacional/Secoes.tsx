@@ -147,20 +147,20 @@ const Secoes: React.FC = () => {
     setShowModal(true);
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Deseja realmente desativar esta seção?')) return;
+  const handleToggleStatus = async (secao: Secao) => {
+    const novoStatus = !secao.active;
+    const acao = novoStatus ? 'ativar' : 'desativar';
+    if (!confirm(`Deseja realmente ${acao} esta seção?`)) return;
 
     try {
-      await deleteSecao.mutateAsync({
-        id,
-        localidadeId: selectedLocalidade || ''
-      });
+      await updateDoc(doc(db, 'secoes', secao.id), { active: novoStatus });
       setMessageType('success');
-      setMessage('Seção desativada com sucesso!');
+      setMessage(`Seção ${novoStatus ? 'ativada' : 'desativada'} com sucesso!`);
+      loadSecoes();
     } catch (error: any) {
-      console.error('Erro ao desativar:', error);
+      console.error(`Erro ao ${acao}:`, error);
       setMessageType('error');
-      setMessage(error?.message || 'Erro ao desativar seção');
+      setMessage(error?.message || `Erro ao ${acao} seção`);
     }
   };
 
@@ -239,7 +239,7 @@ const Secoes: React.FC = () => {
                 </thead>
                 <tbody>
                   {secoes.map((secao) => (
-                    <tr key={secao.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                    <tr key={secao.id} className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${!secao.active ? 'opacity-50' : ''}`}>
                       <td className="px-2 py-1 font-semibold text-slate-950 text-sm">
                         {secao.codigo || <span className="text-slate-400 italic">sem código</span>}
                       </td>
@@ -251,9 +251,17 @@ const Secoes: React.FC = () => {
                       </td>
                       <td className="px-2 py-1 text-slate-600 text-sm">{getLocalidadeNome(secao.localidadeId)}</td>
                       <td className="px-2 py-1 text-center">
-                        <Badge variant={secao.active ? 'active' : 'inactive'}>
-                          {secao.active ? 'Ativo' : 'Inativo'}
-                        </Badge>
+                        <button
+                          onClick={() => handleToggleStatus(secao)}
+                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
+                            secao.active 
+                              ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                              : 'bg-red-100 text-red-700 hover:bg-red-200'
+                          }`}
+                          title={secao.active ? 'Clique para desativar' : 'Clique para ativar'}
+                        >
+                          {secao.active ? '✓ Ativo' : '✕ Inativo'}
+                        </button>
                       </td>
                       <td className="px-2 py-1 text-right flex justify-end gap-1">
                         <button
@@ -263,14 +271,6 @@ const Secoes: React.FC = () => {
                           title="Editar"
                         >
                           <Edit2 size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(secao.id)}
-                          disabled={!isAuthorized}
-                          className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
-                          title="Desativar"
-                        >
-                          <Ban size={16} />
                         </button>
                       </td>
                     </tr>

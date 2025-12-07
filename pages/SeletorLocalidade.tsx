@@ -40,7 +40,14 @@ const SeletorLocalidade: React.FC = () => {
             }
             console.log('Localidades filtradas:', allowed);
 
-            setLocalidades(allowed as Localidade[]);
+            // Ordenar crescente por código numérico
+            const sorted = allowed.sort((a: any, b: any) => {
+                const codigoA = parseInt(a.codigo) || 0;
+                const codigoB = parseInt(b.codigo) || 0;
+                return codigoA - codigoB;
+            });
+
+            setLocalidades(sorted as Localidade[]);
             setLoading(false);
         } catch (error) {
             console.error('Erro ao buscar localidades:', error);
