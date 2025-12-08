@@ -273,6 +273,15 @@ const Operadores: React.FC = () => {
     return `${(fator * 100).toFixed(0)}%`;
   };
 
+  const getFatorColor = (fator: number) => {
+    // Cores distintas para cada fator de conversão
+    if (fator === 0.01) return 'bg-blue-100 text-blue-800 border-blue-300';
+    if (fator === 0.10) return 'bg-purple-100 text-purple-800 border-purple-300';
+    if (fator === 0.25) return 'bg-orange-100 text-orange-800 border-orange-300';
+    if (fator === 1) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    return 'bg-gray-100 text-gray-800 border-gray-300'; // Outros valores
+  };
+
   return (
     <div className="w-full">
       <PageHeader
@@ -336,7 +345,9 @@ const Operadores: React.FC = () => {
                       <Badge variant="secondary">{getPontoNome(operador.pontoId)}</Badge>
                     </td>
                     <td className="px-2 py-1 text-slate-600">
-                      <Badge variant="secondary">{formatFator(operador.fatorConversao)}</Badge>
+                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold border leading-tight ${getFatorColor(operador.fatorConversao)}`}>
+                        {formatFator(operador.fatorConversao)}
+                      </span>
                     </td>
                     <td className="px-2 py-1 text-center">
                       <button

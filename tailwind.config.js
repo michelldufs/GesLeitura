@@ -12,13 +12,8 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        system: [
-          "-apple-system",
-          "BlinkMacSystemFont",
-          "Segoe UI",
-          "Helvetica Neue",
-          "sans-serif",
-        ],
+        sans: ['Ubuntu', 'sans-serif'],
+        ubuntu: ['Ubuntu', 'sans-serif'],
       },
       colors: {
         slate: {

@@ -228,7 +228,7 @@ export const Table: React.FC<{
 // Separator
 export const Divider = () => <div className="h-px bg-slate-100 my-8" />;
 
-// Badge (Pill Style)
+// Badge (Pill Style - COMPACTO)
 export const Badge: React.FC<{
   children: React.ReactNode;
   variant?: 'primary' | 'success' | 'active' | 'inactive' | 'error' | 'warning' | 'secondary';
@@ -245,7 +245,7 @@ export const Badge: React.FC<{
   };
 
   return (
-    <span className={`${colors[variant]} inline-flex items-center px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${className}`}>
+    <span className={`${colors[variant]} inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide leading-tight ${className}`}>
       {children}
     </span>
   );

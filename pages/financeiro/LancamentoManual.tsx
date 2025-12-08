@@ -7,7 +7,7 @@ import { db } from '../../services/firebaseConfig';
 import { getUltimaLeitura, saveVenda, updateVenda } from '../../services/financeiroService';
 import { Operador, Venda } from '../../types';
 import { GlassCard, AlertBox, PageHeader, Modal, ButtonPrimary, ButtonSecondary } from '../../components/MacOSDesign';
-import { Plus, FileText, Eye, Camera, Edit2 } from 'lucide-react';
+import { Plus, FileText, Eye, Camera, Edit2, ChevronDown, ChevronRight } from 'lucide-react';
 import { getTodayDateString } from '../../utils/dateUtils';
 
 interface Ponto {
@@ -55,6 +55,7 @@ const LancamentoManual: React.FC = () => {
   const [editandoDetalhe, setEditandoDetalhe] = useState(false);
   const [detalheEditado, setDetalheEditado] = useState<any>(null);
   const [loadingSalvarDetalhe, setLoadingSalvarDetalhe] = useState(false);
+  const [pontosExpandidos, setPontosExpandidos] = useState<Set<string>>(new Set());
 
   const { register, handleSubmit, watch, setValue, reset, formState: { errors } } = useForm<Venda>({
     defaultValues: {
@@ -749,94 +750,192 @@ const LancamentoManual: React.FC = () => {
               )}
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead className="bg-slate-50/80 border-b-2 border-slate-200 sticky top-0">
-                  <tr>
-                    <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Data</th>
-                    <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden sm:table-cell">Ponto</th>
-                    <th className="px-2 sm:px-3 py-2 text-left text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden md:table-cell">Operador</th>
-                    <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Total</th>
-                    <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden lg:table-cell">Comissão</th>
-                    <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden md:table-cell">Despesa</th>
-                    <th className="px-2 sm:px-3 py-2 text-right text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Final</th>
-                    <th className="px-2 sm:px-3 py-2 text-center text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide hidden sm:table-cell">Status</th>
-                    <th className="px-2 sm:px-3 py-2 text-center text-xs font-bold text-slate-600 uppercase tracking-tight sm:tracking-wide">Ações</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {vendas
-                    .map((v: any) => {
-                      let dataVenda = v.data;
-                      if (dataVenda && dataVenda.length > 10) {
-                        dataVenda = dataVenda.split('T')[0];
-                      }
-                      return { ...v, data: dataVenda };
-                    })
-                    .filter(v => v.data === filtroData)
-                    .map((venda) => {
-                      const ponto = pontos.find(p => p.id === venda.pontoId);
-                      const operador = operadores.find(o => o.id === venda.operadorId);
+            <div className="space-y-2">
+              {(() => {
+                // Processar e filtrar vendas por data
+                const vendasFiltradas = vendas
+                  .map((v: any) => {
+                    let dataVenda = v.data;
+                    if (dataVenda && dataVenda.length > 10) {
+                      dataVenda = dataVenda.split('T')[0];
+                    }
+                    return { ...v, data: dataVenda };
+                  })
+                  .filter(v => v.data === filtroData);
 
-                      return (
-                        <tr key={venda.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="px-2 py-1 whitespace-nowrap text-xs text-slate-700">
-                            {venda.data ? venda.data.split('-').reverse().join('/') : '--'}
-                          </td>
-                          <td className="px-2 py-1 whitespace-nowrap text-xs text-slate-700 hidden sm:table-cell">
-                            <span className="font-semibold">{ponto?.codigo}</span> {ponto?.nome || 'N/A'}
-                          </td>
-                          <td className="px-2 py-1 whitespace-nowrap text-xs text-slate-700 hidden md:table-cell">
-                            <span className="font-semibold">{operador?.codigo}</span> {operador?.nome || 'N/A'}
-                          </td>
-                          <td className="px-2 py-1 whitespace-nowrap text-right font-mono font-semibold text-slate-900 text-xs">
-                            R$ {(venda.totalGeral || 0).toFixed(2)}
-                          </td>
-                          <td className="px-2 py-1 whitespace-nowrap text-right font-mono text-yellow-700 font-semibold text-xs hidden lg:table-cell">
-                            R$ {(venda.valorComissao || 0).toFixed(2)}
-                          </td>
-                          <td className="px-2 py-1 text-right text-xs hidden md:table-cell">
-                            {venda.despesa > 0 ? (
-                              <div className="flex flex-col items-end gap-0.5">
-                                <span className="font-mono text-orange-700 font-semibold text-xs">
-                                  R$ {venda.despesa.toFixed(2)}
-                                </span>
-                                {venda.centroCustoId && (
-                                  <span className="text-xs text-slate-500 max-w-[100px] truncate" title={centrosCusto.find(c => c.id === venda.centroCustoId)?.nome}>
-                                    {centrosCusto.find(c => c.id === venda.centroCustoId)?.nome || 'N/A'}
-                                  </span>
-                                )}
-                              </div>
-                            ) : (
-                              <span className="font-mono text-slate-400 text-xs">-</span>
-                            )}
-                          </td>
-                          <td className="px-2 py-1 whitespace-nowrap text-right font-mono font-bold text-blue-600 text-xs">
-                            R$ {(venda.totalFinal || 0).toFixed(2)}
-                          </td>
-                          <td className="px-2 py-1 whitespace-nowrap text-center hidden sm:table-cell">
-                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-xs font-semibold ${venda.status_conferencia === 'conferido'
-                              ? 'bg-green-100 text-green-700'
-                              : 'bg-yellow-100 text-yellow-700'
-                              }`}>
-                              {venda.status_conferencia === 'conferido' ? '✓' : '◐'}
+                // Agrupar por ponto
+                const pontoGroups = vendasFiltradas.reduce((acc: any, venda: any) => {
+                  const pontoId = venda.pontoId;
+                  if (!acc[pontoId]) {
+                    acc[pontoId] = [];
+                  }
+                  acc[pontoId].push(venda);
+                  return acc;
+                }, {});
+
+                // Renderizar grupos de pontos
+                return Object.entries(pontoGroups).map(([pontoId, vendasDoPonto]: [string, any]) => {
+                  const ponto = pontos.find(p => p.id === pontoId);
+                  const isExpanded = pontosExpandidos.has(pontoId);
+
+                  // Calcular totais do ponto
+                  const totalGeralPonto = vendasDoPonto.reduce((sum: number, v: any) => {
+                    if (!v.totalGeral || v.totalGeral === 0) {
+                      const entrada = toSafeNumber(v.totalEntrada || 0);
+                      const saida = toSafeNumber(v.totalSaida || 0);
+                      const fator = toSafeNumber(v.fatorConversao || 1);
+                      return sum + ((entrada - saida) * fator);
+                    }
+                    return sum + toSafeNumber(v.totalGeral);
+                  }, 0);
+
+                  const totalComissaoPonto = vendasDoPonto.reduce((sum: number, v: any) => sum + toSafeNumber(v.valorComissao), 0);
+                  const totalDespesaPonto = vendasDoPonto.reduce((sum: number, v: any) => sum + toSafeNumber(v.despesa), 0);
+                  const totalLucroPonto = vendasDoPonto.reduce((sum: number, v: any) => sum + toSafeNumber(v.totalFinal), 0);
+                  const qtdMaquinas = vendasDoPonto.length;
+
+                  return (
+                    <div key={pontoId} className="border border-slate-200 rounded-lg overflow-hidden bg-white">
+                      {/* Linha do Ponto (clicável) */}
+                      <button
+                        onClick={() => {
+                          const newSet = new Set(pontosExpandidos);
+                          if (newSet.has(pontoId)) {
+                            newSet.delete(pontoId);
+                          } else {
+                            newSet.add(pontoId);
+                          }
+                          setPontosExpandidos(newSet);
+                        }}
+                        className="w-full flex items-center gap-1.5 px-2 py-1 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+                      >
+                        {/* Ícone de expansão */}
+                        <div className="flex-shrink-0">
+                          {isExpanded ? (
+                            <ChevronDown size={14} className="text-slate-600" />
+                          ) : (
+                            <ChevronRight size={14} className="text-slate-600" />
+                          )}
+                        </div>
+
+                        {/* Info do Ponto */}
+                        <div className="flex-1 grid grid-cols-7 gap-1.5 items-center">
+                          <div className="col-span-2">
+                            <span className="text-[10px] font-bold text-slate-900">
+                              {ponto?.codigo} - {ponto?.nome || 'N/A'}
                             </span>
-                          </td>
-                          <td className="px-2 py-1 whitespace-nowrap text-center">
-                            <button
-                              onClick={() => handleAbrirDetalhe(venda)}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors text-xs font-semibold"
-                              title="Detalhes"
-                            >
-                              <Eye size={14} />
-                              <span className="hidden sm:inline">Ver</span>
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                </tbody>
-              </table>
+                            <span className="text-[8px] text-slate-500 ml-1.5">
+                              ({qtdMaquinas} {qtdMaquinas === 1 ? 'máq' : 'máqs'})
+                            </span>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[8px] text-slate-500 uppercase font-semibold mr-1">Total</span>
+                            <span className="text-[10px] font-bold text-slate-900">R$ {totalGeralPonto.toFixed(2)}</span>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[8px] text-slate-500 uppercase font-semibold mr-1">Comissão</span>
+                            <span className="text-[10px] font-bold text-yellow-700">R$ {totalComissaoPonto.toFixed(2)}</span>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[8px] text-slate-500 uppercase font-semibold mr-1">Despesa</span>
+                            <span className="text-[10px] font-bold text-red-600">
+                              {totalDespesaPonto > 0 ? `- R$ ${totalDespesaPonto.toFixed(2)}` : '-'}
+                            </span>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[8px] text-slate-500 uppercase font-semibold mr-1">Lucro</span>
+                            <span className="text-[10px] font-bold text-green-600">R$ {totalLucroPonto.toFixed(2)}</span>
+                          </div>
+
+                          <div className="text-right">
+                            <span className="text-[8px] text-slate-400 italic">{isExpanded ? '▲' : '▼'}</span>
+                          </div>
+                        </div>
+                      </button>
+
+                      {/* Gaveta - Lista de Máquinas */}
+                      {isExpanded && (
+                        <div className="border-t border-slate-200">
+                          <table className="w-full text-[10px]">
+                            <thead className="bg-slate-50/50">
+                              <tr>
+                                <th className="px-3 py-1.5 text-left text-[9px] font-bold text-slate-600 uppercase">Operador/Máquina</th>
+                                <th className="px-3 py-1.5 text-right text-[9px] font-bold text-slate-600 uppercase">Total</th>
+                                <th className="px-3 py-1.5 text-right text-[9px] font-bold text-slate-600 uppercase">Comissão</th>
+                                <th className="px-3 py-1.5 text-right text-[9px] font-bold text-slate-600 uppercase">Despesa</th>
+                                <th className="px-3 py-1.5 text-right text-[9px] font-bold text-slate-600 uppercase text-green-700">Lucro</th>
+                                <th className="px-3 py-1.5 text-left text-[9px] font-bold text-slate-600 uppercase">Coletor</th>
+                                <th className="px-3 py-1.5 text-center text-[9px] font-bold text-slate-600 uppercase">Ações</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100">
+                              {vendasDoPonto.map((venda: any) => {
+                                const operador = operadores.find(o => o.id === venda.operadorId);
+                                const centroCusto = centrosCusto.find(c => c.id === venda.centroCustoId);
+
+                                return (
+                                  <tr key={venda.id} className="hover:bg-slate-50 transition-colors">
+                                    <td className="px-3 py-1.5 text-[10px] text-slate-700 font-medium">
+                                      <span className="font-bold">{operador?.codigo}</span>{' '}
+                                      <span className="text-slate-500">{operador?.nome || 'N/A'}</span>
+                                    </td>
+                                    <td className="px-3 py-1.5 whitespace-nowrap text-right font-mono font-bold text-slate-900 text-[10px]">
+                                      R$ {(() => {
+                                        if (!venda.totalGeral || venda.totalGeral === 0) {
+                                          const entrada = toSafeNumber(venda.totalEntrada || 0);
+                                          const saida = toSafeNumber(venda.totalSaida || 0);
+                                          const fator = toSafeNumber(venda.fatorConversao || 1);
+                                          return ((entrada - saida) * fator).toFixed(2);
+                                        }
+                                        return (venda.totalGeral || 0).toFixed(2);
+                                      })()}
+                                    </td>
+                                    <td className="px-3 py-1.5 whitespace-nowrap text-right font-mono text-yellow-700 font-bold text-[10px]">
+                                      R$ {(venda.valorComissao || 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-3 py-1.5 text-right text-[10px]">
+                                      {venda.despesa > 0 ? (
+                                        <span 
+                                          className="font-mono text-red-600 font-bold text-[10px] cursor-help" 
+                                          title={centroCusto ? `Centro de Custo: ${centroCusto.nome}` : 'Sem centro de custo'}
+                                        >
+                                          - R$ {venda.despesa.toFixed(2)}
+                                        </span>
+                                      ) : (
+                                        <span className="font-mono text-slate-400 text-[10px]">-</span>
+                                      )}
+                                    </td>
+                                    <td className="px-3 py-1.5 whitespace-nowrap text-right font-mono font-bold text-green-600 text-[10px]">
+                                      R$ {(venda.totalFinal || 0).toFixed(2)}
+                                    </td>
+                                    <td className="px-3 py-1.5 text-[10px] text-slate-600 font-medium max-w-[80px] truncate" title={venda.coletorNome || 'N/A'}>
+                                      {venda.coletorNome || 'N/A'}
+                                    </td>
+                                    <td className="px-3 py-1.5 whitespace-nowrap text-center">
+                                      <button
+                                        onClick={() => handleAbrirDetalhe(venda)}
+                                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors text-[10px] font-bold"
+                                        title="Detalhes"
+                                      >
+                                        <Eye size={12} />
+                                        Ver
+                                      </button>
+                                    </td>
+                                  </tr>
+                                );
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+                      )}
+                    </div>
+                  );
+                });
+              })()}
             </div>
           )}
         </GlassCard>
@@ -1139,52 +1238,58 @@ const LancamentoManual: React.FC = () => {
 
       {/* Modal de Detalhes / Edição */}
       {showDetalheModal && vendaSelecionada && (
-        <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-2xl border border-white/20 w-full max-w-3xl my-8 max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="sticky top-0 bg-white/95 backdrop-blur-xl border-b border-slate-200 px-8 py-6 flex items-center justify-between z-10">
-              <div>
-                <h2 className="text-2xl font-bold text-slate-900">Detalhes da Leitura</h2>
-                <p className="text-sm text-slate-500 mt-1">
-                  {new Date(vendaSelecionada.data).toLocaleDateString('pt-BR')} - {pontos.find(p => p.id === vendaSelecionada.pontoId)?.nome}
-                </p>
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-3xl my-8 max-h-[90vh] overflow-y-auto">
+            {/* Header Compacto */}
+            <div className="border-b border-slate-200 px-6 py-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-slate-900">Detalhes da Leitura</h2>
+                  <p className="text-xs text-slate-500 mt-0.5">
+                    {new Date(vendaSelecionada.data).toLocaleDateString('pt-BR')} • {pontos.find(p => p.id === vendaSelecionada.pontoId)?.nome}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${vendaSelecionada.status_conferencia === 'conferido' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                    {vendaSelecionada.status_conferencia === 'conferido' ? '✓ Conferido' : '⏳ Pendente'}
+                  </span>
+                  <button
+                    onClick={handleFecharDetalhe}
+                    type="button"
+                    className="text-slate-400 hover:text-slate-600 transition-colors p-1"
+                  >
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={handleFecharDetalhe}
-                type="button"
-                className="text-slate-400 hover:text-slate-600 transition-colors"
-              >
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
             </div>
 
             {/* Conteúdo */}
-            <div className="p-8 space-y-6">
-              {/* Informações Básicas */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <label className="text-xs font-semibold text-slate-600">Ponto</label>
-                  <p className="text-sm font-bold text-slate-900 mt-1">{pontos.find(p => p.id === vendaSelecionada.pontoId)?.nome}</p>
+            <div className="p-6 space-y-4">
+              {/* Informações Básicas - Compacto */}
+              <div className="grid grid-cols-4 gap-3">
+                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mb-1">Operador</div>
+                  <p className="text-xs font-bold text-slate-900">{operadores.find(o => o.id === vendaSelecionada.operadorId)?.nome || 'N/A'}</p>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <label className="text-xs font-semibold text-slate-600">Operador</label>
-                  <p className="text-sm font-bold text-slate-900 mt-1">{operadores.find(o => o.id === vendaSelecionada.operadorId)?.nome}</p>
+                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mb-1">Rota</div>
+                  <p className="text-xs font-bold text-slate-900">{rotasIndex?.[vendaSelecionada.rotaId]?.nome || 'N/A'}</p>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <label className="text-xs font-semibold text-slate-600">Rota</label>
-                  <p className="text-sm font-bold text-slate-900 mt-1">{rotasIndex?.[vendaSelecionada.rotaId]?.nome || 'N/A'}</p>
+                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mb-1">Fator</div>
+                  <p className="text-xs font-bold text-slate-900">{(vendaSelecionada.fatorConversao ?? 1).toFixed(2)}</p>
                 </div>
-                <div className="bg-slate-50 rounded-lg p-4">
-                  <label className="text-xs font-semibold text-slate-600">Fator</label>
-                  <p className="text-sm font-bold text-slate-900 mt-1">{(vendaSelecionada.fatorConversao ?? 1).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
-                </div>
-                <div className="bg-blue-50 rounded-lg p-4">
-                  <label className="text-xs font-semibold text-slate-600">Status</label>
-                  <p className={`text-sm font-bold mt-1 ${vendaSelecionada.status_conferencia === 'conferido' ? 'text-green-600' : 'text-yellow-600'}`}>
-                    {vendaSelecionada.status_conferencia === 'conferido' ? '✓ Conferido' : '⏳ Pendente'}
-                  </p>
+                <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                  <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mb-1">Coletor</div>
+                  <p className="text-xs font-bold text-slate-900 truncate" title={vendaSelecionada.coletorNome}>{vendaSelecionada.coletorNome || 'N/A'}</p>
+                  {vendaSelecionada.timestamp && (
+                    <p className="text-[8px] text-slate-500 mt-0.5">
+                      {new Date(vendaSelecionada.timestamp.toDate()).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}
+                    </p>
+                  )}
                 </div>
               </div>
 
@@ -1231,22 +1336,40 @@ const LancamentoManual: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <label className="text-xs font-semibold text-green-700">Entrada Anterior</label>
-                    <p className="text-2xl font-bold text-green-700 mt-2">{vendaSelecionada.entradaAnterior}</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-green-50 border-2 border-green-200 rounded-lg p-3">
+                    <div className="text-[9px] font-bold text-green-700 uppercase tracking-wide mb-2">⬇️ Entradas</div>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div>
+                        <div className="text-[8px] text-green-600 mb-0.5">Anterior</div>
+                        <div className="text-lg font-bold text-green-700">{vendaSelecionada.entradaAnterior}</div>
+                      </div>
+                      <div>
+                        <div className="text-[8px] text-green-600 mb-0.5">Atual</div>
+                        <div className="text-lg font-bold text-green-700">{vendaSelecionada.entradaAtual}</div>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-green-200">
+                      <div className="text-[8px] text-green-600 mb-0.5">Total</div>
+                      <div className="text-base font-bold text-green-700">R$ {(vendaSelecionada.totalEntrada || 0).toFixed(2)}</div>
+                    </div>
                   </div>
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <label className="text-xs font-semibold text-green-700">Entrada Atual</label>
-                    <p className="text-2xl font-bold text-green-700 mt-2">{vendaSelecionada.entradaAtual}</p>
-                  </div>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <label className="text-xs font-semibold text-red-700">Saída Anterior</label>
-                    <p className="text-2xl font-bold text-red-700 mt-2">{vendaSelecionada.saidaAnterior}</p>
-                  </div>
-                  <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                    <label className="text-xs font-semibold text-red-700">Saída Atual</label>
-                    <p className="text-2xl font-bold text-red-700 mt-2">{vendaSelecionada.saidaAtual}</p>
+                  <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3">
+                    <div className="text-[9px] font-bold text-red-700 uppercase tracking-wide mb-2">⬆️ Saídas</div>
+                    <div className="grid grid-cols-2 gap-2 mb-2">
+                      <div>
+                        <div className="text-[8px] text-red-600 mb-0.5">Anterior</div>
+                        <div className="text-lg font-bold text-red-700">{vendaSelecionada.saidaAnterior}</div>
+                      </div>
+                      <div>
+                        <div className="text-[8px] text-red-600 mb-0.5">Atual</div>
+                        <div className="text-lg font-bold text-red-700">{vendaSelecionada.saidaAtual}</div>
+                      </div>
+                    </div>
+                    <div className="pt-2 border-t border-red-200">
+                      <div className="text-[8px] text-red-600 mb-0.5">Total</div>
+                      <div className="text-base font-bold text-red-700">R$ {(vendaSelecionada.totalSaida || 0).toFixed(2)}</div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1291,25 +1414,42 @@ const LancamentoManual: React.FC = () => {
                   </div>
                 </div>
               ) : (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <div className="bg-blue-50 rounded-lg p-4">
-                    <label className="text-xs font-semibold text-slate-600">Total Geral</label>
-                    <p className="text-lg font-bold text-blue-700 mt-1">R$ {(vendaSelecionada.totalGeral || 0).toFixed(2)}</p>
-                  </div>
-                  <div className="bg-yellow-50 rounded-lg p-4">
-                    <label className="text-xs font-semibold text-slate-600">Comissão</label>
-                    <p className="text-lg font-bold text-yellow-700 mt-1">R$ {(vendaSelecionada.valorComissao || 0).toFixed(2)}</p>
-                  </div>
-                  <div className="bg-orange-50 rounded-lg p-4">
-                    <label className="text-xs font-semibold text-slate-600">Despesa</label>
-                    <p className="text-lg font-bold text-orange-700 mt-1">R$ {(vendaSelecionada.despesa || 0).toFixed(2)}</p>
-                  </div>
-                  <div className={`bg-emerald-50 rounded-lg p-4 border-2 border-emerald-200 ${(vendaSelecionada.totalFinal || 0) < 0 ? 'border-red-300 bg-red-50' : ''
+                <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
+                  <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-3">Resumo Financeiro</div>
+                  <div className="grid grid-cols-4 gap-2">
+                    <div className="bg-white rounded-lg p-2 border border-blue-100">
+                      <div className="text-[8px] text-blue-600 mb-0.5">Total Geral</div>
+                      <div className="text-sm font-bold text-blue-700">R$ {(() => {
+                        // Recalcular totalGeral se estiver zerado (compatibilidade com registros antigos)
+                        if (!vendaSelecionada.totalGeral || vendaSelecionada.totalGeral === 0) {
+                          const entrada = toSafeNumber(vendaSelecionada.totalEntrada || 0);
+                          const saida = toSafeNumber(vendaSelecionada.totalSaida || 0);
+                          const fator = toSafeNumber(vendaSelecionada.fatorConversao || 1);
+                          return ((entrada - saida) * fator).toFixed(2);
+                        }
+                        return (vendaSelecionada.totalGeral || 0).toFixed(2);
+                      })()}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-2 border border-yellow-100">
+                      <div className="text-[8px] text-yellow-600 mb-0.5">Comissão</div>
+                      <div className="text-sm font-bold text-yellow-700">R$ {(vendaSelecionada.valorComissao || 0).toFixed(2)}</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-2 border border-orange-100">
+                      <div className="text-[8px] text-orange-600 mb-0.5">Despesa</div>
+                      <div className="text-sm font-bold text-orange-700">R$ {(vendaSelecionada.despesa || 0).toFixed(2)}</div>
+                    </div>
+                    <div className={`rounded-lg p-2 border-2 ${
+                      (vendaSelecionada.totalFinal || 0) < 0 
+                        ? 'bg-red-50 border-red-300' 
+                        : 'bg-green-50 border-green-300'
                     }`}>
-                    <label className="text-xs font-semibold text-slate-600">Lucro Líquido</label>
-                    <p className={`text-lg font-bold mt-1 ${(vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-700' : 'text-emerald-700'}`}>
-                      R$ {(vendaSelecionada.totalFinal || 0).toFixed(2)}{(vendaSelecionada.totalFinal || 0) < 0 ? ' (negativo)' : ''}
-                    </p>
+                      <div className="text-[8px] font-bold mb-0.5 ${
+                        (vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-600' : 'text-green-600'
+                      }">Lucro Líquido</div>
+                      <div className={`text-base font-bold ${
+                        (vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-700' : 'text-green-700'
+                      }`}>R$ {(vendaSelecionada.totalFinal || 0).toFixed(2)}</div>
+                    </div>
                   </div>
                 </div>
               )}
@@ -1341,15 +1481,6 @@ const LancamentoManual: React.FC = () => {
                   </div>
                 )
               )}
-
-              {/* Info Auditoria */}
-              <div className="bg-slate-100 rounded-lg p-4 text-xs text-slate-600 space-y-1">
-                <p>
-                  <strong>Usuário:</strong>{' '}
-                  {vendaSelecionada.userName || vendaSelecionada.userDisplayName || vendaSelecionada.userId}
-                </p>
-                <p><strong>Data da leitura:</strong> {new Date(vendaSelecionada.data).toLocaleDateString('pt-BR')}</p>
-              </div>
 
               {/* Botões de Ação */}
               <div className="flex gap-3 justify-end pt-4">

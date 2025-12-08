@@ -41,6 +41,8 @@ const NovaLeituraMobile: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [mensagem, setMensagem] = useState('');
   const [participaDespesa, setParticipaDespesa] = useState(true);
+  const [showToast, setShowToast] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
 
   // Helper para evitar NaN
   const toSafeNumber = (val: any) => {
@@ -319,8 +321,14 @@ const NovaLeituraMobile: React.FC = () => {
 
       console.log('✅ Leitura salva com sucesso!');
       setMensagem('✅ Leitura salva! Pronto para próxima...');
+      setIsSuccess(true);
+      setShowToast(true);
       
       // Resetar TODOS os campos para próxima leitura
+      setTimeout(() => {
+        setShowToast(false);
+      }, 2000);
+      
       setTimeout(() => {
         setRotaId('');
         setPontoId('');
@@ -345,6 +353,9 @@ const NovaLeituraMobile: React.FC = () => {
     } catch (error: any) {
       console.error('Erro ao salvar leitura:', error);
       setMensagem(`❌ Erro: ${error.message || 'Tente novamente'}`);
+      setIsSuccess(false);
+      setShowToast(true);
+      setTimeout(() => setShowToast(false), 3000);
     } finally {
       setLoading(false);
     }
@@ -352,114 +363,135 @@ const NovaLeituraMobile: React.FC = () => {
 
   if (loadingData) {
     return (
-      <div className="min-h-screen bg-white flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-indigo-50 flex items-center justify-center px-4">
         <div className="text-center">
-          <Loader2 className="animate-spin mx-auto mb-4 text-blue-600" size={48} />
-          <p className="text-gray-600 font-medium">Carregando dados...</p>
+          <div className="relative">
+            <div className="w-20 h-20 mx-auto mb-6 relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full animate-ping opacity-20"></div>
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600 to-indigo-600 rounded-full flex items-center justify-center">
+                <Loader2 className="animate-spin text-white" size={36} />
+              </div>
+            </div>
+          </div>
+          <h3 className="text-xl font-bold text-gray-800 mb-2">GesLeitura</h3>
+          <p className="text-gray-600 font-medium animate-pulse">Carregando dados...</p>
+          <div className="mt-4 flex justify-center gap-1">
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
+            <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-3 pb-24 space-y-3">
-      <form onSubmit={handleSubmit} className="space-y-3">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-indigo-50/30 p-2 pb-20">
+      <form onSubmit={handleSubmit} className="space-y-2 max-w-md mx-auto">
         {/* Identificação */}
-        <div className="bg-gray-50 p-3 rounded-lg">
-          <h2 className="font-bold text-base mb-3 text-gray-800">📍 Identificação</h2>
+        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-2.5 rounded-xl border border-blue-200">
+          <h2 className="font-bold text-sm mb-2 text-blue-900">📍 Identificação</h2>
           
-          <div className="space-y-2">
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Data</label>
-              <input
-                type="date"
-                value={data}
-                onChange={(e) => setData(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm"
-                required
-              />
+          <div className="grid grid-cols-2 gap-1.5">
+            {/* Coluna Esquerda: DATA e PONTO */}
+            <div className="space-y-1.5">
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-700 mb-0.5 uppercase tracking-wide">Data</label>
+                <input
+                  type="date"
+                  value={data}
+                  onChange={(e) => setData(e.target.value)}
+                  className="w-full p-1.5 border-2 border-blue-300 rounded-lg text-xs font-semibold bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-700 mb-0.5 uppercase tracking-wide">Ponto</label>
+                <select
+                  value={pontoId}
+                  onChange={(e) => setPontoId(e.target.value)}
+                  className="w-full p-1.5 border-2 border-blue-300 rounded-lg text-xs font-semibold bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  required
+                  disabled={!rotaId || loadingData}
+                >
+                  <option value="">
+                    {!rotaId ? 'Selecione rota' : 'Selecione'}
+                  </option>
+                  {pontosFiltrados.map(pt => (
+                    <option key={pt.id} value={pt.id}>
+                      {pt.codigo} - {pt.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">1. Rota</label>
-              <select
-                value={rotaId}
-                onChange={(e) => setRotaId(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
-                required
-                disabled={loadingData}
-              >
-                <option value="">Selecione a rota</option>
-                {rotas.map(rt => (
-                  <option key={rt.id} value={rt.id}>
-                    {rt.codigo} - {rt.nome}
+            {/* Coluna Direita: ROTA e MÁQUINA */}
+            <div className="space-y-1.5">
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-700 mb-0.5 uppercase tracking-wide">Rota</label>
+                <select
+                  value={rotaId}
+                  onChange={(e) => setRotaId(e.target.value)}
+                  className="w-full p-1.5 border-2 border-blue-300 rounded-lg text-xs font-semibold bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  required
+                  disabled={loadingData}
+                >
+                  <option value="">Selecione</option>
+                  {rotas.map(rt => (
+                    <option key={rt.id} value={rt.id}>
+                      {rt.codigo} - {rt.nome}
+                    </option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-[10px] font-semibold text-gray-700 mb-0.5 uppercase tracking-wide">
+                  Máquina {operadoresFiltrados.length > 0 && `(${operadoresFiltrados.length})`}
+                </label>
+                <select
+                  value={operadorId}
+                  onChange={(e) => setOperadorId(e.target.value)}
+                  className="w-full p-1.5 border-2 border-blue-300 rounded-lg text-xs font-semibold bg-white focus:border-blue-500 focus:ring-2 focus:ring-blue-200"
+                  required
+                  disabled={!pontoId || loadingData}
+                >
+                  <option value="">
+                    {!pontoId ? 'Selecione ponto' : 'Selecione'}
                   </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">2. Ponto</label>
-              <select
-                value={pontoId}
-                onChange={(e) => setPontoId(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
-                required
-                disabled={!rotaId || loadingData}
-              >
-                <option value="">
-                  {!rotaId ? 'Selecione uma rota primeiro' : 'Selecione o ponto'}
-                </option>
-                {pontosFiltrados.map(pt => (
-                  <option key={pt.id} value={pt.id}>
-                    {pt.codigo} - {pt.nome}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">
-                3. Máquina {operadoresFiltrados.length > 0 && `(${operadoresFiltrados.length} pendente)`}
-              </label>
-              <select
-                value={operadorId}
-                onChange={(e) => setOperadorId(e.target.value)}
-                className="w-full p-2 border border-gray-300 rounded-lg text-sm bg-white"
-                required
-                disabled={!pontoId || loadingData}
-              >
-                <option value="">
-                  {!pontoId ? 'Selecione um ponto primeiro' : 'Selecione a máquina'}
-                </option>
-                {operadoresFiltrados.map(op => (
-                  <option key={op.id} value={op.id}>
-                    {op.codigo} - {op.nome}
-                  </option>
-                ))}
-              </select>
-              {loadingUltimaLeitura && (
-                <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
-                  <Loader2 size={10} className="animate-spin" />
-                  Carregando...
-                </p>
-              )}
+                  {operadoresFiltrados.map(op => (
+                    <option key={op.id} value={op.id}>
+                      {op.codigo} - {op.nome}
+                    </option>
+                  ))}
+                </select>
+                {loadingUltimaLeitura && (
+                  <p className="text-[10px] text-blue-600 mt-0.5 flex items-center gap-1">
+                    <Loader2 size={10} className="animate-spin" />
+                    Carregando...
+                  </p>
+                )}
+              </div>
             </div>
           </div>
         </div>
 
         {/* Leituras */}
-        <div className="bg-blue-50 p-3 rounded-lg">
-          <h2 className="font-bold text-base mb-3 text-blue-900">🔢 Leituras</h2>
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 p-2.5 rounded-xl border border-blue-200 shadow-sm">
+          <h2 className="font-bold text-sm mb-2 text-blue-900 flex items-center gap-1.5">
+            <span className="text-base">🔢</span> Leituras
+          </h2>
           
-          <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-2 gap-1.5">
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Entrada Ant.</label>
+              <label className="block text-[10px] font-semibold text-gray-500 mb-0.5 uppercase tracking-wide flex items-center gap-1">
+                <span>⬇️</span> Entrada Ant.
+              </label>
               <input
                 type="number"
                 value={entradaAnterior}
                 onChange={(e) => setEntradaAnterior(e.target.value)}
-                className="w-full p-2 border border-blue-300 rounded-lg text-sm font-mono bg-blue-50"
+                className="w-full p-1.5 border border-gray-300 rounded-lg text-xs font-mono bg-gray-100 text-gray-500"
                 placeholder="0"
                 min="0"
                 step="0.01"
@@ -468,153 +500,212 @@ const NovaLeituraMobile: React.FC = () => {
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Entrada Atual</label>
+              <label className="block text-[10px] font-semibold text-green-700 mb-0.5 uppercase tracking-wide flex items-center gap-1">
+                <span>⬇️</span> Entrada Atual
+              </label>
               <input
                 type="number"
                 value={entradaAtual}
                 onChange={(e) => setEntradaAtual(e.target.value)}
-                className="w-full p-2 border border-blue-300 rounded-lg text-sm font-mono font-bold"
+                className="w-full p-1.5 border-2 border-green-400 rounded-lg text-xs font-mono font-bold bg-white focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
                 placeholder="0"
                 required
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Saída Ant.</label>
+              <label className="block text-[10px] font-semibold text-gray-500 mb-0.5 uppercase tracking-wide flex items-center gap-1">
+                <span>⬆️</span> Saída Ant.
+              </label>
               <input
                 type="number"
                 value={saidaAnterior}
                 onChange={(e) => setSaidaAnterior(e.target.value)}
-                className="w-full p-2 border border-blue-300 rounded-lg text-sm font-mono bg-blue-50"
+                className="w-full p-1.5 border border-gray-300 rounded-lg text-xs font-mono bg-gray-100 text-gray-500"
                 placeholder="0"
                 readOnly
               />
             </div>
 
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Saída Atual</label>
+              <label className="block text-[10px] font-semibold text-red-700 mb-0.5 uppercase tracking-wide flex items-center gap-1">
+                <span>⬆️</span> Saída Atual
+              </label>
               <input
                 type="number"
                 value={saidaAtual}
                 onChange={(e) => setSaidaAtual(e.target.value)}
-                className="w-full p-2 border border-blue-300 rounded-lg text-sm font-mono font-bold"
+                className="w-full p-1.5 border-2 border-red-400 rounded-lg text-xs font-mono font-bold bg-white focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all"
                 placeholder="0"
                 required
               />
             </div>
           </div>
 
-          {/* Totais Calculados */}
-          <div className="mt-2 p-2 bg-white rounded-lg border border-blue-200">
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-gray-600">Total Entrada:</span>
-              <span className="font-bold text-green-600">R$ {totalEntrada.toFixed(2)}</span>
+          {/* Totais Calculados - MELHORADO */}
+          <div className="mt-2 p-2.5 bg-gradient-to-br from-white to-blue-50 rounded-xl border-2 border-blue-300 shadow-sm">
+            <div className="flex justify-between text-xs mb-1 items-center">
+              <span className="text-gray-600 flex items-center gap-1">
+                <span className="text-green-500">▲</span> Total Entrada:
+              </span>
+              <span className="font-bold text-green-600 text-sm">R$ {totalEntrada.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-gray-600">Total Saída:</span>
-              <span className="font-bold text-red-600">R$ {totalSaida.toFixed(2)}</span>
+            <div className="flex justify-between text-xs mb-1 items-center">
+              <span className="text-gray-600 flex items-center gap-1">
+                <span className="text-red-500">▼</span> Total Saída:
+              </span>
+              <span className="font-bold text-red-600 text-sm">R$ {totalSaida.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between text-xs mb-1">
-              <span className="text-gray-600">Entrada - Saída:</span>
-              <span className="font-bold text-purple-600">R$ {entradaMenosSaida.toFixed(2)}</span>
+            <div className="flex justify-between text-xs mb-1 items-center">
+              <span className="text-gray-600 flex items-center gap-1">
+                <span className="text-purple-500">↔️</span> Entrada - Saída:
+              </span>
+              <span className="font-bold text-purple-600 text-sm">R$ {entradaMenosSaida.toFixed(2)}</span>
             </div>
             {fatorConversao !== 1 && (
-              <div className="flex justify-between text-xs mb-1 text-blue-700">
-                <span>× Fator ({fatorConversao}):</span>
-                <span className="font-bold">R$ {liquidoDaMaquina.toFixed(2)}</span>
+              <div className="flex justify-between text-xs mb-1 text-blue-700 items-center">
+                <span className="flex items-center gap-1">
+                  <span>×</span> Fator ({fatorConversao}):
+                </span>
+                <span className="font-bold text-sm">R$ {liquidoDaMaquina.toFixed(2)}</span>
               </div>
             )}
-            <div className="flex justify-between text-sm font-bold border-t pt-1 mt-1">
-              <span className="text-gray-800">Líquido Máquina:</span>
-              <span className="text-blue-600">R$ {liquidoDaMaquina.toFixed(2)}</span>
+            <div className="flex justify-between text-sm font-bold border-t-2 border-blue-300 pt-1.5 mt-1.5 bg-gradient-to-r from-blue-50 to-transparent -mx-2.5 -mb-2.5 px-2.5 pb-2.5 rounded-b-xl">
+              <span className="text-gray-800 flex items-center gap-1">
+                <span className="text-blue-600">📊</span> Líquido Máquina:
+              </span>
+              <span className="text-blue-700 text-base">R$ {liquidoDaMaquina.toFixed(2)}</span>
             </div>
           </div>
         </div>
 
         {/* Financeiro */}
-        <div className="bg-green-50 p-3 rounded-lg">
-          <h2 className="font-bold text-base mb-3 text-green-900">💰 Financeiro</h2>
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-2.5 rounded-xl border border-green-200">
+          <h2 className="font-bold text-sm mb-2 text-green-900">💰 Financeiro</h2>
           
-          <div className="space-y-2">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Comissão %</label>
-                <input
-                  type="text"
-                  value={`${comissaoPorcentagem}%`}
-                  readOnly
-                  className="w-full p-1.5 border border-gray-300 rounded text-xs bg-gray-100 text-gray-600 text-center"
-                />
+          <div className="space-y-1.5">
+            {/* Cards Positivos e Negativos - MOVIDOS PARA CIMA */}
+            <div className="grid grid-cols-2 gap-1.5 text-[11px]">
+              <div className="bg-gradient-to-br from-green-100 to-green-50 border-2 border-green-300 rounded-lg p-2 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md">
+                <div className="text-green-800 font-bold mb-1.5 flex items-center gap-1">
+                  <span className="text-sm">✓</span> Positivos
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Entrada:</span>
+                    <span className="font-bold text-green-800">R$ {totalEntrada.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-green-700">Líquido:</span>
+                    <span className="font-bold text-green-800">R$ {liquidoDaMaquina.toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
-              
-              <div>
-                <label className="block text-xs font-medium text-gray-600 mb-1">Fator</label>
-                <input
-                  type="text"
-                  value={`x${fatorConversao}`}
-                  readOnly
-                  className="w-full p-1.5 border border-gray-300 rounded text-xs bg-gray-100 text-gray-600 text-center"
-                />
+              <div className="bg-gradient-to-br from-red-100 to-red-50 border-2 border-red-300 rounded-lg p-2 shadow-sm transition-all duration-300 hover:scale-105 hover:shadow-md">
+                <div className="text-red-800 font-bold mb-1.5 flex items-center gap-1">
+                  <span className="text-sm">✗</span> Negativos
+                </div>
+                <div className="space-y-0.5">
+                  <div className="flex justify-between">
+                    <span className="text-red-700">Saída:</span>
+                    <span className="font-bold text-red-800">R$ {totalSaida.toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-red-700">Despesa:</span>
+                    <span className="font-bold text-red-800">R$ {Number(despesa || 0).toFixed(2)}</span>
+                  </div>
+                </div>
               </div>
             </div>
 
+            {/* Campo Despesas - MOVIDO PARA BAIXO */}
             <div>
-              <label className="block text-xs font-medium text-gray-700 mb-1">Despesas (R$)</label>
+              <label className="block text-[10px] font-semibold text-gray-700 mb-0.5 uppercase tracking-wide">Despesas (R$)</label>
               <input
                 type="number"
                 value={despesa}
                 onChange={(e) => setDespesa(e.target.value)}
-                className="w-full p-2 border border-green-300 rounded-lg text-sm"
+                className="w-full p-1.5 border-2 border-orange-300 rounded-lg text-xs font-semibold focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
                 placeholder="0.00"
                 step="0.01"
               />
             </div>
 
-            <div className="p-2 bg-white rounded-lg border border-green-200">
-              <div className="flex justify-between text-xs mb-1">
+            {/* Informações Compactas - SÓ VALORES */}
+            <div className="flex justify-around text-[10px] text-gray-700 bg-white/60 py-1 px-2 rounded-lg border border-gray-200">
+              <span>Comissão: <strong className="text-blue-700">{comissaoPorcentagem}%</strong></span>
+              <span className="text-gray-300">|</span>
+              <span>Fator: <strong className="text-purple-700">×{fatorConversao}</strong></span>
+            </div>
+
+            {/* Resumo Final */}
+            <div className="p-2 bg-white rounded-lg border-2 border-green-300 shadow-sm">
+              <div className="flex justify-between text-xs mb-0.5">
                 <span className="text-gray-600">Comissão:</span>
                 <span className="font-bold text-orange-600">- R$ {valorComissao.toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-xs mb-1">
+              <div className="flex justify-between text-xs mb-0.5">
                 <span className="text-gray-600">Despesas:</span>
                 <span className="font-bold text-orange-600">- R$ {Number(despesa || 0).toFixed(2)}</span>
               </div>
-              <div className="flex justify-between text-base font-bold border-t pt-1 mt-1">
+              <div className="flex justify-between text-sm font-bold border-t-2 border-green-200 pt-1 mt-1">
                 <span className="text-gray-800">Total Final:</span>
-                <span className="text-green-600">R$ {totalFinal.toFixed(2)}</span>
+                <span className="text-green-700">R$ {totalFinal.toFixed(2)}</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Upload de Foto - DESATIVADO */}
-        <div className="bg-gray-50 p-3 rounded-lg border-2 border-dashed border-gray-300">
-          <h2 className="font-bold text-base mb-2 text-gray-600">📸 Foto (Desativada)</h2>
-          <p className="text-xs text-gray-500 text-center py-2">
-            ⚠️ Recurso temporariamente desativado para reduzir custos iniciais.
-            <br />
-            Será reativado após rentabilização do projeto.
+        {/* Foto Desativada - Ultra Compacto */}
+        <div className="text-center py-1">
+          <p className="text-[10px] text-gray-400">
+            📸 Foto desativada
           </p>
         </div>
 
-        {/* Mensagem de Status */}
+        {/* Toast Animado de Sucesso/Erro */}
         {mensagem && (
-          <div className={`p-4 rounded-xl text-center font-bold ${
-            mensagem.includes('✅') ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+          <div className={`fixed top-4 left-4 right-4 z-50 transform transition-all duration-500 ${
+            showToast ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
           }`}>
-            {mensagem}
+            <div className={`p-4 rounded-2xl text-center font-bold shadow-2xl backdrop-blur-sm border-2 ${
+              mensagem.includes('✅') 
+                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-300' 
+                : 'bg-gradient-to-r from-red-500 to-rose-500 text-white border-red-300'
+            } animate-bounce`}>
+              <div className="flex items-center justify-center gap-2">
+                {mensagem.includes('✅') ? (
+                  <CheckCircle size={24} className="animate-pulse" />
+                ) : (
+                  <span className="text-2xl">❌</span>
+                )}
+                <span>{mensagem}</span>
+              </div>
+            </div>
           </div>
         )}
 
-        {/* Botão de Envio */}
+        {/* Botão de Envio com Micro-interações */}
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-4 rounded-full text-white text-base font-bold shadow-lg transition-all duration-200 ${
-            loading ? 'bg-slate-300 opacity-70' : 'bg-[#008069] hover:bg-[#006d59] active:bg-[#005c4b] hover:shadow-xl'
+          className={`w-full py-3.5 rounded-xl text-white text-base font-extrabold shadow-lg transition-all duration-300 transform ${
+            loading 
+              ? 'bg-gradient-to-r from-gray-300 to-gray-400 opacity-70 cursor-not-allowed' 
+              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 hover:scale-105 hover:shadow-2xl hover:-translate-y-0.5'
           }`}
         >
-          {loading ? 'Salvando...' : '💾 Salvar Leitura'}
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <Loader2 className="animate-spin" size={20} />
+              <span className="animate-pulse">Salvando...</span>
+            </span>
+          ) : (
+            <span className="flex items-center justify-center gap-2">
+              <span className="animate-bounce">💾</span>
+              Salvar Leitura
+            </span>
+          )}
         </button>
       </form>
     </div>
