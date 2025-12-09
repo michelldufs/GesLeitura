@@ -552,21 +552,23 @@ const Despesas: React.FC = () => {
         title="Gestão de Despesas"
         subtitle="Registre e acompanhe despesas da localidade"
         action={
-          <div className="flex gap-3">
-            <ButtonPrimary
+          <div className="flex gap-2">
+            <button
               onClick={handleOpenCCModal}
               disabled={!isAuthorized}
-              className="flex items-center gap-2 bg-gradient-to-r from-purple-500 to-purple-600 hover:from-purple-600 hover:to-purple-700"
+              className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 text-gray-700 rounded-lg hover:bg-gray-50 hover:border-gray-300 text-sm font-medium transition-all shadow-sm disabled:opacity-50"
             >
-              <FolderTree size={20} /> Centro de Custos
-            </ButtonPrimary>
-            <ButtonPrimary
+              <FolderTree size={16} className="text-purple-600" />
+              <span className="hidden sm:inline">Centro de Custos</span>
+            </button>
+            <button
               onClick={handleOpenModal}
               disabled={!isAuthorized}
-              className="flex items-center gap-2"
+              className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50"
             >
-              <Plus size={20} /> Nova Despesa
-            </ButtonPrimary>
+              <Plus size={16} />
+              <span>Nova Despesa</span>
+            </button>
           </div>
         }
       />
@@ -588,39 +590,42 @@ const Despesas: React.FC = () => {
       )}
 
       {/* Resumo de Despesas */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
         {/* Total Geral */}
-        <GlassCard className="p-6 border-l-4 border-red-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-semibold mb-1">Total de Despesas (Filtrado)</p>
-              <p className="text-3xl font-bold text-red-600">R$ {totalDespesas.toFixed(2)}</p>
-            </div>
-            <DollarSign className="text-red-400" size={40} />
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Despesas</p>
+            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">R$ {totalDespesas.toFixed(2)}</h3>
+            <p className="text-gray-400 text-[10px] mt-1">Valor filtrado</p>
           </div>
-        </GlassCard>
+          <div className="p-3 bg-rose-50 rounded-xl text-rose-600">
+            <DollarSign size={24} />
+          </div>
+        </div>
 
         {/* Despesas Operacionais */}
-        <GlassCard className="p-6 border-l-4 border-orange-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-semibold mb-1">Operacionais</p>
-              <p className="text-3xl font-bold text-orange-600">R$ {despesasOperacionais.toFixed(2)}</p>
-            </div>
-            <div className="text-4xl">🏭</div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Operacionais</p>
+            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">R$ {despesasOperacionais.toFixed(2)}</h3>
+            <p className="text-gray-400 text-[10px] mt-1">Manutenção e serviços</p>
           </div>
-        </GlassCard>
+          <div className="p-3 bg-orange-50 rounded-xl text-orange-600">
+            <div className="text-xl">🏭</div>
+          </div>
+        </div>
 
         {/* Adiantamentos */}
-        <GlassCard className="p-6 border-l-4 border-yellow-500">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-gray-600 text-sm font-semibold mb-1">Adiantamentos</p>
-              <p className="text-3xl font-bold text-yellow-600">R$ {despesasAdiantamento.toFixed(2)}</p>
-            </div>
-            <div className="text-4xl">💰</div>
+        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+          <div>
+            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Adiantamentos</p>
+            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">R$ {despesasAdiantamento.toFixed(2)}</h3>
+            <p className="text-gray-400 text-[10px] mt-1">Valores antecipados</p>
           </div>
-        </GlassCard>
+          <div className="p-3 bg-yellow-50 rounded-xl text-yellow-600">
+            <div className="text-xl">💰</div>
+          </div>
+        </div>
       </div>
 
       {/* Tabela de Despesas */}
@@ -702,37 +707,39 @@ const Despesas: React.FC = () => {
               </thead>
               <tbody>
                 {filteredDespesas.map((despesa) => (
-                  <tr key={despesa.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
+                  <tr key={despesa.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors even:bg-gray-50/30">
                     {/* Data */}
-                    <td className="px-2 py-1 font-medium text-gray-900 text-sm whitespace-nowrap">
+                    <td className="px-2 py-2 font-medium text-gray-700 text-xs whitespace-nowrap">
                       {new Date(despesa.data).toLocaleDateString('pt-BR')}
                     </td>
 
                     {/* Origem */}
-                    <td className="px-2 py-1">
-                      <Badge variant={despesa.origem === 'manual' ? 'primary' : 'secondary'}>
-                        {despesa.origem === 'manual' ? 'Manual' : 'Leitura'}
-                      </Badge>
+                    <td className="px-2 py-2">
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${despesa.origem === 'manual'
+                          ? 'bg-blue-50 text-blue-700 border-blue-100'
+                          : 'bg-gray-50 text-gray-600 border-gray-100'
+                        }`}>
+                        {despesa.origem === 'manual' ? 'MANUAL' : 'SISTEMA'}
+                      </span>
                     </td>
 
                     {/* Descrição */}
-                    <td className="px-2 py-1 text-gray-600 flex items-center gap-2 text-sm min-w-[200px]">
-                      <div className={`p-1 rounded-lg flex-shrink-0 ${despesa.tipo === 'operacional' ? 'bg-orange-100 text-orange-600' : 'bg-yellow-100 text-yellow-600'}`}>
-                        <DollarSign size={14} />
+                    <td className="px-2 py-2 text-gray-600 flex items-center gap-2 text-xs min-w-[200px]">
+                      <div className={`p-1 rounded flex-shrink-0 ${despesa.tipo === 'operacional' ? 'bg-orange-50 text-orange-600' : 'bg-yellow-50 text-yellow-600'}`}>
+                        <DollarSign size={12} />
                       </div>
-                      <span className="truncate" title={despesa.descricao}>{despesa.descricao}</span>
+                      <span className="truncate font-medium uppercase" title={despesa.descricao}>{despesa.descricao}</span>
                     </td>
 
                     {/* Centro de Custo */}
-                    <td className="px-2 py-1 text-gray-600 text-sm whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md text-xs font-medium">
-                        <FolderTree size={12} />
+                    <td className="px-2 py-2 text-gray-600 text-xs whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded border border-purple-100 text-[10px] font-medium uppercase tracking-wide">
                         {getCentroCustoNome(despesa.centroCustoId)}
                       </span>
                     </td>
 
                     {/* Usuário */}
-                    <td className="px-2 py-1 text-gray-500 text-xs whitespace-nowrap">
+                    <td className="px-2 py-2 text-gray-500 text-[10px] uppercase whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <User size={12} />
                         {despesa.userNameDisplay}
@@ -740,19 +747,19 @@ const Despesas: React.FC = () => {
                     </td>
 
                     {/* Valor */}
-                    <td className="px-2 py-1 text-right font-bold text-red-600 text-sm whitespace-nowrap">
-                      R$ {despesa.valor.toFixed(2)}
+                    <td className="px-2 py-2 text-right font-bold text-red-600 text-sm whitespace-nowrap">
+                      - {despesa.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                     </td>
 
                     {/* Ações */}
-                    <td className="px-2 py-1 text-right whitespace-nowrap">
+                    <td className="px-2 py-2 text-right whitespace-nowrap">
                       <div className="flex justify-end gap-1">
                         {despesa.origem === 'manual' ? (
                           <>
                             <button
                               onClick={() => handleEdit(despesa)}
                               disabled={!isAuthorized}
-                              className="p-1 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors disabled:opacity-50"
+                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50"
                               title="Editar"
                             >
                               <Edit2 size={14} />
@@ -760,14 +767,14 @@ const Despesas: React.FC = () => {
                             <button
                               onClick={() => handleDelete(despesa.id || '', despesa.origem)}
                               disabled={!isAuthorized}
-                              className="p-1 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors disabled:opacity-50"
+                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors disabled:opacity-50"
                               title="Desativar"
                             >
-                              <Ban size={14} />
+                              <Trash2 size={14} />
                             </button>
                           </>
                         ) : (
-                          <div title="Gerenciado em Leituras" className="p-1 text-gray-400 cursor-help">
+                          <div title="Gerenciado em Leituras" className="p-1.5 text-gray-300 cursor-not-allowed">
                             <Info size={14} />
                           </div>
                         )}

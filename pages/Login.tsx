@@ -110,7 +110,7 @@ const Login: React.FC = () => {
     }
 
     return (
-        <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center p-4 font-system">
+        <div className="min-h-screen bg-[#f0f2f5] flex items-center justify-center p-4">
             <div className="w-full max-w-sm bg-white p-10 rounded-[2.5rem] shadow-2xl shadow-slate-200/50">
 
                 {/* Logo/Icon */}

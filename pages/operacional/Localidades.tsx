@@ -145,7 +145,7 @@ const Localidades: React.FC = () => {
         </div>
       )}
 
-      <GlassCard className="p-8">
+      <GlassCard className="p-4 md:p-8">
         <h2 className="text-2xl font-semibold text-slate-900 mb-6">Localidades Cadastradas</h2>
 
         {localidades.length === 0 ? (
@@ -182,11 +182,10 @@ const Localidades: React.FC = () => {
                     <td className="px-3 py-3 text-center">
                       <button
                         onClick={() => handleToggleStatus(localidade)}
-                        className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${
-                          localidade.active 
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                        className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${localidade.active
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
                             : 'bg-red-100 text-red-700 hover:bg-red-200'
-                        }`}
+                          }`}
                         title={localidade.active ? 'Clique para desativar' : 'Clique para ativar'}
                       >
                         {localidade.active ? '✓ Ativo' : '✕ Inativo'}

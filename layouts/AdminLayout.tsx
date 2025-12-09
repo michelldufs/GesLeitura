@@ -23,11 +23,10 @@ const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }
     <Link
       to={path}
       onClick={onClose}
-      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm ${
-        isActive(path)
-          ? 'bg-emerald-50 text-emerald-700 shadow-sm'
-          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
-      }`}
+      className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 font-medium text-sm ${isActive(path)
+        ? 'bg-emerald-50 text-emerald-700 shadow-sm'
+        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+        }`}
     >
       <Icon size={18} />
       <span className="flex-1">{label}</span>
@@ -46,9 +45,8 @@ const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }
   const canAccessFinanceiro = ['admin', 'gerente', 'financeiro'].includes(userProfile?.role || '');
   const canAccessAdmin = userProfile?.role === 'admin';
 
-  const sidebarClasses = `w-64 sm:w-64 md:w-64 bg-white border-r border-gray-200 min-h-screen p-4 flex flex-col shadow-sm ${
-    isOpen ? 'fixed left-0 top-0 z-40 h-screen' : 'hidden sm:flex'
-  }`;
+  const sidebarClasses = `w-64 sm:w-64 md:w-64 bg-white border-r border-gray-200 min-h-screen p-4 flex flex-col shadow-sm ${isOpen ? 'fixed left-0 top-0 z-40 h-screen' : 'hidden sm:flex'
+    }`;
 
   return (
     <>
@@ -126,7 +124,10 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
-      const timeString = now.toLocaleTimeString('pt-BR', {
+      const timeString = now.toLocaleString('pt-BR', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric',
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
@@ -150,7 +151,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
   };
 
   return (
-    <div className="flex bg-gray-50 min-h-screen">
+    <div className="flex bg-gray-50 h-screen w-full overflow-hidden">
       <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
       <main className="flex-1 flex flex-col overflow-hidden">
         {/* Header */}
@@ -168,42 +169,56 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
 
             <div className="flex-1" />
 
-            {/* Direita - Relógio, Localidade e Usuário */}
-            <div className="flex items-center gap-3 sm:gap-4 md:gap-6 flex-wrap sm:flex-nowrap justify-end">
-              {/* Relógio - Hidden em mobile extra pequeno */}
-              <div className="hidden sm:flex items-center gap-2 text-gray-700">
-                <Clock size={16} className="text-gray-500 flex-shrink-0" />
-                <span className="text-xs sm:text-sm font-mono">{currentTime}</span>
+            {/* Direita - Relógio, Localidade e Usuário - Linha Única */}
+            <div className="flex items-center text-xs sm:text-sm font-medium text-gray-600 bg-white rounded-lg">
+
+              {/* Data e Hora */}
+              <div className="hidden sm:flex items-center gap-2 px-2">
+                <Clock size={14} className="text-gray-400" />
+                <span className="font-mono tracking-wide">{currentTime}</span>
               </div>
 
-              {/* Localidade entre relógio e usuário - Adaptável */}
-              {selectedLocalidade && selectedLocalidadeName && (
-                <button
-                  onClick={() => setIsModalOpen(true)}
-                  className="hidden md:flex items-center gap-2 px-3 md:px-4 py-1.5 md:py-2 bg-emerald-50 hover:bg-emerald-100 rounded-xl border border-emerald-200 transition-colors cursor-pointer text-xs md:text-sm"
-                >
-                  <MapPin size={14} className="text-emerald-600 flex-shrink-0" />
-                  <div className="text-left">
-                    <p className="text-xs text-emerald-600 font-medium">Localidade</p>
-                    <p className="text-xs md:text-sm text-emerald-900 font-semibold">{selectedLocalidadeName}</p>
-                  </div>
-                </button>
+              {/* Separador */}
+              <ChevronRight size={14} className="text-gray-300 mx-1 hidden sm:block" />
+
+              {/* Localidade (Clicável) */}
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className={`flex items-center gap-2 px-2 py-1 rounded-md transition-colors ${selectedLocalidade
+                  ? 'text-emerald-700 hover:bg-emerald-50'
+                  : 'text-amber-600 hover:bg-amber-50'
+                  }`}
+              >
+                <MapPin size={14} />
+                <span className="uppercase tracking-tight whitespace-nowrap">
+                  {selectedLocalidadeName || 'Selecione Localidade'}
+                </span>
+              </button>
+
+              {/* Separador */}
+              {userProfile && (
+                <ChevronRight size={14} className="text-gray-300 mx-1" />
               )}
 
-              {/* Usuário e Logout - Adaptável */}
-              <div className="flex items-center gap-2 sm:gap-3 pl-2 sm:pl-4 md:pl-6 border-l border-gray-200">
-                <div className="text-right hidden sm:block">
-                  <p className="text-xs sm:text-sm font-medium text-gray-900">{userProfile?.name}</p>
-                  <p className="text-xs text-gray-500 capitalize">{userProfile?.role}</p>
+              {/* Usuário (Sem Perfil) */}
+              {userProfile && (
+                <div className="flex items-center gap-2 px-2 text-gray-900 uppercase tracking-tight whitespace-nowrap">
+                  <Users size={14} className="text-gray-400" />
+                  <span>{userProfile.name}</span>
                 </div>
-                <button
-                  onClick={handleLogout}
-                  className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1.5 sm:py-2 rounded-xl text-gray-600 hover:bg-rose-50 hover:text-rose-600 transition-all duration-200 font-medium text-xs sm:text-sm border border-transparent hover:border-rose-200"
-                >
-                  <LogOut size={14} className="sm:w-4 sm:h-4" />
-                  <span className="hidden sm:inline">Sair</span>
-                </button>
-              </div>
+              )}
+
+              {/* Separador */}
+              <ChevronRight size={14} className="text-gray-300 mx-1" />
+
+              {/* Botão Sair */}
+              <button
+                onClick={handleLogout}
+                className="flex items-center gap-1.5 px-2 py-1 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-all uppercase tracking-tight"
+              >
+                <LogOut size={14} />
+                <span>Sair</span>
+              </button>
             </div>
           </div>
         </header>

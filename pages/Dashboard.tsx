@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, MapPin, Plus, ArrowUpRight, ArrowDownRight, AlertTriangle, Search, Filter } from 'lucide-react';
 import { collection, getDocs, limit, query, where, orderBy } from 'firebase/firestore';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
 import { db } from '../services/firebaseConfig';
@@ -144,13 +144,13 @@ const Dashboard: React.FC = () => {
     const pontosLidos = new Set(vendas.map(v => v.pontoId)).size;
     const totalEntrada = vendas.reduce((acc, v) => acc + toSafeNumber(v.totalEntrada), 0);
     const totalSaida = vendas.reduce((acc, v) => acc + toSafeNumber(v.totalSaida), 0);
-    
+
     // Total Líquido (Bruto): usar totalGeral ou liquidoDaMaquina como fallback
     const totalGeral = vendas.reduce((acc, v) => {
       const valor = v.totalGeral || (v as any).liquidoDaMaquina || 0;
       return acc + toSafeNumber(valor);
     }, 0);
-    
+
     const despesasOperacionais = vendas.reduce((acc, v) => acc + toSafeNumber(v.despesa), 0);
     const totalComissoes = vendas.reduce((acc, v) => acc + toSafeNumber(v.valorComissao), 0);
     const totalDespesas = despesasOperacionais; // Apenas despesas operacionais
@@ -162,31 +162,15 @@ const Dashboard: React.FC = () => {
 
     const margem = totalGeral > 0 ? (lucroLiquido / totalGeral) * 100 : 0;
 
-    // Debug
-    console.log('Dashboard Resumo:', {
-      totalVendas: vendas.length,
-      pontosLidos,
-      totalGeral,
-      totalDespesas,
-      totalComissoes,
-      lucroLiquido,
-      margem,
-      amostra: vendas.slice(0, 3).map(v => ({
-        totalGeral: v.totalGeral,
-        liquidoDaMaquina: (v as any).liquidoDaMaquina,
-        totalFinal: v.totalFinal
-      }))
-    });
-
     return { pontosLidos, totalEntrada, totalGeral, totalDespesas, totalComissoes, lucroLiquido, margem };
   }, [vendas]);
 
   const summaryCards = [
-    { label: 'PONTOS LIDOS', value: resumo.pontosLidos.toString(), sub: 'máquinas', icon: '📍', iconBg: 'bg-violet-50', iconText: 'text-violet-600' },
-    { label: 'TOTAL LÍQUIDO', value: formatCurrency(resumo.totalGeral), sub: 'entrada - saída', icon: '💵', iconBg: 'bg-blue-50', iconText: 'text-blue-600' },
-    { label: 'TOTAL DESPESA', value: formatCurrency(resumo.totalDespesas), sub: 'despesas operacionais', icon: '📤', iconBg: 'bg-rose-50', iconText: 'text-rose-600' },
-    { label: 'LUCRO LÍQUIDO', value: formatCurrency(resumo.lucroLiquido), sub: 'resultado final', icon: '✅', iconBg: 'bg-emerald-50', iconText: 'text-emerald-600' },
-    { label: 'MARGEM', value: formatPercent(resumo.margem), sub: '% lucro real', icon: '📊', iconBg: 'bg-amber-50', iconText: 'text-amber-600' }
+    { label: 'PONTOS LIDOS', value: resumo.pontosLidos.toString(), icon: '📍', iconBg: 'bg-violet-50', iconText: 'text-violet-600' },
+    { label: 'TOTAL LÍQUIDO', value: formatCurrency(resumo.totalGeral), icon: '💵', iconBg: 'bg-blue-50', iconText: 'text-blue-600' },
+    { label: 'TOTAL DESPESA', value: formatCurrency(resumo.totalDespesas), icon: '📤', iconBg: 'bg-rose-50', iconText: 'text-rose-600' },
+    { label: 'LUCRO LÍQUIDO', value: formatCurrency(resumo.lucroLiquido), icon: '✅', iconBg: 'bg-emerald-50', iconText: 'text-emerald-600' },
+    { label: 'MARGEM', value: formatPercent(resumo.margem), icon: '📊', iconBg: 'bg-amber-50', iconText: 'text-amber-600' }
   ];
 
   // Agrupamento de Vendas por Ponto e Data para a Tabela
@@ -216,7 +200,7 @@ const Dashboard: React.FC = () => {
 
       // Usar totalGeral ou liquidoDaMaquina como fallback
       const geral = toSafeNumber(v.totalGeral || (v as any).liquidoDaMaquina || 0);
-      
+
       // Calcular fator implícito desta venda para converter entrada/saída em Reais
       const diff = toSafeNumber(v.totalEntrada) - toSafeNumber(v.totalSaida);
       const fator = (diff !== 0 && geral !== 0) ? geral / diff : 1;
@@ -306,39 +290,27 @@ const Dashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Filtros de Período */}
-      <div className="flex flex-wrap items-center gap-2 mb-6">
-        <span className="text-sm font-medium text-gray-600 mr-2">Período:</span>
-        <button
-          onClick={() => setFiltroTipo('hoje')}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-            filtroTipo === 'hoje'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
-              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-          }`}
-        >
-          Hoje
-        </button>
-        <button
-          onClick={() => setFiltroTipo('semana')}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-            filtroTipo === 'semana'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
-              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-          }`}
-        >
-          7 dias
-        </button>
-        <button
-          onClick={() => setFiltroTipo('mes')}
-          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
-            filtroTipo === 'mes'
-              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
-              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
-          }`}
-        >
-          Mês atual
-        </button>
+      {/* Filtros de Período - Estilo Segmented Control */}
+      <div className="flex items-center gap-4 mb-6">
+        <span className="text-sm font-medium text-gray-500">Período:</span>
+        <div className="bg-white p-1 rounded-xl border border-gray-200 inline-flex shadow-sm">
+          {[
+            { id: 'hoje', label: 'Hoje' },
+            { id: 'semana', label: '7 dias' },
+            { id: 'mes', label: 'Mês atual' }
+          ].map((option) => (
+            <button
+              key={option.id}
+              onClick={() => setFiltroTipo(option.id as any)}
+              className={`px-4 py-1.5 rounded-lg text-sm font-medium transition-all ${filtroTipo === option.id
+                ? 'bg-emerald-100 text-emerald-800 shadow-sm'
+                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                }`}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {!selectedLocalidade && (
@@ -356,65 +328,86 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Resumo cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {summaryCards.map((card) => (
-          <div key={card.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className={`${card.iconBg} ${card.iconText} rounded-full p-3 text-2xl`}>
+          <div key={card.label} className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex flex-col justify-between hover:shadow-md transition-shadow">
+            <div className="flex items-center justify-between gap-2 mb-2">
+              <div className={`${card.iconBg} ${card.iconText} rounded-lg p-1.5 text-base shrink-0`}>
                 {card.icon}
               </div>
+              <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider text-right leading-tight">
+                {card.label}
+              </p>
             </div>
-            <p className="text-gray-500 text-sm font-medium mb-1">{card.label}</p>
-            <h3 className="text-gray-900 text-3xl font-bold tracking-tight">{card.value}</h3>
-            <p className="text-gray-500 text-xs mt-2">{card.sub}</p>
+
+            <div>
+              <h3 className="text-gray-900 text-lg sm:text-xl font-bold tracking-tight truncate leading-none">
+                {card.value}
+              </h3>
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-xs text-gray-500 font-medium">Top 10 Pontos (Lucro)</p>
-              <p className="text-lg font-bold text-gray-900">Desempenho por Ponto</p>
-            </div>
-          </div>
-          <div className="h-64">
+      {/* Gráficos Compactos */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 mb-4">
+        {/* Gráfico Pontos */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex flex-col">
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Desempenho por Ponto</h3>
+          <div className="flex-1 min-h-[160px]">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartDataPonto} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <BarChart data={chartDataPonto} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f3f4f6" />
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: '#6b7280' }} />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  width={90}
+                  tick={{ fontSize: 10, fill: '#6b7280' }}
+                  interval={0}
+                />
                 <Tooltip
                   formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: 'white' }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
                 />
-                <Bar dataKey="value" fill="#059669" radius={[0, 8, 8, 0]} barSize={20} />
+                <Bar dataKey="value" fill="#059669" radius={[0, 4, 4, 0]} barSize={16} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <p className="text-xs text-gray-500 font-medium">Faturamento por Rota</p>
-              <p className="text-lg font-bold text-gray-900">Total por Rota</p>
-            </div>
-          </div>
-          <div className="h-64">
+        {/* Gráfico Rotas */}
+        <div className="bg-white rounded-xl border border-gray-100 shadow-sm p-3 flex flex-col">
+          <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">Distribuição por Rota</h3>
+          <div className="flex-1 min-h-[160px] flex items-center justify-center">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartDataRota} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
-                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <YAxis hide />
+              <PieChart>
+                <Pie
+                  data={chartDataRota}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={45}
+                  outerRadius={65}
+                  paddingAngle={4}
+                  dataKey="value"
+                >
+                  {chartDataRota.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#059669', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'][index % 5]} />
+                  ))}
+                </Pie>
                 <Tooltip
                   formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: 'white' }}
+                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', fontSize: '12px' }}
                 />
-                <Bar dataKey="value" fill="#059669" radius={[8, 8, 0, 0]} barSize={40} />
-              </BarChart>
+                <Legend
+                  verticalAlign="middle"
+                  align="right"
+                  layout="vertical"
+                  iconType="circle"
+                  formatter={(value) => <span className="text-[10px] text-gray-500 font-medium ml-1 uppercase">{value}</span>}
+                  wrapperStyle={{ paddingLeft: '10px' }}
+                />
+              </PieChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -445,7 +438,7 @@ const Dashboard: React.FC = () => {
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {['Data', 'Código', 'Nome do Ponto', 'Rota', 'Entrada', 'Saída', 'Líquido', 'Comissão', 'Despesa', 'Lucro'].map((h) => (
-                  <th key={h} className="px-2 py-1 text-left font-semibold text-gray-600 text-[10px] uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="px-3 py-2 text-left font-semibold text-gray-600 text-[10px] uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
@@ -453,21 +446,21 @@ const Dashboard: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-gray-100 bg-white">
               {filteredRecentes.map((item, idx) => (
-                <tr key={item.id || idx} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-2 py-1 text-gray-700 font-medium text-xs whitespace-nowrap">{formatDate(item.data)}</td>
-                  <td className="px-2 py-1 text-gray-800 font-bold text-xs font-mono">{getPontoCodigo(item.pontoId)}</td>
-                  <td className="px-2 py-1 text-gray-900 font-medium text-xs whitespace-nowrap">{getPontoNome(item.pontoId)}</td>
-                  <td className="px-2 py-1">
-                    <Badge variant="secondary" className="text-[10px] px-1 py-0.5 h-auto">
+                <tr key={item.id || idx} className="hover:bg-emerald-50/30 transition-colors even:bg-gray-50/30">
+                  <td className="px-3 py-2 text-gray-700 font-medium text-xs whitespace-nowrap">{formatDate(item.data)}</td>
+                  <td className="px-3 py-2 text-gray-800 font-bold text-xs font-mono">{getPontoCodigo(item.pontoId)}</td>
+                  <td className="px-3 py-2 text-gray-900 font-medium text-xs whitespace-nowrap">{getPontoNome(item.pontoId)}</td>
+                  <td className="px-3 py-2">
+                    <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 h-auto">
                       {getRotaNome(item.rotaId)}
                     </Badge>
                   </td>
-                  <td className="px-2 py-1 text-emerald-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalEntrada))}</td>
-                  <td className="px-2 py-1 text-amber-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalSaida))}</td>
-                  <td className="px-2 py-1 text-blue-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalGeral))}</td>
-                  <td className="px-2 py-1 text-gray-500 text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.valorComissao))}</td>
-                  <td className="px-2 py-1 text-rose-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.despesa))}</td>
-                  <td className="px-2 py-1 text-emerald-700 font-black text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalFinal))}</td>
+                  <td className="px-3 py-2 text-emerald-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalEntrada))}</td>
+                  <td className="px-3 py-2 text-amber-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalSaida))}</td>
+                  <td className="px-3 py-2 text-blue-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalGeral))}</td>
+                  <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.valorComissao))}</td>
+                  <td className="px-3 py-2 text-rose-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.despesa))}</td>
+                  <td className="px-3 py-2 text-emerald-700 font-black text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalFinal))}</td>
                 </tr>
               ))}
               {filteredRecentes.length === 0 && (

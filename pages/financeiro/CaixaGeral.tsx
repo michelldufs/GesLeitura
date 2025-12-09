@@ -96,7 +96,7 @@ const CaixaGeral: React.FC = () => {
       )}
 
       {/* Filters */}
-      <GlassCard className="p-6 mb-8">
+      <GlassCard className="p-4 md:p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-900 mb-6">Filtros e Cálculo</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
@@ -141,7 +141,7 @@ const CaixaGeral: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
 
         {/* Totals Card */}
-        <GlassCard className="p-8">
+        <GlassCard className="p-4 md:p-6 lg:p-8 h-full flex flex-col justify-between">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-blue-100/50 rounded-lg">
               <TrendingUp className="text-emerald-600" size={24} />
@@ -183,7 +183,7 @@ const CaixaGeral: React.FC = () => {
 
         {/* Partners Simulation */}
         <div className="lg:col-span-2">
-          <GlassCard className="p-8 h-full">
+          <GlassCard className="p-4 md:p-6 lg:p-8 h-full">
             <h2 className="text-xl font-semibold text-gray-900 mb-6">Simulação de Rateio</h2>
             <div className="overflow-x-auto rounded-xl border border-gray-200/50 mb-6">
               <table className="w-full text-sm text-left">
@@ -224,17 +224,17 @@ const CaixaGeral: React.FC = () => {
               </table>
             </div>
 
-            <div className="flex justify-end gap-3">
+            <div className="flex flex-col sm:flex-row justify-end gap-3 mt-4">
               <button
                 disabled={!isAuthorized}
-                className="flex items-center gap-2 border border-gray-200/50 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center justify-center gap-2 border border-gray-200/50 px-4 py-3 rounded-xl text-gray-600 hover:bg-gray-50/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all w-full sm:w-auto"
               >
                 <Download size={18} /> Exportar PDF
               </button>
               <ButtonPrimary
                 onClick={handleFecharMes}
                 disabled={!isAuthorized || loading || !localidadeId}
-                className={`flex items-center gap-2 ${isAuthorized && !loading && localidadeId ? 'bg-[#ef4444] hover:bg-[#dc2626] active:bg-[#b91c1c]' : ''
+                className={`flex items-center justify-center gap-2 w-full sm:w-auto h-auto py-3 rounded-xl ${isAuthorized && !loading && localidadeId ? 'bg-[#ef4444] hover:bg-[#dc2626] active:bg-[#b91c1c]' : ''
                   }`}
               >
                 <Lock size={18} /> {loading ? 'Fechando...' : 'FECHAR MÊS'}

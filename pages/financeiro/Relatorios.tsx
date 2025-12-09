@@ -4,7 +4,7 @@ import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { Venda } from '../../types';
-import { FileText, Download, Calendar, TrendingUp, DollarSign, Package, Filter } from 'lucide-react';
+import { FileText, Printer, Calendar, TrendingUp, DollarSign, Package, Filter } from 'lucide-react';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
@@ -58,7 +58,7 @@ const Relatorios: React.FC = () => {
 
   const loadVendas = async () => {
     console.log(`🔄 loadVendas CHAMADO - filtroTipo: "${filtroTipo}", dataInicio: "${dataInicio}", dataFim: "${dataFim}"`);
-    
+
     if (!selectedLocalidade) return;
 
     setLoading(true);
@@ -86,7 +86,7 @@ const Relatorios: React.FC = () => {
         dataFimQuery.setHours(23, 59, 59, 999);
       } else if (filtroTipo === 'periodo' && dataInicio && dataFim) {
         console.log('🔍 Filtro Período - INPUT:', { dataInicio, dataFim, tipo: filtroTipo });
-        
+
         dataInicioQuery = new Date(dataInicio + 'T00:00:00');
         dataFimQuery = new Date(dataFim + 'T23:59:59');
       } else if (filtroTipo === 'periodo') {
@@ -105,7 +105,7 @@ const Relatorios: React.FC = () => {
 
       // Filtrar no cliente
       let data: Venda[];
-      
+
       if (filtroTipo === 'periodo' && dataInicio && dataFim) {
         // Filtro de período: usar campo 'data' (YYYY-MM-DD)
         data = snapshot.docs
@@ -328,12 +328,22 @@ const Relatorios: React.FC = () => {
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100 p-4 md:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header */}
-        <div className="mb-6">
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
-            <FileText size={32} className="text-blue-600" />
-            Relatórios
-          </h1>
-          <p className="text-gray-600 mt-1">Análise detalhada de vendas e operações</p>
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-3">
+              <FileText size={32} className="text-blue-600" />
+              Relatórios
+            </h1>
+            <p className="text-gray-600 mt-1">Análise detalhada de vendas e operações</p>
+          </div>
+          <button
+            onClick={gerarPDF}
+            className="p-2.5 bg-white text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-xl shadow-sm border border-gray-200 transition-all hover:border-blue-200 group"
+            title="Exportar Relatório PDF"
+          >
+            <Printer size={22} className="group-hover:scale-110 transition-transform" />
+          </button>
         </div>
 
         {/* Filtros */}
@@ -347,41 +357,37 @@ const Relatorios: React.FC = () => {
           <div className="flex flex-wrap gap-2 mb-4">
             <button
               onClick={() => setFiltroTipo('hoje')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                filtroTipo === 'hoje'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filtroTipo === 'hoje'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               Hoje
             </button>
             <button
               onClick={() => setFiltroTipo('ontem')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                filtroTipo === 'ontem'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filtroTipo === 'ontem'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               Ontem
             </button>
             <button
               onClick={() => setFiltroTipo('semana')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                filtroTipo === 'semana'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filtroTipo === 'semana'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               7 dias
             </button>
             <button
               onClick={() => setFiltroTipo('mes')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                filtroTipo === 'mes'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filtroTipo === 'mes'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               Mês atual
             </button>
@@ -389,11 +395,10 @@ const Relatorios: React.FC = () => {
               onClick={() => {
                 setShowPeriodoModal(true);
               }}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${
-                filtroTipo === 'periodo'
-                  ? 'bg-emerald-600 text-white shadow-md'
-                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-              }`}
+              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all ${filtroTipo === 'periodo'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                }`}
             >
               Período
             </button>
@@ -430,57 +435,44 @@ const Relatorios: React.FC = () => {
           </div>
         </div>
 
-        {/* Botão Exportar PDF */}
-        <div className="flex justify-end mb-4">
-          <button
-            onClick={gerarPDF}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-red-700 transition-colors shadow-md"
-          >
-            <Download size={18} />
-            Exportar PDF
-          </button>
-        </div>
+
 
         {/* Abas de Visualização */}
         <div className="bg-white rounded-xl shadow-sm overflow-hidden">
           <div className="flex border-b border-gray-200">
             <button
               onClick={() => setVisualizacao('resumo')}
-              className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${
-                visualizacao === 'resumo'
-                  ? 'bg-emerald-50 text-emerald-600 border-b-2 border-emerald-600'
-                  : 'text-gray-600 hover:bg-slate-50'
-              }`}
+              className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${visualizacao === 'resumo'
+                ? 'bg-emerald-50 text-emerald-600 border-b-2 border-emerald-600'
+                : 'text-gray-600 hover:bg-slate-50'
+                }`}
             >
               Resumo
             </button>
             <button
               onClick={() => setVisualizacao('data')}
-              className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${
-                visualizacao === 'data'
-                  ? 'bg-emerald-50 text-emerald-600 border-b-2 border-emerald-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${visualizacao === 'data'
+                ? 'bg-emerald-50 text-emerald-600 border-b-2 border-emerald-600'
+                : 'text-gray-600 hover:bg-gray-50'
+                }`}
             >
               Por Data
             </button>
             <button
               onClick={() => setVisualizacao('ponto')}
-              className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${
-                visualizacao === 'ponto'
-                  ? 'bg-emerald-50 text-emerald-600 border-b-2 border-emerald-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${visualizacao === 'ponto'
+                ? 'bg-emerald-50 text-emerald-600 border-b-2 border-emerald-600'
+                : 'text-gray-600 hover:bg-gray-50'
+                }`}
             >
               Por Ponto
             </button>
             <button
               onClick={() => setVisualizacao('operador')}
-              className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${
-                visualizacao === 'operador'
-                  ? 'bg-emerald-50 text-emerald-600 border-b-2 border-emerald-600'
-                  : 'text-gray-600 hover:bg-gray-50'
-              }`}
+              className={`flex-1 px-4 py-3 text-sm font-semibold transition-colors ${visualizacao === 'operador'
+                ? 'bg-emerald-50 text-emerald-600 border-b-2 border-emerald-600'
+                : 'text-gray-600 hover:bg-gray-50'
+                }`}
             >
               Por Operador
             </button>
@@ -491,41 +483,72 @@ const Relatorios: React.FC = () => {
             {visualizacao === 'resumo' && (
               <div>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="bg-violet-50 text-violet-600 rounded-full p-2">
-                        <Package size={16} />
+                  {/* Card Leituras */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="bg-violet-50 text-violet-600 rounded-lg p-1.5 text-base shrink-0">
+                        <Package size={18} />
                       </div>
+                      <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider text-right leading-tight">
+                        Leituras
+                      </p>
                     </div>
-                    <p className="text-gray-500 text-xs font-medium mb-1">Leituras</p>
-                    <p className="text-gray-900 text-2xl font-bold">{totalizadores.totalMaquinas}</p>
+                    <div>
+                      <h3 className="text-gray-900 text-lg sm:text-xl font-bold tracking-tight truncate leading-none">
+                        {totalizadores.totalMaquinas}
+                      </h3>
+                    </div>
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="bg-emerald-50 text-emerald-600 rounded-full p-2">
-                        <TrendingUp size={16} />
+
+                  {/* Card Bruto */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="bg-emerald-50 text-emerald-600 rounded-lg p-1.5 text-base shrink-0">
+                        <TrendingUp size={18} />
                       </div>
+                      <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider text-right leading-tight">
+                        Total Bruto
+                      </p>
                     </div>
-                    <p className="text-gray-500 text-xs font-medium mb-1">Total Bruto</p>
-                    <p className="text-gray-900 text-xl font-bold">R$ {totalizadores.totalBruto.toFixed(2)}</p>
+                    <div>
+                      <h3 className="text-gray-900 text-lg sm:text-xl font-bold tracking-tight truncate leading-none">
+                        R$ {totalizadores.totalBruto.toFixed(2)}
+                      </h3>
+                    </div>
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="bg-orange-50 text-orange-600 rounded-full p-2">
-                        <DollarSign size={16} />
+
+                  {/* Card Comissões */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="bg-orange-50 text-orange-600 rounded-lg p-1.5 text-base shrink-0">
+                        <DollarSign size={18} />
                       </div>
+                      <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider text-right leading-tight">
+                        Comissões
+                      </p>
                     </div>
-                    <p className="text-gray-500 text-xs font-medium mb-1">Comissões</p>
-                    <p className="text-gray-900 text-xl font-bold">R$ {totalizadores.totalComissoes.toFixed(2)}</p>
+                    <div>
+                      <h3 className="text-gray-900 text-lg sm:text-xl font-bold tracking-tight truncate leading-none">
+                        R$ {totalizadores.totalComissoes.toFixed(2)}
+                      </h3>
+                    </div>
                   </div>
-                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-                    <div className="flex items-center justify-between mb-3">
-                      <div className="bg-emerald-50 text-emerald-600 rounded-full p-2">
-                        <TrendingUp size={16} />
+
+                  {/* Card Líquido */}
+                  <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-3 flex flex-col justify-between hover:shadow-md transition-shadow">
+                    <div className="flex items-center justify-between gap-2 mb-2">
+                      <div className="bg-blue-50 text-blue-600 rounded-lg p-1.5 text-base shrink-0">
+                        <TrendingUp size={18} />
                       </div>
+                      <p className="text-gray-400 text-[10px] uppercase font-bold tracking-wider text-right leading-tight">
+                        Líquido
+                      </p>
                     </div>
-                    <p className="text-gray-500 text-xs font-medium mb-1">Líquido</p>
-                    <p className="text-gray-900 text-xl font-bold">R$ {totalizadores.totalLiquido.toFixed(2)}</p>
+                    <div>
+                      <h3 className="text-gray-900 text-lg sm:text-xl font-bold tracking-tight truncate leading-none">
+                        R$ {totalizadores.totalLiquido.toFixed(2)}
+                      </h3>
+                    </div>
                   </div>
                 </div>
 
@@ -567,7 +590,7 @@ const Relatorios: React.FC = () => {
                   // Formatar data sem conversão UTC
                   const [ano, mes, dia] = data.split('-');
                   const dataFormatada = `${dia}/${mes}/${ano}`;
-                  
+
                   return (
                     <div key={`${filtroTipo}-${data}-${vendas.length}`} className="bg-white rounded-xl border border-gray-200 p-4">
                       <div className="flex justify-between items-center mb-3">
@@ -597,7 +620,7 @@ const Relatorios: React.FC = () => {
                     </div>
                   );
                 })}
-                
+
                 {/* Card Consolidado */}
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mt-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Detalhamento Financeiro</h4>
@@ -662,7 +685,7 @@ const Relatorios: React.FC = () => {
                     </div>
                   );
                 })}
-                
+
                 {/* Card Consolidado */}
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mt-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Detalhamento Financeiro</h4>
@@ -727,7 +750,7 @@ const Relatorios: React.FC = () => {
                     </div>
                   );
                 })}
-                
+
                 {/* Card Consolidado */}
                 <div className="bg-white rounded-xl border border-gray-200 p-4 mt-4">
                   <h4 className="text-sm font-semibold text-gray-700 mb-3">Detalhamento Financeiro</h4>

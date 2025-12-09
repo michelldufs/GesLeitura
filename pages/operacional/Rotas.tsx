@@ -246,7 +246,7 @@ const Rotas: React.FC = () => {
         </div>
       )}
 
-      <GlassCard className="p-8">
+      <GlassCard className="p-4 md:p-8">
         <h2 className="text-2xl font-semibold text-gray-900 mb-6">Rotas Cadastradas</h2>
 
         {rotas.length === 0 ? (
@@ -283,11 +283,10 @@ const Rotas: React.FC = () => {
                     <td className="px-2 py-1 text-center">
                       <button
                         onClick={() => handleToggleStatus(rota)}
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                          rota.active 
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
+                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${rota.active
+                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
                             : 'bg-red-100 text-red-700 hover:bg-red-200'
-                        }`}
+                          }`}
                         title={rota.active ? 'Clique para desativar' : 'Clique para ativar'}
                       >
                         {rota.active ? '✓ Ativo' : '✕ Inativo'}

@@ -67,7 +67,13 @@
 }
 
 @layer base {
-  html {
+
+  html,
+  body,
+  button,
+  input,
+  select,
+  textarea {
     font-family: 'Ubuntu', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
