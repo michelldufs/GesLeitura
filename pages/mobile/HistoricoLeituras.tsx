@@ -3,7 +3,7 @@ import { collection, query, where, getDocs, orderBy, Timestamp } from 'firebase/
 import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { Venda } from '../../types';
-import { Calendar, Camera, Loader2, CheckCircle, Clock } from 'lucide-react';
+import { Calendar, Camera, Loader2, CheckCircle, Clock, TrendingUp, DollarSign, Package } from 'lucide-react';
 
 const HistoricoLeituras: React.FC = () => {
   const { userProfile } = useAuth();
@@ -205,6 +205,54 @@ const HistoricoLeituras: React.FC = () => {
     }
   };
 
+  // Calcular totalizadores
+  const totalizadores = React.useMemo(() => {
+    let totalMaquinas = 0;
+    let totalBruto = 0; // Soma de entrada - saída (totalGeral)
+    let despesasTotal = 0;
+    let comissoesTotal = 0;
+    let lucroFinalTotal = 0; // Soma dos totalFinal
+
+    vendas.forEach(venda => {
+      totalMaquinas++;
+      
+      // Total bruto = totalGeral (ou liquidoDaMaquina para vendas antigas que não tinham esse campo)
+      const totalGeralVenda = venda.totalGeral || (venda as any).liquidoDaMaquina || 0;
+      totalBruto += totalGeralVenda;
+      
+      // Debug
+      if (totalMaquinas <= 3) {
+        console.log(`Venda ${totalMaquinas}:`, {
+          totalGeral: venda.totalGeral,
+          liquidoDaMaquina: (venda as any).liquidoDaMaquina,
+          totalEntrada: venda.totalEntrada,
+          totalSaida: venda.totalSaida,
+          totalFinal: venda.totalFinal,
+          usado: totalGeralVenda
+        });
+      }
+      
+      // Comissões
+      comissoesTotal += (venda.valorComissao || 0);
+      
+      // Despesas (apenas de pontos que participam)
+      despesasTotal += (venda.despesa || 0);
+      
+      // Lucro final (valor líquido para empresa)
+      lucroFinalTotal += (venda.totalFinal || 0);
+    });
+
+    console.log('Totalizadores:', { totalMaquinas, totalBruto, despesasTotal, comissoesTotal, lucroFinalTotal });
+
+    return {
+      totalMaquinas,
+      totalBruto,
+      despesasTotal,
+      comissoesTotal,
+      lucroFinal: lucroFinalTotal
+    };
+  }, [vendas]);
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -219,49 +267,49 @@ const HistoricoLeituras: React.FC = () => {
   return (
     <div className="p-4 space-y-4">
       {/* Filtros */}
-      <div className="bg-white rounded-xl shadow-sm p-4 sticky top-0 z-10">
-        <h2 className="text-lg font-bold text-slate-900 mb-3 flex items-center gap-2">
-          <Calendar size={20} className="text-blue-600" />
+      <div className="bg-white rounded-2xl shadow-sm p-4 sticky top-0 z-10 border border-gray-100">
+        <h2 className="text-lg font-bold text-gray-900 mb-3 flex items-center gap-2">
+          <Calendar size={20} className="text-emerald-600" />
           Histórico de Leituras
         </h2>
         
         <div className="flex gap-2">
           <button
             onClick={() => setFiltroData('hoje')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 py-2 px-4 rounded-xl text-sm font-semibold transition-all ${
               filtroData === 'hoje'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             Hoje
           </button>
           <button
             onClick={() => setFiltroData('ontem')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 py-2 px-4 rounded-xl text-sm font-semibold transition-all ${
               filtroData === 'ontem'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             Ontem
           </button>
           <button
             onClick={() => setFiltroData('semana')}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 py-2 px-4 rounded-xl text-sm font-semibold transition-all ${
               filtroData === 'semana'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             7 dias
           </button>
           <button
             onClick={() => setShowPeriodoModal(true)}
-            className={`flex-1 py-2 px-4 rounded-lg text-sm font-semibold transition-all ${
+            className={`flex-1 py-2 px-4 rounded-xl text-sm font-semibold transition-all ${
               filtroData === 'periodo'
-                ? 'bg-blue-600 text-white shadow-md'
-                : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                ? 'bg-emerald-600 text-white shadow-md'
+                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
             }`}
           >
             Período
@@ -269,12 +317,60 @@ const HistoricoLeituras: React.FC = () => {
         </div>
       </div>
 
+      {/* Card de Totalizadores - Minimalista */}
+      {vendas.length > 0 && (
+        <div className="bg-white border border-gray-200 rounded-2xl shadow-sm p-3 mb-3">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-gray-700">Resumo do Período</h3>
+            <span className="text-xs text-gray-500">{totalizadores.totalMaquinas} máq.</span>
+          </div>
+          
+          {/* Grid compacto 3 colunas */}
+          <div className="grid grid-cols-3 gap-2 mb-2 text-center">
+            {/* Despesas */}
+            <div className="bg-orange-50 rounded-xl p-2 border border-orange-100">
+              <p className="text-[10px] text-orange-600 font-medium mb-0.5">Despesas</p>
+              <p className="text-sm font-bold text-orange-700">
+                R$ {totalizadores.despesasTotal.toFixed(2)}
+              </p>
+            </div>
+
+            {/* Comissões */}
+            <div className="bg-purple-50 rounded-xl p-2 border border-purple-100">
+              <p className="text-[10px] text-purple-600 font-medium mb-0.5">Comissões</p>
+              <p className="text-sm font-bold text-purple-700">
+                R$ {totalizadores.comissoesTotal.toFixed(2)}
+              </p>
+            </div>
+
+            {/* Total Bruto */}
+            <div className="bg-blue-50 rounded-xl p-2 border border-blue-100">
+              <p className="text-[10px] text-blue-600 font-medium mb-0.5">Bruto</p>
+              <p className="text-sm font-bold text-blue-700">
+                R$ {totalizadores.totalBruto.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          {/* Lucro Líquido - Destaque */}
+          <div className="bg-gradient-to-r from-emerald-500 to-emerald-600 rounded-xl p-2.5 flex items-center justify-between shadow-md">
+            <div>
+              <p className="text-[10px] text-emerald-50 font-medium">Lucro Líquido</p>
+              <p className="text-xl font-bold text-white">
+                R$ {totalizadores.lucroFinal.toFixed(2)}
+              </p>
+            </div>
+            <TrendingUp size={24} className="text-emerald-100 opacity-60" />
+          </div>
+        </div>
+      )}
+
       {/* Lista de Vendas Agrupadas por Ponto */}
       {vendasAgrupadas.length === 0 ? (
         <div className="text-center py-12">
-          <Calendar size={48} className="mx-auto text-slate-300 mb-4" />
-          <p className="text-slate-500 font-medium">Nenhuma leitura encontrada</p>
-          <p className="text-slate-400 text-sm">Tente outro período ou faça uma nova leitura</p>
+          <Calendar size={48} className="mx-auto text-gray-300 mb-4" />
+          <p className="text-gray-500 font-medium">Nenhuma leitura encontrada</p>
+          <p className="text-gray-400 text-sm">Tente outro período ou faça uma nova leitura</p>
         </div>
       ) : (
         <div className="space-y-2">

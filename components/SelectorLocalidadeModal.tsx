@@ -63,23 +63,23 @@ const SelectorLocalidadeModal: React.FC = () => {
 
     return (
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-slate-200/50">
+            <div className="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4 border border-gray-200/50">
                 <div className="flex items-center gap-3 mb-6">
-                    <MapPin className="h-6 w-6 text-blue-600" />
-                    <h2 className="text-2xl font-semibold text-slate-900">Selecione a Localidade</h2>
+                    <MapPin className="h-6 w-6 text-emerald-600" />
+                    <h2 className="text-2xl font-semibold text-gray-900">Selecione a Localidade</h2>
                 </div>
 
-                <p className="text-slate-600 mb-6">
+                <p className="text-gray-600 mb-6">
                     Qual localidade você deseja gerenciar?
                 </p>
 
                 {loading ? (
                     <div className="text-center py-8">
-                        <p className="text-slate-500">Carregando localidades...</p>
+                        <p className="text-gray-500">Carregando localidades...</p>
                     </div>
                 ) : localidades.length === 0 ? (
                     <div className="text-center py-8">
-                        <p className="text-slate-500">Nenhuma localidade disponível</p>
+                        <p className="text-gray-500">Nenhuma localidade disponível</p>
                     </div>
                 ) : (
                     <>

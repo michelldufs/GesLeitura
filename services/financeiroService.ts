@@ -5,6 +5,7 @@ import {
 import { db } from "./firebaseConfig";
 import { Venda, DespesaGeral, FechamentoMensal, Cota, DetalheRateio } from "../types";
 import { logAction } from "./logService";
+import { logger } from '../utils/logger';
 
 /**
  * Checks if a month is closed.
@@ -47,7 +48,7 @@ export const getUltimaLeitura = async (operadorId: string): Promise<Venda | null
       return snapshot.docs[0].data() as Venda;
     }
   } catch (orderByError: any) {
-    console.warn("Índice não existe para orderBy, usando fallback sem ordenação:", orderByError.message);
+    logger.warn("Índice não existe para orderBy, usando fallback sem ordenação:", orderByError.message);
     
     // Fallback: buscar sem orderBy e ordenar em memória
     try {
@@ -75,7 +76,7 @@ export const getUltimaLeitura = async (operadorId: string): Promise<Venda | null
       
       return vendas[0] || null;
     } catch (fallbackError) {
-      console.error("Erro no fallback de getUltimaLeitura:", fallbackError);
+      logger.error("Erro no fallback de getUltimaLeitura:", fallbackError);
       return null;
     }
   }

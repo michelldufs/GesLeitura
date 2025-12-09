@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { LocalidadeProvider } from './contexts/LocalidadeContext';
 import AppRoutes from './routes/AppRoutes';
+import ErrorBoundary from './components/ErrorBoundary';
 
 // Configuração do QueryClient com cache otimizado
 const queryClient = new QueryClient({
@@ -19,15 +20,17 @@ const queryClient = new QueryClient({
 
 const App: React.FC = () => {
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <LocalidadeProvider>
-          <HashRouter>
-            <AppRoutes />
-          </HashRouter>
-        </LocalidadeProvider>
-      </AuthProvider>
-    </QueryClientProvider>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <LocalidadeProvider>
+            <HashRouter>
+              <AppRoutes />
+            </HashRouter>
+          </LocalidadeProvider>
+        </AuthProvider>
+      </QueryClientProvider>
+    </ErrorBoundary>
   );
 };
 

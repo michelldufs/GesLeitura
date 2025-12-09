@@ -5,15 +5,15 @@ import { getAuth, Auth } from "firebase/auth";
 import { getStorage } from "firebase/storage";
 import { getFunctions } from "firebase/functions";
 
-// Your web app's Firebase configuration
+// Your web app's Firebase configuration (from environment variables)
 const firebaseConfig = {
-  apiKey: "AIzaSyBQwWOT8h-NJN4C_3j93otxpUGDLLPPLjY",
-  authDomain: "gesleitura.firebaseapp.com",
-  projectId: "gesleitura",
-  storageBucket: "gesleitura.appspot.com",
-  messagingSenderId: "369503909416",
-  appId: "1:369503909416:web:f4165398ff62b92a5f271d",
-  measurementId: "G-KW1Y4MPF8R"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
 // Initialize Firebase (primary app for user sessions)

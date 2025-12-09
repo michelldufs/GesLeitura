@@ -5,6 +5,7 @@ import { adminService } from '../services/adminService';
 import { ButtonPrimary, ButtonSecondary, SelectField } from '../components/MacOSDesign';
 import { MapPin, LogOut } from 'lucide-react';
 import { Localidade } from '../types';
+import { logger } from '../utils/logger';
 
 const SeletorLocalidade: React.FC = () => {
     const { userProfile, logout } = useAuth();
@@ -25,8 +26,8 @@ const SeletorLocalidade: React.FC = () => {
             setLoading(true);
             setError(null);
             const locs = await adminService.getLocalidades();
-            console.log('Todas as localidades:', locs);
-            console.log('Localidades permitidas do usuário:', userProfile?.allowedLocalidades);
+            logger.log('Todas as localidades:', locs);
+            logger.log('Localidades permitidas do usuário:', userProfile?.allowedLocalidades);
 
             // Admin vê todas as localidades, outros veem apenas as permitidas
             let allowed;
@@ -38,7 +39,7 @@ const SeletorLocalidade: React.FC = () => {
                     userProfile?.allowedLocalidades?.includes(loc.id)
                 );
             }
-            console.log('Localidades filtradas:', allowed);
+            logger.log('Localidades filtradas:', allowed);
 
             // Ordenar crescente por código numérico
             const sorted = allowed.sort((a: any, b: any) => {
@@ -50,7 +51,7 @@ const SeletorLocalidade: React.FC = () => {
             setLocalidades(sorted as Localidade[]);
             setLoading(false);
         } catch (error) {
-            console.error('Erro ao buscar localidades:', error);
+            logger.error('Erro ao buscar localidades:', error);
             setError('Erro ao carregar localidades. Tente novamente.');
             setLoading(false);
         }
@@ -78,18 +79,18 @@ const SeletorLocalidade: React.FC = () => {
                     {/* Header */}
                     <div className="flex items-center justify-center gap-3 mb-8">
                         <div className="p-3 bg-blue-100/50 rounded-full">
-                            <MapPin className="h-6 w-6 text-blue-600" />
+                            <MapPin className="h-6 w-6 text-emerald-600" />
                         </div>
                         <div>
-                            <h1 className="text-2xl font-semibold text-slate-900">Bem-vindo!</h1>
-                            <p className="text-sm text-slate-600">{userProfile?.name}</p>
+                            <h1 className="text-2xl font-semibold text-gray-900">Bem-vindo!</h1>
+                            <p className="text-sm text-gray-600">{userProfile?.name}</p>
                         </div>
                     </div>
 
                     {/* Descrição */}
                     <div className="mb-8">
-                        <p className="text-slate-600 text-center mb-2">
-                            Selecione a <span className="font-semibold text-slate-900">localidade</span> que deseja gerenciar:
+                        <p className="text-gray-600 text-center mb-2">
+                            Selecione a <span className="font-semibold text-gray-900">localidade</span> que deseja gerenciar:
                         </p>
                     </div>
 
@@ -97,7 +98,7 @@ const SeletorLocalidade: React.FC = () => {
                     {loading ? (
                         <div className="py-12 text-center">
                             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-slate-600">Carregando localidades...</p>
+                            <p className="text-gray-600">Carregando localidades...</p>
                         </div>
                     ) : error ? (
                         <div className="py-8 text-center bg-red-50 border border-red-200 rounded-xl p-4 mb-6">
@@ -119,13 +120,13 @@ const SeletorLocalidade: React.FC = () => {
                         <>
                             {/* SelectField customizado para tema claro */}
                             <div className="mb-8">
-                                <label className="block text-sm font-medium text-slate-700 mb-2">
+                                <label className="block text-sm font-medium text-gray-600 mb-2">
                                     Localidades Disponíveis
                                 </label>
                                 <select
                                     value={selectedValue}
                                     onChange={(e) => setSelectedValue(e.target.value)}
-                                    className="w-full px-4 py-3 bg-white/40 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
+                                    className="w-full px-4 py-3 bg-white/40 border border-gray-200 rounded-lg text-gray-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium"
                                 >
                                     <option value="">Selecione uma localidade...</option>
                                     {localidades.map(loc => (
@@ -140,7 +141,7 @@ const SeletorLocalidade: React.FC = () => {
                             <div className="flex gap-3">
                                 <button
                                     onClick={handleLogout}
-                                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg font-medium transition-colors border border-slate-200"
+                                    className="flex-1 px-4 py-3 bg-slate-100 hover:bg-slate-200 text-gray-900 rounded-lg font-medium transition-colors border border-gray-200"
                                 >
                                     Sair
                                 </button>
@@ -157,7 +158,7 @@ const SeletorLocalidade: React.FC = () => {
                 </div>
 
                 {/* Footer info */}
-                <p className="text-center text-slate-500 text-xs mt-8">
+                <p className="text-center text-gray-500 text-xs mt-8">
                     © 2025 GesLeitura. Todos os direitos reservados.
                 </p>
             </div>

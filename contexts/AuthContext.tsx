@@ -3,6 +3,7 @@ import { User, onAuthStateChanged, signInWithEmailAndPassword, signOut } from 'f
 import { doc, getDoc } from 'firebase/firestore';
 import { auth, db } from '../services/firebaseConfig';
 import { UserProfile } from '../types';
+import { logger } from '../utils/logger';
 
 interface AuthContextType {
   user: User | null;
@@ -43,7 +44,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             });
           }
         } catch (e) {
-          console.error("Error fetching user profile", e);
+          logger.error("Error fetching user profile", e);
         }
       } else {
         setUserProfile(null);

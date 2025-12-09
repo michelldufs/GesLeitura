@@ -63,18 +63,18 @@ const ModalTrocarLocalidade: React.FC<ModalTrocarLocalidadeProps> = ({ isOpen, o
 
     return (
         <div className="fixed inset-0 bg-black/20 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full border border-slate-200/50">
+            <div className="bg-white rounded-2xl shadow-xl max-w-md w-full border border-gray-200/50">
                 {/* Header */}
-                <div className="flex items-center justify-between px-6 py-4 border-b border-slate-200/30">
+                <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200/30">
                     <div className="flex items-center gap-2">
-                        <MapPin className="h-5 w-5 text-blue-600" />
-                        <h2 className="text-lg font-semibold text-slate-900">Trocar Localidade</h2>
+                        <MapPin className="h-5 w-5 text-emerald-600" />
+                        <h2 className="text-lg font-semibold text-gray-900">Trocar Localidade</h2>
                     </div>
                     <button
                         onClick={onClose}
                         className="p-1 hover:bg-slate-100 rounded-lg transition-colors"
                     >
-                        <X size={20} className="text-slate-500" />
+                        <X size={20} className="text-gray-500" />
                     </button>
                 </div>
 
@@ -83,7 +83,7 @@ const ModalTrocarLocalidade: React.FC<ModalTrocarLocalidadeProps> = ({ isOpen, o
                     {loading ? (
                         <div className="py-12 text-center">
                             <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                            <p className="text-slate-600">Carregando localidades...</p>
+                            <p className="text-gray-600">Carregando localidades...</p>
                         </div>
                     ) : localidades.length === 0 ? (
                         <div className="py-8 text-center bg-yellow-50 border border-yellow-200 rounded-lg">
@@ -91,13 +91,13 @@ const ModalTrocarLocalidade: React.FC<ModalTrocarLocalidadeProps> = ({ isOpen, o
                         </div>
                     ) : (
                         <>
-                            <label className="block text-sm font-medium text-slate-700 mb-3">
+                            <label className="block text-sm font-medium text-gray-600 mb-3">
                                 Selecione uma localidade:
                             </label>
                             <select
                                 value={selectedValue}
                                 onChange={(e) => setSelectedValue(e.target.value)}
-                                className="w-full px-4 py-3 bg-white/40 border border-slate-200 rounded-lg text-slate-900 placeholder-slate-400 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium mb-6"
+                                className="w-full px-4 py-3 bg-white/40 border border-gray-200 rounded-lg text-gray-900 placeholder-slate-400 focus:outline-none focus:border-emerald-500 focus:ring-2 focus:ring-blue-500/20 transition-all font-medium mb-6"
                             >
                                 <option value="">Selecione uma localidade...</option>
                                 {localidades.map(loc => (
@@ -111,7 +111,7 @@ const ModalTrocarLocalidade: React.FC<ModalTrocarLocalidadeProps> = ({ isOpen, o
                             <div className="flex gap-3">
                                 <button
                                     onClick={onClose}
-                                    className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-900 rounded-lg font-medium transition-colors border border-slate-200"
+                                    className="flex-1 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-gray-900 rounded-lg font-medium transition-colors border border-gray-200"
                                 >
                                     Cancelar
                                 </button>

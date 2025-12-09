@@ -247,32 +247,32 @@ const Rotas: React.FC = () => {
       )}
 
       <GlassCard className="p-8">
-        <h2 className="text-2xl font-semibold text-slate-900 mb-6">Rotas Cadastradas</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Rotas Cadastradas</h2>
 
         {rotas.length === 0 ? (
           <div className="text-center py-12">
-            <RouteIcon className="mx-auto text-slate-300 mb-4" size={48} />
-            <p className="text-slate-500 text-lg">Nenhuma rota cadastrada ainda.</p>
-            <p className="text-slate-400 text-sm mt-2">Clique em "Nova Rota" para criar a primeira.</p>
+            <RouteIcon className="mx-auto text-gray-300 mb-4" size={48} />
+            <p className="text-gray-500 text-lg">Nenhuma rota cadastrada ainda.</p>
+            <p className="text-gray-400 text-sm mt-2">Clique em "Nova Rota" para criar a primeira.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-200/50">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Seção</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Seção</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {rotas.map((rota) => (
-                  <tr key={rota.id} className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${!rota.active ? 'opacity-50' : ''}`}>
-                    <td className="px-2 py-1 font-semibold text-slate-950 text-sm">{rota.codigo || 'sem código'}</td>
-                    <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2 text-sm">
+                  <tr key={rota.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${!rota.active ? 'opacity-50' : ''}`}>
+                    <td className="px-2 py-1 font-semibold text-gray-900 text-sm">{rota.codigo || 'sem código'}</td>
+                    <td className="px-2 py-1 font-medium text-gray-900 flex items-center gap-2 text-sm">
                       <div className="p-1 bg-green-100/50 rounded-lg">
                         <RouteIcon className="text-green-600" size={14} />
                       </div>

@@ -1,6 +1,7 @@
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebaseConfig";
 import { AuditLog } from "../types";
+import { logger } from '../utils/logger';
 
 export const logAction = async (
   userId: string,
@@ -20,7 +21,7 @@ export const logAction = async (
     };
     await addDoc(collection(db, "audit_logs"), logData);
   } catch (error) {
-    console.error("Critical: Failed to write audit log", error);
+    logger.error("Critical: Failed to write audit log", error);
     // In a real production app, this might trigger a dedicated alert
   }
 };

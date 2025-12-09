@@ -97,7 +97,7 @@ const CaixaGeral: React.FC = () => {
 
       {/* Filters */}
       <GlassCard className="p-6 mb-8">
-        <h2 className="text-xl font-semibold text-slate-900 mb-6">Filtros e Cálculo</h2>
+        <h2 className="text-xl font-semibold text-gray-900 mb-6">Filtros e Cálculo</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <div>
             <SelectField
@@ -144,38 +144,38 @@ const CaixaGeral: React.FC = () => {
         <GlassCard className="p-8">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 bg-blue-100/50 rounded-lg">
-              <TrendingUp className="text-blue-600" size={24} />
+              <TrendingUp className="text-emerald-600" size={24} />
             </div>
-            <h2 className="text-xl font-semibold text-slate-900">Resumo Operacional</h2>
+            <h2 className="text-xl font-semibold text-gray-900">Resumo Operacional</h2>
           </div>
 
           <div className="space-y-4">
-            <div className="flex justify-between pb-3 border-b border-slate-200/50">
-              <span className="text-slate-600">Total de Vendas</span>
+            <div className="flex justify-between pb-3 border-b border-gray-200/50">
+              <span className="text-gray-600">Total de Vendas</span>
               <span className="font-bold text-green-600">R$ {vendasTotal.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between pb-3 border-b border-slate-200/50">
-              <span className="text-slate-600">Despesas Operacionais</span>
+            <div className="flex justify-between pb-3 border-b border-gray-200/50">
+              <span className="text-gray-600">Despesas Operacionais</span>
               <span className="font-bold text-red-600">R$ {despesasOp.toFixed(2)}</span>
             </div>
-            <div className="flex justify-between pt-2 pb-4 border-b border-slate-200/50">
-              <span className="text-slate-900 font-bold text-lg">Lucro Líquido</span>
-              <span className="font-bold text-lg text-blue-600">R$ {lucroLiquido.toFixed(2)}</span>
+            <div className="flex justify-between pt-2 pb-4 border-b border-gray-200/50">
+              <span className="text-gray-900 font-bold text-lg">Lucro Líquido</span>
+              <span className="font-bold text-lg text-emerald-600">R$ {lucroLiquido.toFixed(2)}</span>
             </div>
 
             <div className="bg-yellow-50/50 p-4 rounded-lg border border-yellow-200/50 mt-4">
-              <label className="block text-sm font-semibold text-slate-900 mb-2">Retenção (Capital de Giro)</label>
+              <label className="block text-sm font-semibold text-gray-900 mb-2">Retenção (Capital de Giro)</label>
               <input
                 type="number"
                 value={valorRetido}
                 onChange={e => setValorRetido(Number(e.target.value))}
                 disabled={!isAuthorized}
-                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2 text-slate-900 focus:ring-2 focus:ring-yellow-500 outline-none disabled:bg-slate-50"
+                className="w-full bg-white border border-gray-200 rounded-lg px-4 py-2 text-gray-900 focus:ring-2 focus:ring-yellow-500 outline-none disabled:bg-gray-50"
               />
             </div>
 
             <div className="flex justify-between pt-4 font-semibold text-lg">
-              <span className="text-slate-900">Base Rateio:</span>
+              <span className="text-gray-900">Base Rateio:</span>
               <span className="text-purple-600">R$ {baseRateio.toFixed(2)}</span>
             </div>
           </div>
@@ -184,22 +184,22 @@ const CaixaGeral: React.FC = () => {
         {/* Partners Simulation */}
         <div className="lg:col-span-2">
           <GlassCard className="p-8 h-full">
-            <h2 className="text-xl font-semibold text-slate-900 mb-6">Simulação de Rateio</h2>
-            <div className="overflow-x-auto rounded-xl border border-slate-200/50 mb-6">
+            <h2 className="text-xl font-semibold text-gray-900 mb-6">Simulação de Rateio</h2>
+            <div className="overflow-x-auto rounded-xl border border-gray-200/50 mb-6">
               <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50/50 border-b border-slate-200/50">
+                <thead className="bg-gray-50/50 border-b border-gray-200/50">
                   <tr>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Sócio</th>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">%</th>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Parte (R$)</th>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo Ant.</th>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Previsão Final</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Sócio</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">%</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Parte (R$)</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Saldo Ant.</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Previsão Final</th>
                   </tr>
                 </thead>
                 <tbody>
                   {cotas.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-2 py-1 text-center text-slate-500">Nenhuma cota cadastrada</td>
+                      <td colSpan={5} className="px-2 py-1 text-center text-gray-500">Nenhuma cota cadastrada</td>
                     </tr>
                   ) : (
                     cotas.map(cota => {
@@ -208,14 +208,14 @@ const CaixaGeral: React.FC = () => {
                       const final = parte + cota.saldoAcumulado;
 
                       return (
-                        <tr key={cota.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                          <td className="px-2 py-1 font-medium text-slate-900">{cota.nome}</td>
-                          <td className="px-2 py-1 text-slate-600">{cota.porcentagem}%</td>
+                        <tr key={cota.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                          <td className="px-2 py-1 font-medium text-gray-900">{cota.nome}</td>
+                          <td className="px-2 py-1 text-gray-600">{cota.porcentagem}%</td>
                           <td className={`px-2 py-1 font-semibold ${parte >= 0 ? 'text-green-600' : 'text-red-600'}`}>
                             R$ {parte.toFixed(2)}
                           </td>
-                          <td className="px-2 py-1 text-slate-600">R$ {(cota.saldoAcumulado || 0).toFixed(2)}</td>
-                          <td className="px-2 py-1 font-bold text-slate-900 text-right">R$ {final.toFixed(2)}</td>
+                          <td className="px-2 py-1 text-gray-600">R$ {(cota.saldoAcumulado || 0).toFixed(2)}</td>
+                          <td className="px-2 py-1 font-bold text-gray-900 text-right">R$ {final.toFixed(2)}</td>
                         </tr>
                       );
                     })
@@ -227,7 +227,7 @@ const CaixaGeral: React.FC = () => {
             <div className="flex justify-end gap-3">
               <button
                 disabled={!isAuthorized}
-                className="flex items-center gap-2 border border-slate-200/50 px-4 py-2 rounded-lg text-slate-600 hover:bg-slate-50/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                className="flex items-center gap-2 border border-gray-200/50 px-4 py-2 rounded-lg text-gray-600 hover:bg-gray-50/50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
               >
                 <Download size={18} /> Exportar PDF
               </button>

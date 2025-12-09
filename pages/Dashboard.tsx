@@ -40,6 +40,7 @@ const Dashboard: React.FC = () => {
   const [rotasIndex, setRotasIndex] = useState<Indexed<Rota>>({});
   const [operadoresIndex, setOperadoresIndex] = useState<Indexed<Operador>>({});
   const [search, setSearch] = useState('');
+  const [filtroTipo, setFiltroTipo] = useState<'hoje' | 'semana' | 'mes'>('hoje');
 
   useEffect(() => {
     if (!selectedLocalidade) {
@@ -50,7 +51,7 @@ const Dashboard: React.FC = () => {
       return;
     }
     loadDashboardData(selectedLocalidade);
-  }, [selectedLocalidade]);
+  }, [selectedLocalidade, filtroTipo]);
 
   const fetchVendas = async (localidadeId: string) => {
     try {
@@ -84,8 +85,27 @@ const Dashboard: React.FC = () => {
         getDocs(query(collection(db, 'operadores'), where('active', '==', true), where('localidadeId', '==', localidadeId)))
       ]);
 
-      vendasData.sort((a, b) => new Date(b.data || 0).getTime() - new Date(a.data || 0).getTime());
-      setVendas(vendasData);
+      // Filtrar vendas por período
+      const hoje = new Date();
+      let dataInicio = new Date(hoje);
+
+      if (filtroTipo === 'hoje') {
+        dataInicio.setHours(0, 0, 0, 0);
+      } else if (filtroTipo === 'semana') {
+        dataInicio.setDate(hoje.getDate() - 7);
+        dataInicio.setHours(0, 0, 0, 0);
+      } else if (filtroTipo === 'mes') {
+        dataInicio.setDate(1);
+        dataInicio.setHours(0, 0, 0, 0);
+      }
+
+      const vendasFiltradas = vendasData.filter(venda => {
+        const vendaDate = venda.timestamp?.toDate ? venda.timestamp.toDate() : new Date(venda.data);
+        return vendaDate >= dataInicio;
+      });
+
+      vendasFiltradas.sort((a, b) => new Date(b.data || 0).getTime() - new Date(a.data || 0).getTime());
+      setVendas(vendasFiltradas);
 
       const pontosMap: Indexed<Ponto> = {};
       pontosSnap.docs.forEach(doc => {
@@ -124,27 +144,49 @@ const Dashboard: React.FC = () => {
     const pontosLidos = new Set(vendas.map(v => v.pontoId)).size;
     const totalEntrada = vendas.reduce((acc, v) => acc + toSafeNumber(v.totalEntrada), 0);
     const totalSaida = vendas.reduce((acc, v) => acc + toSafeNumber(v.totalSaida), 0);
-    const totalGeral = vendas.reduce((acc, v) => acc + toSafeNumber(v.totalGeral), 0);
+    
+    // Total Líquido (Bruto): usar totalGeral ou liquidoDaMaquina como fallback
+    const totalGeral = vendas.reduce((acc, v) => {
+      const valor = v.totalGeral || (v as any).liquidoDaMaquina || 0;
+      return acc + toSafeNumber(valor);
+    }, 0);
+    
     const despesasOperacionais = vendas.reduce((acc, v) => acc + toSafeNumber(v.despesa), 0);
-    const totalDespesas = totalSaida + despesasOperacionais;
+    const totalComissoes = vendas.reduce((acc, v) => acc + toSafeNumber(v.valorComissao), 0);
+    const totalDespesas = despesasOperacionais; // Apenas despesas operacionais
 
     const lucroLiquido = vendas.reduce((acc, v) => {
-      const fallback = toSafeNumber(v.totalGeral) - toSafeNumber((v as any).valorComissao) - toSafeNumber(v.despesa);
-      const final = Number.isFinite((v as any).totalFinal) ? toSafeNumber((v as any).totalFinal) : fallback;
+      const final = toSafeNumber(v.totalFinal);
       return acc + final;
     }, 0);
 
     const margem = totalGeral > 0 ? (lucroLiquido / totalGeral) * 100 : 0;
 
-    return { pontosLidos, totalEntrada, totalGeral, totalDespesas, lucroLiquido, margem };
+    // Debug
+    console.log('Dashboard Resumo:', {
+      totalVendas: vendas.length,
+      pontosLidos,
+      totalGeral,
+      totalDespesas,
+      totalComissoes,
+      lucroLiquido,
+      margem,
+      amostra: vendas.slice(0, 3).map(v => ({
+        totalGeral: v.totalGeral,
+        liquidoDaMaquina: (v as any).liquidoDaMaquina,
+        totalFinal: v.totalFinal
+      }))
+    });
+
+    return { pontosLidos, totalEntrada, totalGeral, totalDespesas, totalComissoes, lucroLiquido, margem };
   }, [vendas]);
 
   const summaryCards = [
-    { label: 'PONTOS LIDOS', value: resumo.pontosLidos.toString(), sub: 'máquinas', color: 'from-violet-500 to-violet-600', text: 'text-violet-50' },
-    { label: 'TOTAL LÍQUIDO', value: formatCurrency(resumo.totalGeral), sub: 'entrada - saída', color: 'from-blue-500 to-blue-600', text: 'text-blue-50' },
-    { label: 'TOTAL DESPESA', value: formatCurrency(resumo.totalDespesas), sub: 'saídas', color: 'from-rose-500 to-rose-600', text: 'text-rose-50' },
-    { label: 'LUCRO LÍQUIDO', value: formatCurrency(resumo.lucroLiquido), sub: 'resultado', color: 'from-emerald-500 to-emerald-600', text: 'text-emerald-50' },
-    { label: 'MARGEM', value: formatPercent(resumo.margem), sub: 'lucro real', color: 'from-amber-500 to-amber-600', text: 'text-amber-50' }
+    { label: 'PONTOS LIDOS', value: resumo.pontosLidos.toString(), sub: 'máquinas', icon: '📍', iconBg: 'bg-violet-50', iconText: 'text-violet-600' },
+    { label: 'TOTAL LÍQUIDO', value: formatCurrency(resumo.totalGeral), sub: 'entrada - saída', icon: '💵', iconBg: 'bg-blue-50', iconText: 'text-blue-600' },
+    { label: 'TOTAL DESPESA', value: formatCurrency(resumo.totalDespesas), sub: 'despesas operacionais', icon: '📤', iconBg: 'bg-rose-50', iconText: 'text-rose-600' },
+    { label: 'LUCRO LÍQUIDO', value: formatCurrency(resumo.lucroLiquido), sub: 'resultado final', icon: '✅', iconBg: 'bg-emerald-50', iconText: 'text-emerald-600' },
+    { label: 'MARGEM', value: formatPercent(resumo.margem), sub: '% lucro real', icon: '📊', iconBg: 'bg-amber-50', iconText: 'text-amber-600' }
   ];
 
   // Agrupamento de Vendas por Ponto e Data para a Tabela
@@ -172,10 +214,12 @@ const Dashboard: React.FC = () => {
         };
       }
 
+      // Usar totalGeral ou liquidoDaMaquina como fallback
+      const geral = toSafeNumber(v.totalGeral || (v as any).liquidoDaMaquina || 0);
+      
       // Calcular fator implícito desta venda para converter entrada/saída em Reais
       const diff = toSafeNumber(v.totalEntrada) - toSafeNumber(v.totalSaida);
-      const geral = toSafeNumber(v.totalGeral);
-      const fator = diff !== 0 ? geral / diff : 0;
+      const fator = (diff !== 0 && geral !== 0) ? geral / diff : 1;
 
       const entradaReais = toSafeNumber(v.totalEntrada) * fator;
       const saidaReais = toSafeNumber(v.totalSaida) * fator;
@@ -209,7 +253,7 @@ const Dashboard: React.FC = () => {
 
   const filteredRecentes = useMemo(() => {
     const term = search.trim().toLowerCase();
-    if (!term) return groupedVendas.slice(0, 50);
+    if (!term) return groupedVendas.slice(0, 20); // Limitar a 20 lançamentos recentes
 
     return groupedVendas.filter(item => {
       const ponto = pontosIndex[item.pontoId]?.nome || '';
@@ -217,7 +261,7 @@ const Dashboard: React.FC = () => {
       const rota = rotasIndex[item.rotaId]?.nome || '';
       return [ponto, codigo, rota, item.data]
         .some(field => field?.toString().toLowerCase().includes(term));
-    });
+    }).slice(0, 20);
   }, [search, groupedVendas, pontosIndex, rotasIndex]);
 
   // Dados para Gráficos
@@ -237,10 +281,10 @@ const Dashboard: React.FC = () => {
     const map: Record<string, number> = {};
     vendas.forEach(v => {
       const nome = rotasIndex[v.rotaId]?.nome || 'Sem Rota';
-      // Tentativa de estimar Faturamento (Reais)
+      // Usar totalGeral ou liquidoDaMaquina como fallback
+      const geral = toSafeNumber(v.totalGeral || (v as any).liquidoDaMaquina || 0);
       const diff = toSafeNumber(v.totalEntrada) - toSafeNumber(v.totalSaida);
-      const geral = toSafeNumber(v.totalGeral);
-      const fator = diff !== 0 ? geral / diff : 0;
+      const fator = (diff !== 0 && geral !== 0) ? geral / diff : 1;
       const faturamento = toSafeNumber(v.totalEntrada) * fator;
 
       map[nome] = (map[nome] || 0) + faturamento;
@@ -251,30 +295,50 @@ const Dashboard: React.FC = () => {
   }, [vendas, rotasIndex]);
 
   return (
-    <div className="w-full pb-12">
-      {/* Header filtros */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-8">
+    <div className="w-full pb-12 bg-gray-50 min-h-screen">
+      {/* Header com filtros */}
+      <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
         <div>
-          <h1 className="text-3xl font-bold text-slate-900">Visão Geral</h1>
-          <p className="text-slate-500 text-sm">
+          <h1 className="text-3xl font-bold text-gray-900">Painel de Controle</h1>
+          <p className="text-gray-500 text-sm mt-1">
             {selectedLocalidadeName ? `Resultados de ${selectedLocalidadeName}` : 'Acompanhe seus resultados em tempo real.'}
           </p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {/* Chips de Filtro */}
-          <ButtonSecondary disabled icon={<Calendar size={16} />}>
-            Mês atual
-          </ButtonSecondary>
+      </div>
 
-          <ButtonSecondary disabled icon={<MapPin size={16} />}>
-            {selectedLocalidadeName || 'Selecione a localidade'}
-          </ButtonSecondary>
-
-          <ButtonPrimary className="px-5 py-2 flex items-center gap-2" disabled>
-            <Plus size={18} />
-            <span>Novo Lançamento</span>
-          </ButtonPrimary>
-        </div>
+      {/* Filtros de Período */}
+      <div className="flex flex-wrap items-center gap-2 mb-6">
+        <span className="text-sm font-medium text-gray-600 mr-2">Período:</span>
+        <button
+          onClick={() => setFiltroTipo('hoje')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            filtroTipo === 'hoje'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+          }`}
+        >
+          Hoje
+        </button>
+        <button
+          onClick={() => setFiltroTipo('semana')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            filtroTipo === 'semana'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+          }`}
+        >
+          7 dias
+        </button>
+        <button
+          onClick={() => setFiltroTipo('mes')}
+          className={`px-4 py-2 rounded-xl text-sm font-semibold transition-all ${
+            filtroTipo === 'mes'
+              ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-600/20'
+              : 'bg-white text-gray-600 hover:bg-gray-50 border border-gray-200'
+          }`}
+        >
+          Mês atual
+        </button>
       </div>
 
       {!selectedLocalidade && (
@@ -292,59 +356,64 @@ const Dashboard: React.FC = () => {
       )}
 
       {/* Resumo cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-2 mb-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4 mb-6">
         {summaryCards.map((card) => (
-          <div key={card.label} className={`rounded-xl p-4 shadow-sm text-white bg-gradient-to-br ${card.color}`}>
-            <p className={`text-xs font-semibold uppercase tracking-wide ${card.text}/80`}>{card.label}</p>
-            <h3 className="text-2xl font-bold mt-1">{card.value}</h3>
-            <p className={`${card.text} text-xs mt-1 opacity-80`}>{card.sub}</p>
+          <div key={card.label} className="bg-white rounded-2xl shadow-sm border border-gray-100 p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className={`${card.iconBg} ${card.iconText} rounded-full p-3 text-2xl`}>
+                {card.icon}
+              </div>
+            </div>
+            <p className="text-gray-500 text-sm font-medium mb-1">{card.label}</p>
+            <h3 className="text-gray-900 text-3xl font-bold tracking-tight">{card.value}</h3>
+            <p className="text-gray-500 text-xs mt-2">{card.sub}</p>
           </div>
         ))}
       </div>
 
       {/* Gráficos */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-2 mb-6">
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs text-slate-500">Top 10 Pontos (Lucro)</p>
-              <p className="text-lg font-semibold text-slate-900">Desempenho por Ponto</p>
+              <p className="text-xs text-gray-500 font-medium">Top 10 Pontos (Lucro)</p>
+              <p className="text-lg font-bold text-gray-900">Desempenho por Ponto</p>
             </div>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartDataPonto} layout="vertical" margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f3f4f6" />
                 <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11 }} />
+                <YAxis dataKey="name" type="category" width={100} tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <Tooltip
                   formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: 'white' }}
                 />
-                <Bar dataKey="value" fill="#8b5cf6" radius={[0, 4, 4, 0]} barSize={20} />
+                <Bar dataKey="value" fill="#059669" radius={[0, 8, 8, 0]} barSize={20} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-4">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <p className="text-xs text-slate-500">Faturamento por Rota</p>
-              <p className="text-lg font-semibold text-slate-900">Total por Rota</p>
+              <p className="text-xs text-gray-500 font-medium">Faturamento por Rota</p>
+              <p className="text-lg font-bold text-gray-900">Total por Rota</p>
             </div>
           </div>
           <div className="h-64">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartDataRota} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="name" tick={{ fontSize: 11 }} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f3f4f6" />
+                <XAxis dataKey="name" tick={{ fontSize: 11, fill: '#6b7280' }} />
                 <YAxis hide />
                 <Tooltip
                   formatter={(value: number) => formatCurrency(value)}
-                  contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
+                  contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)', backgroundColor: 'white' }}
                 />
-                <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} barSize={40} />
+                <Bar dataKey="value" fill="#059669" radius={[8, 8, 0, 0]} barSize={40} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -353,11 +422,11 @@ const Dashboard: React.FC = () => {
 
       {/* Lançamentos Recentes */}
       <GlassCard className="p-0 overflow-hidden mt-8">
-        <div className="p-6 border-b border-slate-100 bg-white">
+        <div className="p-6 border-b border-gray-100 bg-white">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
             <div>
-              <h2 className="text-xl font-bold text-slate-800">Lançamentos Recentes</h2>
-              <p className="text-sm text-slate-500 mt-1">Acompanhe as últimas leituras realizadas</p>
+              <h2 className="text-xl font-bold text-gray-900">Últimos Lançamentos</h2>
+              <p className="text-sm text-gray-500 mt-1">Últimas 20 leituras do período selecionado</p>
             </div>
 
             <div className="w-full md:w-72">
@@ -373,21 +442,21 @@ const Dashboard: React.FC = () => {
 
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
-            <thead className="bg-[#f0f2f5] border-b border-slate-200">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {['Data', 'Código', 'Nome do Ponto', 'Rota', 'Entrada', 'Saída', 'Líquido', 'Comissão', 'Despesa', 'Lucro'].map((h) => (
-                  <th key={h} className="px-2 py-1 text-left font-semibold text-slate-600 text-[10px] uppercase tracking-wider whitespace-nowrap">
+                  <th key={h} className="px-2 py-1 text-left font-semibold text-gray-600 text-[10px] uppercase tracking-wider whitespace-nowrap">
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-100 bg-white">
+            <tbody className="divide-y divide-gray-100 bg-white">
               {filteredRecentes.map((item, idx) => (
-                <tr key={item.id || idx} className="hover:bg-slate-50 transition-colors">
-                  <td className="px-2 py-1 text-slate-700 font-medium text-xs whitespace-nowrap">{formatDate(item.data)}</td>
-                  <td className="px-2 py-1 text-slate-800 font-bold text-xs font-mono">{getPontoCodigo(item.pontoId)}</td>
-                  <td className="px-2 py-1 text-slate-900 font-medium text-xs whitespace-nowrap">{getPontoNome(item.pontoId)}</td>
+                <tr key={item.id || idx} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-2 py-1 text-gray-700 font-medium text-xs whitespace-nowrap">{formatDate(item.data)}</td>
+                  <td className="px-2 py-1 text-gray-800 font-bold text-xs font-mono">{getPontoCodigo(item.pontoId)}</td>
+                  <td className="px-2 py-1 text-gray-900 font-medium text-xs whitespace-nowrap">{getPontoNome(item.pontoId)}</td>
                   <td className="px-2 py-1">
                     <Badge variant="secondary" className="text-[10px] px-1 py-0.5 h-auto">
                       {getRotaNome(item.rotaId)}
@@ -396,14 +465,14 @@ const Dashboard: React.FC = () => {
                   <td className="px-2 py-1 text-emerald-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalEntrada))}</td>
                   <td className="px-2 py-1 text-amber-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalSaida))}</td>
                   <td className="px-2 py-1 text-blue-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalGeral))}</td>
-                  <td className="px-2 py-1 text-slate-500 text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.valorComissao))}</td>
+                  <td className="px-2 py-1 text-gray-500 text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.valorComissao))}</td>
                   <td className="px-2 py-1 text-rose-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.despesa))}</td>
                   <td className="px-2 py-1 text-emerald-700 font-black text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalFinal))}</td>
                 </tr>
               ))}
               {filteredRecentes.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-6 py-12 text-center text-slate-500">
+                  <td colSpan={10} className="px-6 py-12 text-center text-gray-500">
                     {loading ? 'Carregando dados...' : 'Nenhum lançamento encontrado para esta localidade.'}
                   </td>
                 </tr>

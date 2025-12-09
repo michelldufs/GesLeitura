@@ -26,7 +26,7 @@ const ConfiguracaoCotas = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
-  const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
+  const [messageType, setMessageType] = useState<'success' | 'error' | 'warning' | ''>('');
   const [formData, setFormData] = useState({
     nome: '',
     porcentagem: 0,
@@ -43,12 +43,12 @@ const ConfiguracaoCotas = () => {
       const cotasList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Cota[];
       
       // Debug: Ver duplicatas
-      const nomesCounts: any = {};
+      const nomesCounts: Record<string, number> = {};
       cotasList.forEach(c => {
         const key = `${c.nome}-${c.localidadeId}`;
         nomesCounts[key] = (nomesCounts[key] || 0) + 1;
       });
-      const duplicatas = Object.entries(nomesCounts).filter(([_, count]) => count > 1);
+      const duplicatas = Object.entries(nomesCounts).filter(([_, count]) => (count as number) > 1);
       if (duplicatas.length > 0) {
         console.warn('⚠️ COTAS DUPLICADAS encontradas:', duplicatas);
         console.table(cotasList.map(c => ({ id: c.id, nome: c.nome, active: c.active, porcentagem: c.porcentagem })));
@@ -333,32 +333,32 @@ const ConfiguracaoCotas = () => {
 
       <GlassCard className="p-8">
         <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-slate-900">Sócios e Cotas</h2>
-          <div className="text-sm text-slate-600">
+          <h2 className="text-2xl font-semibold text-gray-900">Sócios e Cotas</h2>
+          <div className="text-sm text-gray-600">
             <span className="font-semibold text-green-600">{cotas.filter(c => (c.active === true || c.active === undefined) && c.porcentagem > 0).length}</span> ativos
             <span className="mx-2">•</span>
-            <span className="font-semibold text-slate-400">{cotas.filter(c => (c.active === true || c.active === undefined) && c.porcentagem === 0).length}</span> inativos
+            <span className="font-semibold text-gray-400">{cotas.filter(c => (c.active === true || c.active === undefined) && c.porcentagem === 0).length}</span> inativos
           </div>
         </div>
 
         {cotas.filter(c => c.active === true || c.active === undefined).length === 0 ? (
           <div className="text-center py-12">
-            <Users className="mx-auto text-slate-300 mb-4" size={48} />
-            <p className="text-slate-500 text-lg">Nenhuma cota ativa encontrada.</p>
-            <p className="text-slate-400 text-sm mt-2">Clique em "Nova Cota" para criar a primeira.</p>
+            <Users className="mx-auto text-gray-300 mb-4" size={48} />
+            <p className="text-gray-500 text-lg">Nenhuma cota ativa encontrada.</p>
+            <p className="text-gray-400 text-sm mt-2">Clique em "Nova Cota" para criar a primeira.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+          <div className="overflow-x-auto rounded-xl border border-gray-200/50">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-200/50">
+              <thead className="bg-gray-50/50 border-b border-gray-200/50">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Porcentagem</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Saldo</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Prejuízo</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Status</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Editar</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Porcentagem</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Saldo</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Prejuízo</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Editar</th>
                 </tr>
               </thead>
               <tbody>
@@ -370,24 +370,24 @@ const ConfiguracaoCotas = () => {
                   const isAtiva = c.active === true || c.active === undefined;
                   const podeDesativar = c.porcentagem === 0;
                   return (
-                  <tr key={c.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
-                    <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2">
+                  <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
+                    <td className="px-2 py-1 font-medium text-gray-900 flex items-center gap-2">
                       <div className="p-1 bg-indigo-100/50 rounded-lg">
                         <Users className="text-indigo-600" size={16} />
                       </div>
                       {c.nome}
                     </td>
-                    <td className="px-2 py-1 text-slate-600">
+                    <td className="px-2 py-1 text-gray-600">
                       <div className="flex items-center gap-1.5">
                         <MapPin size={12} className="text-blue-500" />
                         <span className="text-[10px] font-medium">{localidade?.nome || 'N/A'}</span>
                       </div>
                     </td>
-                    <td className="px-2 py-1 text-slate-600 font-semibold">
+                    <td className="px-2 py-1 text-gray-600 font-semibold">
                       <div className="flex items-center gap-1.5">
-                        <span className={c.porcentagem === 0 ? 'text-slate-400 line-through' : ''}>{c.porcentagem}%</span>
+                        <span className={c.porcentagem === 0 ? 'text-gray-400 line-through' : ''}>{c.porcentagem}%</span>
                         {c.porcentagem === 0 && (
-                          <span className="text-[8px] px-1.5 py-0.5 bg-slate-100 text-slate-500 rounded">
+                          <span className="text-[8px] px-1.5 py-0.5 bg-slate-100 text-gray-500 rounded">
                             Inativo
                           </span>
                         )}
@@ -415,7 +415,7 @@ const ConfiguracaoCotas = () => {
                         className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold text-xs ${
                           c.porcentagem > 0
                             ? 'bg-green-50 text-green-700'
-                            : 'bg-slate-100 text-slate-400'
+                            : 'bg-slate-100 text-gray-400'
                         } opacity-50 cursor-not-allowed`}
                         title={c.porcentagem > 0 ? 'Cota ativa' : 'Cota inativa (0%)'}
                       >
@@ -426,7 +426,7 @@ const ConfiguracaoCotas = () => {
                       <button
                         onClick={() => handleOpenModal(c)}
                         disabled={!isAuthorized}
-                        className="text-blue-500 hover:text-blue-700 transition-colors disabled:opacity-50 p-1 hover:bg-blue-50 rounded"
+                        className="text-blue-500 hover:text-blue-700 transition-colors disabled:opacity-50 p-1 hover:bg-emerald-50 rounded"
                         title="Editar cota"
                       >
                         <Edit2 size={16} />
@@ -460,7 +460,7 @@ const ConfiguracaoCotas = () => {
       >
         <form onSubmit={(e) => { e.preventDefault(); onSubmit(); }} className="space-y-3">
           <div>
-            <label className="block text-[10px] font-semibold text-slate-600 mb-1">Nome do Sócio *</label>
+            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Nome do Sócio *</label>
             <input
               type="text"
               placeholder="Ex: JOÃO SILVA"
@@ -473,10 +473,10 @@ const ConfiguracaoCotas = () => {
           </div>
 
           <div>
-            <label className="block text-[10px] font-semibold text-slate-600 mb-1">Localidade *</label>
+            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Localidade *</label>
             {editingId ? (
               // Modo edição: apenas exibir a localidade (não permitir alteração)
-              <div className="w-full px-2 py-1.5 text-xs border border-slate-200 rounded-lg bg-slate-50 text-slate-700 flex items-center gap-1.5">
+              <div className="w-full px-2 py-1.5 text-xs border border-gray-200 rounded-lg bg-gray-50 text-gray-600 flex items-center gap-1.5">
                 <MapPin size={12} className="text-blue-500" />
                 <span className="font-medium">
                   {localidades.find(l => l.id === formData.localidadeId)?.nome || 'N/A'}
@@ -486,8 +486,8 @@ const ConfiguracaoCotas = () => {
               // Modo criação: mostrar apenas a localidade atual (fixa)
               <>
                 {selectedLocalidade ? (
-                  <div className="w-full px-2 py-1.5 text-xs border border-blue-200 rounded-lg bg-blue-50 text-blue-700 flex items-center gap-1.5">
-                    <MapPin size={12} className="text-blue-600" />
+                  <div className="w-full px-2 py-1.5 text-xs border border-blue-200 rounded-lg bg-emerald-50 text-blue-700 flex items-center gap-1.5">
+                    <MapPin size={12} className="text-emerald-600" />
                     <span className="font-semibold">{selectedLocalidadeName}</span>
                   </div>
                 ) : (
@@ -497,14 +497,14 @@ const ConfiguracaoCotas = () => {
                 )}
               </>
             )}
-            <p className="text-[9px] text-slate-500 mt-0.5 italic">
+            <p className="text-[9px] text-gray-500 mt-0.5 italic">
               {editingId ? 'A localidade não pode ser alterada após criação' : 'Cota será vinculada à localidade selecionada'}
             </p>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <div>
-              <label className="block text-[10px] font-semibold text-slate-600 mb-1">Porcentagem (%) *</label>
+              <label className="block text-[10px] font-semibold text-gray-600 mb-1">Porcentagem (%) *</label>
               <input
                 type="number"
                 step="0.01"
@@ -540,7 +540,7 @@ const ConfiguracaoCotas = () => {
                 const restante = 100 - novoTotal;
                 return (
                   <p className={`text-[8px] mt-0.5 font-semibold ${
-                    novoTotal > 100 ? 'text-red-600' : novoTotal === 100 ? 'text-green-600' : 'text-slate-500'
+                    novoTotal > 100 ? 'text-red-600' : novoTotal === 100 ? 'text-green-600' : 'text-gray-500'
                   }`}>
                     Total: {novoTotal.toFixed(2)}% {restante >= 0 ? `(${restante.toFixed(2)}% disponível)` : '(EXCEDEU!)'}
                   </p>
@@ -549,21 +549,21 @@ const ConfiguracaoCotas = () => {
             </div>
 
             <div className="flex items-end">
-              <label className="flex items-center gap-2 p-2 bg-slate-50 rounded-lg border border-slate-200 cursor-pointer hover:bg-slate-100 transition-colors w-full">
+              <label className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg border border-gray-200 cursor-pointer hover:bg-slate-100 transition-colors w-full">
                 <input
                   type="checkbox"
                   checked={formData.participaPrejuizo}
                   onChange={(e) => setFormData({ ...formData, participaPrejuizo: e.target.checked })}
                   disabled={!isAuthorized}
-                  className="h-3.5 w-3.5 rounded border-slate-300 text-blue-600 cursor-pointer"
+                  className="h-3.5 w-3.5 rounded border-slate-300 text-emerald-600 cursor-pointer"
                 />
-                <span className="text-[10px] font-medium text-slate-700">Participa prejuízo</span>
+                <span className="text-[10px] font-medium text-gray-600">Participa prejuízo</span>
               </label>
             </div>
           </div>
 
           <div>
-            <label className="block text-[10px] font-semibold text-slate-600 mb-1">Observação</label>
+            <label className="block text-[10px] font-semibold text-gray-600 mb-1">Observação</label>
             <textarea
               placeholder="Ex: Aposentado em 08/12/2025, Suspenso temporariamente, etc."
               value={formData.observacao}
@@ -572,7 +572,7 @@ const ConfiguracaoCotas = () => {
               rows={2}
               className="w-full px-2 py-1.5 text-xs border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-100 resize-none"
             />
-            <p className="text-[8px] text-slate-500 mt-0.5 italic">
+            <p className="text-[8px] text-gray-500 mt-0.5 italic">
               Use para registrar: aposentadorias, suspensões, transferências, etc.
             </p>
           </div>

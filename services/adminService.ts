@@ -3,6 +3,7 @@ import { doc, setDoc, serverTimestamp, collection, query, getDocs, where, Docume
 import { auth, db, functions, getSecondaryAuth } from "./firebaseConfig";
 import { httpsCallable } from "firebase/functions";
 import { UserRole, UserProfile } from "../types";
+import { logger } from '../utils/logger';
 
 export interface CreateUserData {
     email: string;
@@ -132,7 +133,7 @@ export const adminService = {
                 .filter((loc: any) => loc.active !== false)
                 .sort((a: any, b: any) => (a.nome || '').localeCompare(b.nome || ''));
         } catch (error) {
-            console.error('Erro ao buscar localidades:', error);
+            logger.error('Erro ao buscar localidades:', error);
             return [];
         }
     }

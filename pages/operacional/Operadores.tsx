@@ -315,36 +315,36 @@ const Operadores: React.FC = () => {
       )}
 
       <GlassCard className="p-8">
-        <h2 className="text-2xl font-semibold text-slate-900 mb-6">Operadores Cadastrados</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Operadores Cadastrados</h2>
 
         {operadores.length === 0 ? (
           <div className="text-center py-12">
-            <Cpu className="mx-auto text-slate-300 mb-4" size={48} />
-            <p className="text-slate-500 text-lg">Nenhum operador cadastrado ainda.</p>
-            <p className="text-slate-400 text-sm mt-2">Clique em "Novo Operador" para criar o primeiro.</p>
+            <Cpu className="mx-auto text-gray-300 mb-4" size={48} />
+            <p className="text-gray-500 text-lg">Nenhum operador cadastrado ainda.</p>
+            <p className="text-gray-400 text-sm mt-2">Clique em "Novo Operador" para criar o primeiro.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-200/50">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Ponto</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Fator</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Ponto</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Fator</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-gray-100">
                 {operadores.map((operador) => (
-                  <tr key={operador.id} className={`hover:bg-slate-50/80 transition-colors ${!operador.active ? 'opacity-50' : ''}`}>
-                    <td className="px-2 py-1 text-slate-600 font-medium">{operador.codigo}</td>
-                    <td className="px-2 py-1 text-slate-600">{operador.nome}</td>
-                    <td className="px-2 py-1 text-slate-600">
+                  <tr key={operador.id} className={`hover:bg-gray-50 transition-colors ${!operador.active ? 'opacity-50' : ''}`}>
+                    <td className="px-2 py-1 text-gray-600 font-medium">{operador.codigo}</td>
+                    <td className="px-2 py-1 text-gray-600">{operador.nome}</td>
+                    <td className="px-2 py-1 text-gray-600">
                       <Badge variant="secondary">{getPontoNome(operador.pontoId)}</Badge>
                     </td>
-                    <td className="px-2 py-1 text-slate-600">
+                    <td className="px-2 py-1 text-gray-600">
                       <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold border leading-tight ${getFatorColor(operador.fatorConversao)}`}>
                         {formatFator(operador.fatorConversao)}
                       </span>
@@ -354,8 +354,8 @@ const Operadores: React.FC = () => {
                         onClick={() => handleToggleStatus(operador)}
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                           operador.active 
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
+                            : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                         }`}
                         title={operador.active ? 'Clique para desativar' : 'Clique para ativar'}
                       >
@@ -366,7 +366,7 @@ const Operadores: React.FC = () => {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleEdit(operador)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
                           title="Editar"
                         >
                           <Edit2 size={14} />

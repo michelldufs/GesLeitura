@@ -3,6 +3,7 @@ import { useNavigate, useLocation } from 'react-router-dom';
 import { FileText, PlusCircle, LogOut, MapPin } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
+import { logger } from '../utils/logger';
 
 interface MobileLayoutProps {
   children?: React.ReactNode;
@@ -20,7 +21,7 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
         await logout();
         navigate('/login');
       } catch (error) {
-        console.error("Erro ao sair:", error);
+        logger.error("Erro ao sair:", error);
       }
     }
   };
@@ -29,25 +30,25 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
 
   return (
     <div 
-      className="flex flex-col h-screen bg-slate-50"
+      className="flex flex-col h-screen bg-gray-50"
       style={{
         paddingTop: 'env(safe-area-inset-top)',
         paddingBottom: 'env(safe-area-inset-bottom)',
       }}
     >
       {/* Header Compacto */}
-      <header className="bg-gradient-to-r from-slate-800 to-slate-900 text-white px-4 py-3 shadow-lg flex items-center justify-between sticky top-0 z-10">
+      <header className="bg-gradient-to-r from-emerald-600 to-emerald-700 text-white px-4 py-3 shadow-lg flex items-center justify-between sticky top-0 z-10">
         <div className="flex items-center gap-2">
-          <MapPin size={18} className="text-blue-400" />
+          <MapPin size={18} className="text-emerald-200" />
           <div>
-            <p className="text-xs text-slate-400">Localidade</p>
+            <p className="text-xs text-emerald-100">Localidade</p>
             <p className="text-sm font-bold">{selectedLocalidadeName || 'Não selecionada'}</p>
           </div>
         </div>
         
         <button
           onClick={handleLogout}
-          className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          className="p-2 hover:bg-white/10 rounded-xl transition-colors"
           title="Sair"
         >
           <LogOut size={20} />
@@ -60,15 +61,15 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 shadow-lg z-20">
+      <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 shadow-lg z-20">
         <div className="flex items-center justify-around px-4 py-3">
           {/* Aba 1 - Histórico */}
           <button
             onClick={() => navigate('/mobile/historico')}
-            className={`flex flex-col items-center gap-1 px-6 py-2 rounded-lg transition-all ${
+            className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${
               isActive('/mobile/historico')
-                ? 'bg-blue-50 text-blue-600'
-                : 'text-slate-600 hover:text-slate-900'
+                ? 'bg-emerald-50 text-emerald-600'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <FileText size={24} />
@@ -78,10 +79,10 @@ const MobileLayout: React.FC<MobileLayoutProps> = ({ children }) => {
           {/* Aba 2 - Nova Leitura */}
           <button
             onClick={() => navigate('/mobile/nova-leitura')}
-            className={`flex flex-col items-center gap-1 px-6 py-2 rounded-lg transition-all ${
+            className={`flex flex-col items-center gap-1 px-6 py-2 rounded-xl transition-all ${
               isActive('/mobile/nova-leitura')
                 ? 'bg-green-50 text-green-600'
-                : 'text-slate-600 hover:text-slate-900'
+                : 'text-gray-600 hover:text-gray-900'
             }`}
           >
             <PlusCircle size={24} />

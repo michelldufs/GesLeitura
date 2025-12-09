@@ -18,6 +18,7 @@ const LancamentoManual = lazy(() => import('../pages/financeiro/LancamentoManual
 const CaixaGeral = lazy(() => import('../pages/financeiro/CaixaGeral'));
 const ConfiguracaoCotas = lazy(() => import('../pages/financeiro/ConfiguracaoCotas'));
 const Despesas = lazy(() => import('../pages/financeiro/Despesas'));
+const Relatorios = lazy(() => import('../pages/financeiro/Relatorios'));
 const Usuarios = lazy(() => import('../pages/admin/Usuarios'));
 const EditarUsuarioLocalidades = lazy(() => import('../pages/admin/EditarUsuarioLocalidades'));
 const Localidades = lazy(() => import('../pages/operacional/Localidades'));
@@ -133,7 +134,7 @@ const AppRoutes: React.FC = () => {
           <Route path="/lancamento" element={<RequireOperacional><LancamentoManual /></RequireOperacional>} />
           
           {/* Relatórios - Restrito a Admin e Financeiro */}
-          <Route path="/relatorios" element={<RequireFinanceiro><Placeholder title="Relatórios" /></RequireFinanceiro>} />
+          <Route path="/relatorios" element={<RequireFinanceiro><Relatorios /></RequireFinanceiro>} />
           
           {/* Administração - Restrito a Admin */}
           <Route path="/localidades" element={<RequireAdmin><Localidades /></RequireAdmin>} />

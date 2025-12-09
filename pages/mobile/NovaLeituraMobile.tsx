@@ -300,6 +300,7 @@ const NovaLeituraMobile: React.FC = () => {
         saidaAnterior: Number(saidaAnterior),
         saidaAtual: Number(saidaAtual),
         totalSaida,
+        totalGeral: liquidoDaMaquina, // Campo obrigatório: entrada - saída após conversão
         entradaMenosSaida,
         fatorConversao,
         liquidoDaMaquina,

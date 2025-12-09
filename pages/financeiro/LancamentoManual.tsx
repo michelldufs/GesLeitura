@@ -42,7 +42,7 @@ const LancamentoManual: React.FC = () => {
   const [selectedPontoId, setSelectedPontoId] = useState<string>('');
   const [selectedOperadorId, setSelectedOperadorId] = useState<string>('');
   const [selectedPonto, setSelectedPonto] = useState<Ponto | null>(null);
-  const [selectedOperador, setSelectedOperador] = useState<any | null>(null);
+  const [selectedOperador, setSelectedOperador] = useState<{ id: string; codigo: string; nome: string; pontoId: string; fatorConversao: number } | null>(null);
   const [filtroData, setFiltroData] = useState<string>(getTodayDateString());
   const [loadingHistory, setLoadingHistory] = useState(false);
   const [loading, setLoading] = useState(false);

@@ -401,51 +401,51 @@ const Pontos: React.FC = () => {
       )}
 
       <GlassCard className="p-8">
-        <h2 className="text-2xl font-semibold text-slate-900 mb-6">Pontos Cadastrados</h2>
+        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Pontos Cadastrados</h2>
 
         {pontos.length === 0 ? (
           <div className="text-center py-12">
-            <MapPin className="mx-auto text-slate-300 mb-4" size={48} />
-            <p className="text-slate-500 text-lg">Nenhum ponto cadastrado ainda.</p>
-            <p className="text-slate-400 text-sm mt-2">Clique em "Novo Ponto" para criar o primeiro.</p>
+            <MapPin className="mx-auto text-gray-300 mb-4" size={48} />
+            <p className="text-gray-500 text-lg">Nenhum ponto cadastrado ainda.</p>
+            <p className="text-gray-400 text-sm mt-2">Clique em "Novo Ponto" para criar o primeiro.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+          <div className="overflow-x-auto rounded-xl border border-gray-200">
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-200/50">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Rota</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Comissão</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Equipamentos</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Coletores</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Rota</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Comissão</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Equipamentos</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Coletores</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-gray-100">
                 {pontos.map((ponto) => {
                   const operadoresDoPonto = getOperadoresPorPonto(ponto.id);
                   const isExpanded = pontoExpandido === ponto.id;
                   return (
                   <React.Fragment key={ponto.id}>
-                  <tr className={`hover:bg-slate-50/80 transition-colors ${!ponto.active ? 'opacity-50' : ''}`}>
-                    <td className="px-2 py-1 text-slate-600 font-medium">{ponto.codigo}</td>
-                    <td className="px-2 py-1 text-slate-600 truncate max-w-[200px]">{ponto.nome}</td>
+                  <tr className={`hover:bg-gray-50 transition-colors ${!ponto.active ? 'opacity-50' : ''}`}>
+                    <td className="px-2 py-1 text-gray-600 font-medium">{ponto.codigo}</td>
+                    <td className="px-2 py-1 text-gray-600 truncate max-w-[200px]">{ponto.nome}</td>
                     <td className="px-2 py-1">
                       <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${getRotaColor(ponto.rotaId)}`}>
                         {getRotaNome(ponto.rotaId)}
                       </span>
                     </td>
-                    <td className="px-2 py-1 text-slate-600">{ponto.comissao}%</td>
+                    <td className="px-2 py-1 text-gray-600">{ponto.comissao}%</td>
                     <td className="px-2 py-1">
                       <button
                         onClick={() => setPontoExpandido(isExpanded ? null : ponto.id)}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs font-medium transition-all ${
+                        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-xs font-medium transition-all ${
                           operadoresDoPonto.length > 0
-                            ? 'bg-blue-50 text-blue-700 hover:bg-blue-100'
-                            : 'bg-slate-100 text-slate-500'
+                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
+                            : 'bg-gray-100 text-gray-500'
                         }`}
                         disabled={operadoresDoPonto.length === 0}
                       >
@@ -466,7 +466,7 @@ const Pontos: React.FC = () => {
                     <td className="px-2 py-1">
                       <button
                         onClick={() => handleGerenciarColetores(ponto)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition-colors"
                         title="Gerenciar coletores"
                       >
                         <Users size={12} />
@@ -478,8 +478,8 @@ const Pontos: React.FC = () => {
                         onClick={() => handleToggleStatus(ponto)}
                         className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                           ponto.active 
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
+                            : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                         }`}
                         title={ponto.active ? 'Clique para desativar' : 'Clique para ativar'}
                       >
@@ -490,7 +490,7 @@ const Pontos: React.FC = () => {
                       <div className="flex items-center justify-end gap-1">
                         <button
                           onClick={() => handleEdit(ponto)}
-                          className="p-1 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
                           title="Editar"
                         >
                           <Edit2 size={14} />
@@ -501,15 +501,15 @@ const Pontos: React.FC = () => {
                   
                   {/* Linha expansível com lista de operadores */}
                   {isExpanded && operadoresDoPonto.length > 0 && (
-                    <tr className="bg-blue-50/30">
+                    <tr className="bg-emerald-50/30">
                       <td colSpan={8} className="px-4 py-3">
                         <div className="text-xs">
-                          <p className="font-semibold text-slate-700 mb-2">Operadores vinculados:</p>
+                          <p className="font-semibold text-gray-700 mb-2">Operadores vinculados:</p>
                           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
                             {operadoresDoPonto.map(op => (
-                              <div key={op.id} className="flex items-center gap-2 bg-white px-3 py-2 rounded-lg border border-slate-200">
-                                <span className="font-mono font-semibold text-blue-600">{op.codigo}</span>
-                                <span className="text-slate-700">{op.nome}</span>
+                              <div key={op.id} className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200">
+                                <span className="font-mono font-semibold text-emerald-600">{op.codigo}</span>
+                                <span className="text-gray-700">{op.nome}</span>
                               </div>
                             ))}
                           </div>
@@ -627,13 +627,13 @@ const Pontos: React.FC = () => {
         title={`Coletores - ${pontoSelecionado?.nome || ''}`}
       >
         <div className="space-y-3">
-          <p className="text-sm text-slate-600 mb-4">
+          <p className="text-sm text-gray-600 mb-4">
             Selecione os coletores autorizados a registrar leituras neste ponto:
           </p>
           {coletores.length === 0 ? (
             <div className="text-center py-8">
-              <Users className="mx-auto text-slate-300 mb-2" size={32} />
-              <p className="text-slate-500 text-sm">Nenhum coletor cadastrado no sistema.</p>
+              <Users className="mx-auto text-gray-300 mb-2" size={32} />
+              <p className="text-gray-500 text-sm">Nenhum coletor cadastrado no sistema.</p>
             </div>
           ) : (
             <div className="space-y-2 max-h-96 overflow-y-auto">
@@ -642,21 +642,21 @@ const Pontos: React.FC = () => {
                 return (
                   <label
                     key={coletor.uid}
-                    className={`flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all ${
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
                       isVinculado
-                        ? 'border-blue-500 bg-blue-50'
-                        : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50'
+                        ? 'border-emerald-500 bg-emerald-50'
+                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                     }`}
                   >
                     <input
                       type="checkbox"
                       checked={isVinculado}
                       onChange={() => handleToggleColetor(coletor.uid)}
-                      className="w-5 h-5 text-blue-600 border-slate-300 rounded focus:ring-2 focus:ring-blue-500"
+                      className="w-5 h-5 text-emerald-600 border-gray-300 rounded focus:ring-2 focus:ring-emerald-500"
                     />
                     <div className="flex-1">
-                      <p className="font-medium text-slate-900">{coletor.name}</p>
-                      <p className="text-xs text-slate-500">{coletor.uid.substring(0, 8)}...</p>
+                      <p className="font-medium text-gray-900">{coletor.name}</p>
+                      <p className="text-xs text-gray-500">{coletor.uid.substring(0, 8)}...</p>
                     </div>
                   </label>
                 );

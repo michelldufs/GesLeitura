@@ -4,7 +4,7 @@ import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { useSecoes, useCreateSecao, useUpdateSecao, useDeleteSecao } from '../../hooks/useSecoes';
 import { Layers, Plus, Edit2, Trash2, Ban } from 'lucide-react';
 import { GlassCard, AlertBox, PageHeader, ButtonPrimary, ButtonSecondary, Modal, SelectField, InputField, Badge } from '../../components/MacOSDesign';
-import { collection, getDocs, query, where } from 'firebase/firestore';
+import { collection, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 
 interface Secao {
@@ -26,7 +26,7 @@ const Secoes: React.FC = () => {
   const { selectedLocalidade } = useLocalidade();
 
   // React Query hooks
-  const { data: secoes = [], isLoading: loadingSecoes, error } = useSecoes(selectedLocalidade);
+  const { data: secoes = [], isLoading: loadingSecoes, error, refetch } = useSecoes(selectedLocalidade);
   const createSecao = useCreateSecao();
   const updateSecao = useUpdateSecao();
   const deleteSecao = useDeleteSecao();
@@ -156,7 +156,7 @@ const Secoes: React.FC = () => {
       await updateDoc(doc(db, 'secoes', secao.id), { active: novoStatus });
       setMessageType('success');
       setMessage(`Seção ${novoStatus ? 'ativada' : 'desativada'} com sucesso!`);
-      loadSecoes();
+      refetch();
     } catch (error: any) {
       console.error(`Erro ao ${acao}:`, error);
       setMessageType('error');
@@ -202,8 +202,8 @@ const Secoes: React.FC = () => {
       {/* Loading state */}
       {loadingSecoes && (
         <div className="flex items-center justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-          <p className="ml-4 text-slate-600">Carregando seções...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600"></div>
+          <p className="ml-4 text-gray-600">Carregando seções...</p>
         </div>
       )}
 
@@ -217,46 +217,46 @@ const Secoes: React.FC = () => {
 
       {!loadingSecoes && !error && (
         <GlassCard className="p-8">
-          <h2 className="text-2xl font-semibold text-slate-900 mb-6">Seções Cadastradas</h2>
+          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Seções Cadastradas</h2>
 
           {secoes.length === 0 ? (
             <div className="text-center py-12">
-              <Layers className="mx-auto text-slate-300 mb-4" size={48} />
-              <p className="text-slate-500 text-lg">Nenhuma seção cadastrada ainda.</p>
-              <p className="text-slate-400 text-sm mt-2">Clique em "Nova Seção" para criar a primeira.</p>
+              <Layers className="mx-auto text-gray-300 mb-4" size={48} />
+              <p className="text-gray-500 text-lg">Nenhuma seção cadastrada ainda.</p>
+              <p className="text-gray-400 text-sm mt-2">Clique em "Nova Seção" para criar a primeira.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-slate-200/50">
+            <div className="overflow-x-auto rounded-xl border border-gray-200">
               <table className="w-full text-sm text-left">
-                <thead className="bg-slate-50/50 border-b border-slate-200/50">
+                <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Localidade</th>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
-                    <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
+                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                   </tr>
                 </thead>
                 <tbody>
                   {secoes.map((secao) => (
-                    <tr key={secao.id} className={`border-b border-slate-100 hover:bg-slate-50/50 transition-colors ${!secao.active ? 'opacity-50' : ''}`}>
-                      <td className="px-2 py-1 font-semibold text-slate-950 text-sm">
-                        {secao.codigo || <span className="text-slate-400 italic">sem código</span>}
+                    <tr key={secao.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${!secao.active ? 'opacity-50' : ''}`}>
+                      <td className="px-2 py-1 font-semibold text-gray-900 text-sm">
+                        {secao.codigo || <span className="text-gray-400 italic">sem código</span>}
                       </td>
-                      <td className="px-2 py-1 font-medium text-slate-900 flex items-center gap-2 text-sm">
+                      <td className="px-2 py-1 font-medium text-gray-900 flex items-center gap-2 text-sm">
                         <div className="p-1 bg-purple-100/50 rounded-lg">
                           <Layers className="text-purple-600" size={14} />
                         </div>
                         {secao.nome}
                       </td>
-                      <td className="px-2 py-1 text-slate-600 text-sm">{getLocalidadeNome(secao.localidadeId)}</td>
+                      <td className="px-2 py-1 text-gray-600 text-sm">{getLocalidadeNome(secao.localidadeId)}</td>
                       <td className="px-2 py-1 text-center">
                         <button
                           onClick={() => handleToggleStatus(secao)}
                           className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
                             secao.active 
-                              ? 'bg-green-100 text-green-700 hover:bg-green-200' 
-                              : 'bg-red-100 text-red-700 hover:bg-red-200'
+                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
+                              : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
                           }`}
                           title={secao.active ? 'Clique para desativar' : 'Clique para ativar'}
                         >
@@ -267,7 +267,7 @@ const Secoes: React.FC = () => {
                         <button
                           onClick={() => handleEdit(secao)}
                           disabled={!isAuthorized}
-                          className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                          className="p-1 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors disabled:opacity-50"
                           title="Editar"
                         >
                           <Edit2 size={16} />

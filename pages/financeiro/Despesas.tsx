@@ -85,15 +85,15 @@ const HeaderWithFilter = ({
           e.stopPropagation();
           setOpenFilter(isOpen ? null : filterKey);
         }}
-        className={`p-1 rounded-md transition-colors ${isActive ? 'bg-blue-100 text-blue-600' : 'hover:bg-slate-200 text-slate-400'}`}
+        className={`p-1 rounded-md transition-colors ${isActive ? 'bg-emerald-100 text-emerald-600' : 'hover:bg-slate-200 text-gray-400'}`}
       >
         <Filter size={14} fill={isActive ? "currentColor" : "none"} />
       </button>
 
       {isOpen && (
         <div ref={filterRef} className="absolute top-full left-0 mt-2 w-56 bg-white rounded-lg shadow-xl border border-slate-200 z-50 overflow-hidden">
-          <div className="p-2 border-b border-slate-100 bg-slate-50 flex justify-between items-center">
-            <span className="text-xs font-semibold text-slate-600 uppercase">Filtrar por {label}</span>
+          <div className="p-2 border-b border-gray-100 bg-slate-50 flex justify-between items-center">
+            <span className="text-xs font-semibold text-gray-600 uppercase">Filtrar por {label}</span>
             {isActive && (
               <button
                 onClick={() => clearFilter(filterKey)}
@@ -105,17 +105,17 @@ const HeaderWithFilter = ({
           </div>
           <div className="max-h-60 overflow-y-auto p-1">
             {values.length === 0 ? (
-              <p className="p-3 text-xs text-slate-400 text-center">Nenhum valor encontrado</p>
+              <p className="p-3 text-xs text-gray-400 text-center">Nenhum valor encontrado</p>
             ) : (
               values.map(val => (
-                <label key={val} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 rounded-md cursor-pointer text-sm">
+                <label key={val} className="flex items-center gap-2 px-3 py-2 hover:bg-gray-50 rounded-md cursor-pointer text-sm">
                   <input
                     type="checkbox"
                     checked={activeFilters[filterKey].includes(val)}
                     onChange={() => toggleFilter(filterKey, val)}
-                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-blue-500"
                   />
-                  <span className="text-slate-700 truncate">{val}</span>
+                  <span className="text-gray-600 truncate">{val}</span>
                 </label>
               ))
             )}
@@ -593,7 +593,7 @@ const Despesas: React.FC = () => {
         <GlassCard className="p-6 border-l-4 border-red-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-600 text-sm font-semibold mb-1">Total de Despesas (Filtrado)</p>
+              <p className="text-gray-600 text-sm font-semibold mb-1">Total de Despesas (Filtrado)</p>
               <p className="text-3xl font-bold text-red-600">R$ {totalDespesas.toFixed(2)}</p>
             </div>
             <DollarSign className="text-red-400" size={40} />
@@ -604,7 +604,7 @@ const Despesas: React.FC = () => {
         <GlassCard className="p-6 border-l-4 border-orange-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-600 text-sm font-semibold mb-1">Operacionais</p>
+              <p className="text-gray-600 text-sm font-semibold mb-1">Operacionais</p>
               <p className="text-3xl font-bold text-orange-600">R$ {despesasOperacionais.toFixed(2)}</p>
             </div>
             <div className="text-4xl">🏭</div>
@@ -615,7 +615,7 @@ const Despesas: React.FC = () => {
         <GlassCard className="p-6 border-l-4 border-yellow-500">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-slate-600 text-sm font-semibold mb-1">Adiantamentos</p>
+              <p className="text-gray-600 text-sm font-semibold mb-1">Adiantamentos</p>
               <p className="text-3xl font-bold text-yellow-600">R$ {despesasAdiantamento.toFixed(2)}</p>
             </div>
             <div className="text-4xl">💰</div>
@@ -625,25 +625,25 @@ const Despesas: React.FC = () => {
 
       {/* Tabela de Despesas */}
       <GlassCard className="p-8 pb-32"> {/* Added padding bottom to allow dropdown space */}
-        <h2 className="text-2xl font-semibold text-slate-900 mb-6 flex justify-between items-center">
+        <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex justify-between items-center">
           <span>Despesas Cadastradas</span>
-          <span className="text-sm font-normal text-slate-500 px-3 py-1 bg-slate-100 rounded-full">
+          <span className="text-sm font-normal text-gray-500 px-3 py-1 bg-slate-100 rounded-full">
             {filteredDespesas.length} registros encontrados
           </span>
         </h2>
 
         {despesas.length === 0 ? (
           <div className="text-center py-12">
-            <DollarSign className="mx-auto text-slate-300 mb-4" size={48} />
-            <p className="text-slate-500 text-lg">Nenhuma despesa cadastrada ainda.</p>
-            <p className="text-slate-400 text-sm mt-2">Clique em "Nova Despesa" para registrar.</p>
+            <DollarSign className="mx-auto text-gray-300 mb-4" size={48} />
+            <p className="text-gray-500 text-lg">Nenhuma despesa cadastrada ainda.</p>
+            <p className="text-gray-400 text-sm mt-2">Clique em "Nova Despesa" para registrar.</p>
           </div>
         ) : (
-          <div className="overflow-visible rounded-xl border border-slate-200/50"> {/* Allows dropdown overflow */}
+          <div className="overflow-visible rounded-xl border border-gray-200"> {/* Allows dropdown overflow */}
             <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-200/50">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">
                     <HeaderWithFilter
                       label="Data"
                       filterKey="data"
@@ -656,7 +656,7 @@ const Despesas: React.FC = () => {
                       filterRef={filterRef}
                     />
                   </th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">
                     <HeaderWithFilter
                       label="Origem"
                       filterKey="origem"
@@ -669,8 +669,8 @@ const Despesas: React.FC = () => {
                       filterRef={filterRef}
                     />
                   </th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">Descrição</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Descrição</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">
                     <HeaderWithFilter
                       label="Centro de Custo"
                       filterKey="centroCusto"
@@ -683,7 +683,7 @@ const Despesas: React.FC = () => {
                       filterRef={filterRef}
                     />
                   </th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide">
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">
                     <HeaderWithFilter
                       label="Usuário"
                       filterKey="usuario"
@@ -696,15 +696,15 @@ const Despesas: React.FC = () => {
                       filterRef={filterRef}
                     />
                   </th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Valor</th>
-                  <th className="px-2 py-1 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Valor</th>
+                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredDespesas.map((despesa) => (
-                  <tr key={despesa.id} className="border-b border-slate-100 hover:bg-slate-50/50 transition-colors">
+                  <tr key={despesa.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
                     {/* Data */}
-                    <td className="px-2 py-1 font-medium text-slate-900 text-sm whitespace-nowrap">
+                    <td className="px-2 py-1 font-medium text-gray-900 text-sm whitespace-nowrap">
                       {new Date(despesa.data).toLocaleDateString('pt-BR')}
                     </td>
 
@@ -716,7 +716,7 @@ const Despesas: React.FC = () => {
                     </td>
 
                     {/* Descrição */}
-                    <td className="px-2 py-1 text-slate-600 flex items-center gap-2 text-sm min-w-[200px]">
+                    <td className="px-2 py-1 text-gray-600 flex items-center gap-2 text-sm min-w-[200px]">
                       <div className={`p-1 rounded-lg flex-shrink-0 ${despesa.tipo === 'operacional' ? 'bg-orange-100 text-orange-600' : 'bg-yellow-100 text-yellow-600'}`}>
                         <DollarSign size={14} />
                       </div>
@@ -724,7 +724,7 @@ const Despesas: React.FC = () => {
                     </td>
 
                     {/* Centro de Custo */}
-                    <td className="px-2 py-1 text-slate-600 text-sm whitespace-nowrap">
+                    <td className="px-2 py-1 text-gray-600 text-sm whitespace-nowrap">
                       <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded-md text-xs font-medium">
                         <FolderTree size={12} />
                         {getCentroCustoNome(despesa.centroCustoId)}
@@ -732,7 +732,7 @@ const Despesas: React.FC = () => {
                     </td>
 
                     {/* Usuário */}
-                    <td className="px-2 py-1 text-slate-500 text-xs whitespace-nowrap">
+                    <td className="px-2 py-1 text-gray-500 text-xs whitespace-nowrap">
                       <div className="flex items-center gap-1.5">
                         <User size={12} />
                         {despesa.userNameDisplay}
@@ -752,7 +752,7 @@ const Despesas: React.FC = () => {
                             <button
                               onClick={() => handleEdit(despesa)}
                               disabled={!isAuthorized}
-                              className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                              className="p-1 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-full transition-colors disabled:opacity-50"
                               title="Editar"
                             >
                               <Edit2 size={14} />
@@ -760,14 +760,14 @@ const Despesas: React.FC = () => {
                             <button
                               onClick={() => handleDelete(despesa.id || '', despesa.origem)}
                               disabled={!isAuthorized}
-                              className="p-1 text-slate-500 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors disabled:opacity-50"
+                              className="p-1 text-gray-500 hover:text-rose-600 hover:bg-rose-50 rounded-full transition-colors disabled:opacity-50"
                               title="Desativar"
                             >
                               <Ban size={14} />
                             </button>
                           </>
                         ) : (
-                          <div title="Gerenciado em Leituras" className="p-1 text-slate-400 cursor-help">
+                          <div title="Gerenciado em Leituras" className="p-1 text-gray-400 cursor-help">
                             <Info size={14} />
                           </div>
                         )}
@@ -871,7 +871,7 @@ const Despesas: React.FC = () => {
       >
         <form onSubmit={handleSubmitCC} className="space-y-5">
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
               Nome <span className="text-red-500">*</span>
             </label>
             <InputField
@@ -884,7 +884,7 @@ const Despesas: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-2">
+            <label className="block text-sm font-semibold text-gray-600 mb-2">
               Descrição (Opcional)
             </label>
             <textarea
@@ -893,20 +893,20 @@ const Despesas: React.FC = () => {
               onChange={(e) => setCCFormData({ ...ccFormData, descricao: e.target.value.toUpperCase() })}
               disabled={!isAuthorized}
               rows={3}
-              className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50 resize-none uppercase"
+              className="w-full bg-white border border-slate-200 rounded-lg px-4 py-2.5 text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50 resize-none uppercase"
             />
           </div>
 
           {/* Lista de Centros de Custo Existentes */}
           {!editingCCId && centrosCusto.length > 0 && (
             <div className="border-t border-slate-200 pt-4 mt-6">
-              <h3 className="text-sm font-semibold text-slate-700 mb-3">Centros de Custo Cadastrados</h3>
+              <h3 className="text-sm font-semibold text-gray-600 mb-3">Centros de Custo Cadastrados</h3>
               <div className="space-y-2 max-h-60 overflow-y-auto">
                 {centrosCusto.map((cc) => (
-                  <div key={cc.id} className="flex items-center justify-between p-3 bg-slate-50/50 rounded-lg border border-slate-200/50">
+                  <div key={cc.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
                     <div className="flex-1">
-                      <p className="font-medium text-slate-900">{cc.nome}</p>
-                      {cc.descricao && <p className="text-xs text-slate-500 mt-1">{cc.descricao}</p>}
+                      <p className="font-medium text-gray-900">{cc.nome}</p>
+                      {cc.descricao && <p className="text-xs text-gray-500 mt-1">{cc.descricao}</p>}
                     </div>
                     <div className="flex gap-2">
                       <button

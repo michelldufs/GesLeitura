@@ -1,5 +1,6 @@
 import { collection, query, orderBy, limit, getDocs } from "firebase/firestore";
 import { db } from "../services/firebaseConfig";
+import { logger } from './logger';
 
 /**
  * Generates the next sequential code for a collection.
@@ -21,7 +22,7 @@ export const getNextCode = async (collectionName: string): Promise<number> => {
     const lastDoc = snapshot.docs[0].data();
     return (lastDoc.codigo || 0) + 1;
   } catch (error) {
-    console.error("Error generating next code:", error);
+    logger.error("Error generating next code:", error);
     return 0; // Fail safe
   }
 };
