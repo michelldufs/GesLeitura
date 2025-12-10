@@ -145,63 +145,65 @@ const Localidades: React.FC = () => {
         </div>
       )}
 
-      <GlassCard className="p-4 md:p-8">
-        <h2 className="text-2xl font-semibold text-slate-900 mb-6">Localidades Cadastradas</h2>
+      {/* Tabela de Localidades */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-sm font-semibold text-gray-700">Localidades Cadastradas</h2>
+          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm">
+            {localidades.length} registros
+          </span>
+        </div>
 
         {localidades.length === 0 ? (
           <div className="text-center py-12">
-            <MapPin className="mx-auto text-slate-300 mb-4" size={48} />
-            <p className="text-slate-500 text-lg">Nenhuma localidade cadastrada ainda.</p>
-            <p className="text-slate-400 text-sm mt-2">Clique em "Nova Localidade" para criar a primeira.</p>
+            <MapPin className="mx-auto text-gray-300 mb-4" size={32} />
+            <p className="text-gray-500 text-sm">Nenhuma localidade cadastrada ainda.</p>
+            <p className="text-gray-400 text-xs mt-2">Clique em "Nova Localidade" para criar a primeira.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-slate-200/50">
-            <table className="w-full text-sm text-left">
-              <thead className="bg-slate-50/50 border-b border-slate-200/50">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <tr>
-                  <th className="px-3 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-3 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-3 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide text-center">Status</th>
-                  <th className="px-3 py-3 font-semibold text-slate-700 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-4 py-2 font-semibold">Código</th>
+                  <th className="px-4 py-2 font-semibold">Nome</th>
+                  <th className="px-4 py-2 font-semibold text-center">Status</th>
+                  <th className="px-4 py-2 font-semibold text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-gray-50">
                 {localidades.map((localidade) => (
-                  <tr key={localidade.id} className={`hover:bg-slate-50/80 transition-colors ${!localidade.active ? 'opacity-50' : ''}`}>
-                    <td className="px-3 py-3 font-mono font-semibold text-slate-900 text-sm">
-                      {localidade.codigo || <span className="text-slate-400 italic text-xs">sem código</span>}
+                  <tr key={localidade.id} className={`hover:bg-gray-50 transition-colors ${!localidade.active ? 'opacity-50' : ''}`}>
+                    <td className="px-4 py-2 font-medium text-gray-700">
+                      {localidade.codigo || '-'}
                     </td>
-                    <td className="px-3 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="p-2 bg-blue-100/50 rounded-lg flex-shrink-0">
-                          <MapPin className="text-blue-600" size={16} />
-                        </div>
-                        <span className="font-medium text-slate-900 text-sm">{localidade.nome}</span>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="text-blue-500" size={14} />
+                        <span className="font-medium text-gray-800">{localidade.nome}</span>
                       </div>
                     </td>
-                    <td className="px-3 py-3 text-center">
+                    <td className="px-4 py-2 text-center">
                       <button
                         onClick={() => handleToggleStatus(localidade)}
-                        className={`inline-flex items-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all ${localidade.active
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        className={`px-2 py-0.5 rounded text-[10px] font-medium border transition-colors ${localidade.active
+                          ? 'bg-green-50 text-green-700 border-green-100 hover:bg-green-100'
+                          : 'bg-red-50 text-red-700 border-red-100 hover:bg-red-100'
                           }`}
-                        title={localidade.active ? 'Clique para desativar' : 'Clique para ativar'}
+                        title={localidade.active ? 'Desativar' : 'Ativar'}
                       >
-                        {localidade.active ? '✓ Ativo' : '✕ Inativo'}
+                        {localidade.active ? 'ATIVO' : 'INATIVO'}
                       </button>
                     </td>
-                    <td className="px-3 py-3 text-right">
-                      <div className="flex items-center justify-end gap-2">
-                        <button
-                          onClick={() => handleEdit(localidade)}
-                          disabled={!isAuthorized}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                          title="Editar"
-                        >
-                          <Edit2 size={16} />
-                        </button>
-                      </div>
+                    <td className="px-4 py-2 text-right">
+                      <button
+                        onClick={() => handleEdit(localidade)}
+                        disabled={!isAuthorized}
+                        className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors"
+                        title="Editar"
+                      >
+                        <Edit2 size={14} />
+                      </button>
                     </td>
                   </tr>
                 ))}
@@ -209,7 +211,7 @@ const Localidades: React.FC = () => {
             </table>
           </div>
         )}
-      </GlassCard>
+      </div>
 
       {/* Modal */}
       <Modal

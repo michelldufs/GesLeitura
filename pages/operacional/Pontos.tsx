@@ -58,7 +58,7 @@ const Pontos: React.FC = () => {
   const [secoes, setSecoes] = useState<Secao[]>([]);
   const [localidades, setLocalidades] = useState<Localidade[]>([]);
   const [operadores, setOperadores] = useState<Operador[]>([]);
-  const [coletores, setColetores] = useState<Array<{uid: string; name: string}>>([]);
+  const [coletores, setColetores] = useState<Array<{ uid: string; name: string }>>([]);
   const [showModal, setShowModal] = useState(false);
   const [showColetoresModal, setShowColetoresModal] = useState(false);
   const [pontoSelecionado, setPontoSelecionado] = useState<Ponto | null>(null);
@@ -335,7 +335,7 @@ const Pontos: React.FC = () => {
 
   const handleToggleColetor = async (coletorUid: string) => {
     if (!pontoSelecionado) return;
-    
+
     try {
       const coletoresAtuais = pontoSelecionado.coletoresVinculados || [];
       const novaLista = coletoresAtuais.includes(coletorUid)
@@ -400,131 +400,137 @@ const Pontos: React.FC = () => {
         </div>
       )}
 
-      <GlassCard className="p-8">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Pontos Cadastrados</h2>
+      {/* Tabela de Pontos */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-sm font-semibold text-gray-700">Pontos Cadastrados</h2>
+          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm">
+            {pontos.length} registros
+          </span>
+        </div>
 
         {pontos.length === 0 ? (
           <div className="text-center py-12">
-            <MapPin className="mx-auto text-gray-300 mb-4" size={48} />
-            <p className="text-gray-500 text-lg">Nenhum ponto cadastrado ainda.</p>
-            <p className="text-gray-400 text-sm mt-2">Clique em "Novo Ponto" para criar o primeiro.</p>
+            <MapPin className="mx-auto text-gray-300 mb-4" size={32} />
+            <p className="text-gray-500 text-sm">Nenhum ponto cadastrado ainda.</p>
+            <p className="text-gray-400 text-xs mt-2">Clique em "Novo Ponto" para criar o primeiro.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Rota</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Comissão</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Equipamentos</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Coletores</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Rota</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Comissão</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Equipamentos</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Coletores</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
+              <tbody className="divide-y divide-gray-50">
                 {pontos.map((ponto) => {
                   const operadoresDoPonto = getOperadoresPorPonto(ponto.id);
                   const isExpanded = pontoExpandido === ponto.id;
                   return (
-                  <React.Fragment key={ponto.id}>
-                  <tr className={`hover:bg-gray-50 transition-colors ${!ponto.active ? 'opacity-50' : ''}`}>
-                    <td className="px-2 py-1 text-gray-600 font-medium">{ponto.codigo}</td>
-                    <td className="px-2 py-1 text-gray-600 truncate max-w-[200px]">{ponto.nome}</td>
-                    <td className="px-2 py-1">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-lg text-xs font-semibold ${getRotaColor(ponto.rotaId)}`}>
-                        {getRotaNome(ponto.rotaId)}
-                      </span>
-                    </td>
-                    <td className="px-2 py-1 text-gray-600">{ponto.comissao}%</td>
-                    <td className="px-2 py-1">
-                      <button
-                        onClick={() => setPontoExpandido(isExpanded ? null : ponto.id)}
-                        className={`flex items-center gap-1.5 px-2 py-1 rounded-xl text-xs font-medium transition-all ${
-                          operadoresDoPonto.length > 0
-                            ? 'bg-emerald-50 text-emerald-700 hover:bg-emerald-100'
-                            : 'bg-gray-100 text-gray-500'
-                        }`}
-                        disabled={operadoresDoPonto.length === 0}
-                      >
-                        <span className="font-semibold">{operadoresDoPonto.length}</span>
-                        <span>{operadoresDoPonto.length === 1 ? 'operador' : 'operadores'}</span>
-                        {operadoresDoPonto.length > 0 && (
-                          <svg 
-                            className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`} 
-                            fill="none" 
-                            stroke="currentColor" 
-                            viewBox="0 0 24 24"
-                          >
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                          </svg>
-                        )}
-                      </button>
-                    </td>
-                    <td className="px-2 py-1">
-                      <button
-                        onClick={() => handleGerenciarColetores(ponto)}
-                        className="flex items-center gap-1 px-2 py-1 text-xs bg-emerald-50 hover:bg-emerald-100 text-emerald-700 rounded-xl transition-colors"
-                        title="Gerenciar coletores"
-                      >
-                        <Users size={12} />
-                        <span>{(ponto.coletoresVinculados || []).length}</span>
-                      </button>
-                    </td>
-                    <td className="px-2 py-1 text-center">
-                      <button
-                        onClick={() => handleToggleStatus(ponto)}
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                          ponto.active 
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                            : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                        }`}
-                        title={ponto.active ? 'Clique para desativar' : 'Clique para ativar'}
-                      >
-                        {ponto.active ? '✓ Ativo' : '✕ Inativo'}
-                      </button>
-                    </td>
-                    <td className="px-2 py-1 text-right">
-                      <div className="flex items-center justify-end gap-1">
-                        <button
-                          onClick={() => handleEdit(ponto)}
-                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
-                          title="Editar"
-                        >
-                          <Edit2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                  
-                  {/* Linha expansível com lista de operadores */}
-                  {isExpanded && operadoresDoPonto.length > 0 && (
-                    <tr className="bg-emerald-50/30">
-                      <td colSpan={8} className="px-4 py-3">
-                        <div className="text-xs">
-                          <p className="font-semibold text-gray-700 mb-2">Operadores vinculados:</p>
-                          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
-                            {operadoresDoPonto.map(op => (
-                              <div key={op.id} className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-gray-200">
-                                <span className="font-mono font-semibold text-emerald-600">{op.codigo}</span>
-                                <span className="text-gray-700">{op.nome}</span>
-                              </div>
-                            ))}
+                    <React.Fragment key={ponto.id}>
+                      <tr className={`hover:bg-gray-50 transition-colors ${!ponto.active ? 'opacity-50' : ''}`}>
+                        <td className="px-4 py-2 font-medium text-gray-700 text-xs">{ponto.codigo}</td>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-2">
+                            <span className="font-medium text-gray-800 text-xs">{ponto.nome}</span>
                           </div>
-                        </div>
-                      </td>
-                    </tr>
-                  )}
-                  </React.Fragment>
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${getRotaColor(ponto.rotaId).replace('bg-', 'bg-opacity-20 border-').replace('text-', 'text-')}`}>
+                            {getRotaNome(ponto.rotaId)}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-gray-600 text-xs font-medium">{ponto.comissao}%</td>
+                        <td className="px-4 py-2">
+                          <button
+                            onClick={() => setPontoExpandido(isExpanded ? null : ponto.id)}
+                            className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium transition-all border ${operadoresDoPonto.length > 0
+                                ? 'bg-purple-50 text-purple-700 border-purple-100 hover:bg-purple-100'
+                                : 'bg-gray-50 text-gray-400 border-gray-100'
+                              }`}
+                            disabled={operadoresDoPonto.length === 0}
+                          >
+                            <span className="font-bold">{operadoresDoPonto.length}</span>
+                            <span>{operadoresDoPonto.length === 1 ? 'operador' : 'operadores'}</span>
+                            {operadoresDoPonto.length > 0 && (
+                              <svg
+                                className={`w-3 h-3 transition-transform ${isExpanded ? 'rotate-180' : ''}`}
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                              </svg>
+                            )}
+                          </button>
+                        </td>
+                        <td className="px-4 py-2">
+                          <button
+                            onClick={() => handleGerenciarColetores(ponto)}
+                            className="flex items-center gap-1.5 px-2 py-1 text-[10px] bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-lg border border-blue-100 transition-colors"
+                            title="Gerenciar coletores"
+                          >
+                            <Users size={12} />
+                            <span className="font-bold">{(ponto.coletoresVinculados || []).length}</span>
+                          </button>
+                        </td>
+                        <td className="px-4 py-2 text-center">
+                          <button
+                            onClick={() => handleToggleStatus(ponto)}
+                            className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${ponto.active
+                              ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
+                              : 'bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100'
+                              }`}
+                            title={ponto.active ? 'Desativar' : 'Ativar'}
+                          >
+                            {ponto.active ? 'ATIVO' : 'INATIVO'}
+                          </button>
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            onClick={() => handleEdit(ponto)}
+                            className="p-1 text-gray-400 hover:text-emerald-600 rounded transition-colors"
+                            title="Editar"
+                          >
+                            <Edit2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+
+                      {/* Linha expansível com lista de operadores */}
+                      {isExpanded && operadoresDoPonto.length > 0 && (
+                        <tr className="bg-gray-50/50">
+                          <td colSpan={8} className="px-4 py-3 border-t border-b border-gray-100 shadow-inner">
+                            <div className="text-xs">
+                              <p className="font-semibold text-gray-500 mb-2 uppercase tracking-wide">Operadores vinculados:</p>
+                              <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-2">
+                                {operadoresDoPonto.map(op => (
+                                  <div key={op.id} className="flex items-center gap-2 bg-white px-2 py-1.5 rounded border border-gray-200 shadow-sm">
+                                    <span className="font-mono font-bold text-gray-700 bg-gray-100 px-1 rounded">{op.codigo}</span>
+                                    <span className="text-gray-600 truncate">{op.nome}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>
             </table>
           </div>
         )}
-      </GlassCard>
+      </div>
 
       {/* Modal */}
       < Modal
@@ -642,11 +648,10 @@ const Pontos: React.FC = () => {
                 return (
                   <label
                     key={coletor.uid}
-                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${
-                      isVinculado
+                    className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isVinculado
                         ? 'border-emerald-500 bg-emerald-50'
                         : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
-                    }`}
+                      }`}
                   >
                     <input
                       type="checkbox"

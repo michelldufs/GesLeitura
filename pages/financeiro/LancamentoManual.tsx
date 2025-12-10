@@ -227,7 +227,7 @@ const LancamentoManual: React.FC = () => {
     const loadOperadoresPendentes = async () => {
       if (selectedPontoId) {
         const filtered = operadores.filter(op => op.pontoId === selectedPontoId);
-        
+
         // Buscar leituras do dia atual para este ponto
         try {
           const hoje = getTodayDateString();
@@ -238,7 +238,7 @@ const LancamentoManual: React.FC = () => {
           );
           const vendasSnap = await getDocs(vendasHojeQuery);
           const operadoresLidosHoje = vendasSnap.docs.map(doc => doc.data().operadorId);
-          
+
           // Filtrar operadores não lidos hoje
           const pendentes = filtered.filter(op => !operadoresLidosHoje.includes(op.id));
           setOperadoresFiltrados(pendentes);
@@ -807,52 +807,52 @@ const LancamentoManual: React.FC = () => {
                           }
                           setPontosExpandidos(newSet);
                         }}
-                        className="w-full flex items-center gap-1.5 px-2 py-1 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
+                        className="w-full flex items-center gap-2 px-3 py-2 bg-slate-50 hover:bg-slate-100 transition-colors text-left"
                       >
                         {/* Ícone de expansão */}
                         <div className="flex-shrink-0">
                           {isExpanded ? (
-                            <ChevronDown size={14} className="text-slate-600" />
+                            <ChevronDown size={16} className="text-slate-600" />
                           ) : (
-                            <ChevronRight size={14} className="text-slate-600" />
+                            <ChevronRight size={16} className="text-slate-600" />
                           )}
                         </div>
 
                         {/* Info do Ponto */}
-                        <div className="flex-1 grid grid-cols-7 gap-1.5 items-center">
+                        <div className="flex-1 grid grid-cols-7 gap-2 items-center">
                           <div className="col-span-2">
-                            <span className="text-[10px] font-bold text-slate-900">
+                            <span className="text-xs font-bold text-slate-900">
                               {ponto?.codigo} - {ponto?.nome || 'N/A'}
                             </span>
-                            <span className="text-[8px] text-slate-500 ml-1.5">
+                            <span className="text-[10px] text-slate-500 ml-1.5 align-middle">
                               ({qtdMaquinas} {qtdMaquinas === 1 ? 'máq' : 'máqs'})
                             </span>
                           </div>
 
                           <div className="text-right">
-                            <span className="text-[8px] text-slate-500 uppercase font-semibold mr-1">Total</span>
-                            <span className="text-[10px] font-bold text-slate-900">R$ {totalGeralPonto.toFixed(2)}</span>
+                            <span className="text-[10px] text-slate-500 uppercase font-semibold mr-1">Total</span>
+                            <span className="text-xs font-bold text-slate-900">R$ {totalGeralPonto.toFixed(2)}</span>
                           </div>
 
                           <div className="text-right">
-                            <span className="text-[8px] text-slate-500 uppercase font-semibold mr-1">Comissão</span>
-                            <span className="text-[10px] font-bold text-yellow-700">R$ {totalComissaoPonto.toFixed(2)}</span>
+                            <span className="text-[10px] text-slate-500 uppercase font-semibold mr-1">Comissão</span>
+                            <span className="text-xs font-bold text-yellow-700">R$ {totalComissaoPonto.toFixed(2)}</span>
                           </div>
 
                           <div className="text-right">
-                            <span className="text-[8px] text-slate-500 uppercase font-semibold mr-1">Despesa</span>
-                            <span className="text-[10px] font-bold text-red-600">
+                            <span className="text-[10px] text-slate-500 uppercase font-semibold mr-1">Despesa</span>
+                            <span className="text-xs font-bold text-red-600">
                               {totalDespesaPonto > 0 ? `- R$ ${totalDespesaPonto.toFixed(2)}` : '-'}
                             </span>
                           </div>
 
                           <div className="text-right">
-                            <span className="text-[8px] text-slate-500 uppercase font-semibold mr-1">Lucro</span>
-                            <span className="text-[10px] font-bold text-green-600">R$ {totalLucroPonto.toFixed(2)}</span>
+                            <span className="text-[10px] text-slate-500 uppercase font-semibold mr-1">Lucro</span>
+                            <span className="text-xs font-bold text-green-600">R$ {totalLucroPonto.toFixed(2)}</span>
                           </div>
 
                           <div className="text-right">
-                            <span className="text-[8px] text-slate-400 italic">{isExpanded ? '▲' : '▼'}</span>
+                            {/* Empty for spacing or future actions */}
                           </div>
                         </div>
                       </button>
@@ -899,8 +899,8 @@ const LancamentoManual: React.FC = () => {
                                     </td>
                                     <td className="px-3 py-1.5 text-right text-[10px]">
                                       {venda.despesa > 0 ? (
-                                        <span 
-                                          className="font-mono text-red-600 font-bold text-[10px] cursor-help" 
+                                        <span
+                                          className="font-mono text-red-600 font-bold text-[10px] cursor-help"
                                           title={centroCusto ? `Centro de Custo: ${centroCusto.nome}` : 'Sem centro de custo'}
                                         >
                                           - R$ {venda.despesa.toFixed(2)}
@@ -977,7 +977,7 @@ const LancamentoManual: React.FC = () => {
                   type="date"
                   {...register('data', { required: 'Obrigatório' })}
                   disabled={!isAuthorized}
-                  className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
+                  className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50 transition-all font-medium shadow-sm"
                 />
               </div>
 
@@ -990,7 +990,7 @@ const LancamentoManual: React.FC = () => {
                   value={selectedRotaId}
                   onChange={(e) => setSelectedRotaId(e.target.value)}
                   disabled={!isAuthorized}
-                  className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
+                  className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50 transition-all font-medium shadow-sm"
                 >
                   <option value="">Selecione a rota...</option>
                   {rotas.map(rota => (
@@ -1011,7 +1011,7 @@ const LancamentoManual: React.FC = () => {
                   value={selectedPontoId}
                   onChange={(e) => handlePontoChange(e.target.value)}
                   disabled={!isAuthorized || !selectedRotaId}
-                  className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
+                  className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50 transition-all font-medium shadow-sm"
                 >
                   <option value="">{!selectedRotaId ? 'Selecione uma rota primeiro' : 'Selecione o ponto...'}</option>
                   {pontosFiltrados.map(ponto => (
@@ -1032,7 +1032,7 @@ const LancamentoManual: React.FC = () => {
                   {...register('operadorId', { required: 'Obrigatório' })}
                   onChange={handleOperadorChange}
                   disabled={!isAuthorized || !selectedPontoId}
-                  className="w-full bg-white border border-slate-200 rounded px-2 py-1.5 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50"
+                  className="w-full bg-white border border-slate-200 rounded px-3 py-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50 transition-all font-medium shadow-sm"
                 >
                   <option value="">{!selectedPontoId ? 'Selecione um ponto primeiro' : 'Selecione a máquina...'}</option>
                   {operadoresFiltrados.length === 0 && selectedPontoId ? (
@@ -1064,7 +1064,7 @@ const LancamentoManual: React.FC = () => {
                     type="number"
                     {...register('entradaAnterior', { valueAsNumber: true })}
                     readOnly
-                    className="w-full bg-slate-100 border border-slate-300 rounded px-2 py-1 text-slate-700 font-mono text-xs"
+                    className="w-full bg-slate-100 border border-slate-300 rounded px-3 py-2 text-slate-700 font-mono text-xs sm:text-sm font-medium shadow-inner"
                   />
                 </div>
                 <div>
@@ -1076,7 +1076,7 @@ const LancamentoManual: React.FC = () => {
                     {...register('entradaAtual', { valueAsNumber: true, required: 'Obrigatório' })}
                     disabled={!isAuthorized}
                     placeholder="0"
-                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs text-slate-900 focus:ring-2 focus:ring-green-500 outline-none disabled:bg-slate-50 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-green-500 outline-none disabled:bg-slate-50 font-mono font-bold shadow-sm transition-all"
                   />
                 </div>
               </div>
@@ -1098,7 +1098,7 @@ const LancamentoManual: React.FC = () => {
                     type="number"
                     {...register('saidaAnterior', { valueAsNumber: true })}
                     readOnly
-                    className="w-full bg-slate-100 border border-slate-300 rounded px-2 py-1 text-slate-700 font-mono text-xs"
+                    className="w-full bg-slate-100 border border-slate-300 rounded px-3 py-2 text-slate-700 font-mono text-xs sm:text-sm font-medium shadow-inner"
                   />
                 </div>
                 <div>
@@ -1110,7 +1110,7 @@ const LancamentoManual: React.FC = () => {
                     {...register('saidaAtual', { valueAsNumber: true, required: 'Obrigatório' })}
                     disabled={!isAuthorized}
                     placeholder="0"
-                    className="w-full bg-white border border-slate-300 rounded px-2 py-1 text-xs text-slate-900 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-slate-50 font-mono"
+                    className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-red-500 outline-none disabled:bg-slate-50 font-mono font-bold shadow-sm transition-all"
                   />
                 </div>
               </div>
@@ -1148,7 +1148,7 @@ const LancamentoManual: React.FC = () => {
                     {...register('comissaoPorcentagem', { valueAsNumber: true })}
                     readOnly
                     disabled
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-900 text-xs font-mono font-bold"
+                    className="w-full bg-white border border-slate-300 rounded px-2 py-1.5 text-slate-900 text-xs font-mono font-bold transition-all shadow-sm"
                   />
                 </div>
 
@@ -1169,7 +1169,7 @@ const LancamentoManual: React.FC = () => {
                     {...register('despesa', { valueAsNumber: true })}
                     disabled={!isAuthorized}
                     placeholder="0"
-                    className="w-full bg-white border border-slate-300 rounded px-1.5 py-0.5 text-slate-900 text-xs font-mono font-bold"
+                    className="w-full bg-white border border-slate-300 rounded px-2 py-1.5 text-slate-900 text-xs font-mono font-bold transition-all shadow-sm focus:ring-2 focus:ring-orange-500 outline-none"
                   />
                 </div>
               </div>
@@ -1438,17 +1438,15 @@ const LancamentoManual: React.FC = () => {
                       <div className="text-[8px] text-orange-600 mb-0.5">Despesa</div>
                       <div className="text-sm font-bold text-orange-700">R$ {(vendaSelecionada.despesa || 0).toFixed(2)}</div>
                     </div>
-                    <div className={`rounded-lg p-2 border-2 ${
-                      (vendaSelecionada.totalFinal || 0) < 0 
-                        ? 'bg-red-50 border-red-300' 
-                        : 'bg-green-50 border-green-300'
-                    }`}>
+                    <div className={`rounded-lg p-2 border-2 ${(vendaSelecionada.totalFinal || 0) < 0
+                      ? 'bg-red-50 border-red-300'
+                      : 'bg-green-50 border-green-300'
+                      }`}>
                       <div className="text-[8px] font-bold mb-0.5 ${
                         (vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-600' : 'text-green-600'
                       }">Lucro Líquido</div>
-                      <div className={`text-base font-bold ${
-                        (vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-700' : 'text-green-700'
-                      }`}>R$ {(vendaSelecionada.totalFinal || 0).toFixed(2)}</div>
+                      <div className={`text-base font-bold ${(vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-700' : 'text-green-700'
+                        }`}>R$ {(vendaSelecionada.totalFinal || 0).toFixed(2)}</div>
                     </div>
                   </div>
                 </div>

@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
 import { useNavigate } from 'react-router-dom';
-import { User, Lock, MapPin, ArrowRight } from 'lucide-react';
+import { User, Lock, MapPin, ArrowRight, Eye, EyeOff } from 'lucide-react';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../services/firebaseConfig';
 import { InputField, ButtonPrimary, SelectField, AlertBox } from '../components/MacOSDesign';
@@ -12,6 +12,7 @@ type Localidade = { id: string; nome: string };
 const Login: React.FC = () => {
     const [username, setUsername] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState<'credentials' | 'localidade'>('credentials');
@@ -137,11 +138,13 @@ const Login: React.FC = () => {
 
                     <InputField
                         label="Senha"
-                        type="password"
+                        type={showPassword ? 'text' : 'password'}
                         placeholder="••••••••"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         icon={<Lock size={18} />}
+                        endIcon={showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                        onEndIconClick={() => setShowPassword(!showPassword)}
                         disabled={loading}
                         required
                     />

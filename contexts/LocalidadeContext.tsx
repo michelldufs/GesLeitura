@@ -1,5 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { useAuth } from './AuthContext';
+import { adminService } from '../services/adminService';
+import { Localidade } from '../types';
 
 interface LocalidadeContextType {
     selectedLocalidade: string | null;
@@ -8,6 +10,8 @@ interface LocalidadeContextType {
     clearSelectedLocalidade: () => void;
     isFilteredByLocalidade: boolean;
     localidadeSelecionada: boolean;
+    localidades: Localidade[]; // Nova propriedade
+    loadingLocalidades: boolean;
 }
 
 const LocalidadeContext = createContext<LocalidadeContextType | undefined>(undefined);
@@ -16,6 +20,8 @@ export const LocalidadeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const { userProfile } = useAuth();
     const [selectedLocalidade, setSelectedLocalidadeState] = useState<string | null>(null);
     const [selectedLocalidadeName, setSelectedLocalidadeNameState] = useState<string | null>(null);
+    const [localidades, setLocalidades] = useState<Localidade[]>([]);
+    const [loadingLocalidades, setLoadingLocalidades] = useState(false);
 
     // Salvar localidade no localStorage para persistência
     useEffect(() => {
@@ -32,11 +38,27 @@ export const LocalidadeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     useEffect(() => {
         const savedLocalidade = localStorage.getItem('selectedLocalidade');
         const savedLocalidadeName = localStorage.getItem('selectedLocalidadeName');
-        
+
         if (savedLocalidade && savedLocalidadeName) {
             setSelectedLocalidadeState(savedLocalidade);
             setSelectedLocalidadeNameState(savedLocalidadeName);
         }
+    }, []);
+
+    // Carregar todas as localidades (apenas uma vez)
+    useEffect(() => {
+        const fetchLocalidades = async () => {
+            setLoadingLocalidades(true);
+            try {
+                const data = await adminService.getLocalidades();
+                setLocalidades(data as Localidade[]);
+            } catch (error) {
+                console.error("Erro ao carregar localidades no contexto", error);
+            } finally {
+                setLoadingLocalidades(false);
+            }
+        };
+        fetchLocalidades();
     }, []);
 
     const setSelectedLocalidade = (id: string, name: string) => {
@@ -59,10 +81,7 @@ export const LocalidadeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     }, [userProfile]);
 
     const isFilteredByLocalidade = selectedLocalidade !== null && userProfile?.role !== 'coleta';
-    
-    // localidadeSelecionada = true quando:
-    // 1. Selecionou uma localidade manualmente
-    // 2. OU é perfil coleta (não precisa selecionar - já tem no device)
+
     const localidadeSelecionada = !!selectedLocalidade || userProfile?.role === 'coleta';
 
     return (
@@ -73,7 +92,9 @@ export const LocalidadeProvider: React.FC<{ children: React.ReactNode }> = ({ ch
                 setSelectedLocalidade,
                 clearSelectedLocalidade,
                 isFilteredByLocalidade,
-                localidadeSelecionada
+                localidadeSelecionada,
+                localidades,
+                loadingLocalidades
             }}
         >
             {children}

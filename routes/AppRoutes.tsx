@@ -20,6 +20,7 @@ const ConfiguracaoCotas = lazy(() => import('../pages/financeiro/ConfiguracaoCot
 const Despesas = lazy(() => import('../pages/financeiro/Despesas'));
 const Relatorios = lazy(() => import('../pages/financeiro/Relatorios'));
 const Usuarios = lazy(() => import('../pages/admin/Usuarios'));
+const Perfis = lazy(() => import('../pages/admin/Perfis'));
 const EditarUsuarioLocalidades = lazy(() => import('../pages/admin/EditarUsuarioLocalidades'));
 const Localidades = lazy(() => import('../pages/operacional/Localidades'));
 const Secoes = lazy(() => import('../pages/operacional/Secoes'));
@@ -125,27 +126,28 @@ const AppRoutes: React.FC = () => {
       <Suspense fallback={<PageLoader />}>
         <Routes>
           <Route path="/" element={<Dashboard />} />
-          
+
           {/* Operacional - Restrito a Admin, Gerente, Supervisor, Operacional */}
           <Route path="/secao" element={<RequireOperacional><Secoes /></RequireOperacional>} />
           <Route path="/rota" element={<RequireOperacional><Rotas /></RequireOperacional>} />
           <Route path="/ponto" element={<RequireOperacional><Pontos /></RequireOperacional>} />
           <Route path="/operador" element={<RequireOperacional><Operadores /></RequireOperacional>} />
           <Route path="/lancamento" element={<RequireOperacional><LancamentoManual /></RequireOperacional>} />
-          
+
           {/* Relatórios - Restrito a Admin e Financeiro */}
           <Route path="/relatorios" element={<RequireFinanceiro><Relatorios /></RequireFinanceiro>} />
-          
+
           {/* Administração - Restrito a Admin */}
           <Route path="/localidades" element={<RequireAdmin><Localidades /></RequireAdmin>} />
           <Route path="/usuarios" element={<RequireAdmin><Usuarios /></RequireAdmin>} />
+          <Route path="/perfis" element={<RequireAdmin><Perfis /></RequireAdmin>} />
           <Route path="/admin/editar-usuario-localidades" element={<RequireAdmin><EditarUsuarioLocalidades /></RequireAdmin>} />
-          
+
           {/* Financeiro - Restrito a Admin e Financeiro */}
           <Route path="/caixa-geral" element={<RequireFinanceiro><CaixaGeral /></RequireFinanceiro>} />
           <Route path="/cotas" element={<RequireFinanceiro><ConfiguracaoCotas /></RequireFinanceiro>} />
           <Route path="/despesas" element={<RequireFinanceiro><Despesas /></RequireFinanceiro>} />
-          
+
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Suspense>

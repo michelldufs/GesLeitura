@@ -246,60 +246,74 @@ const Rotas: React.FC = () => {
         </div>
       )}
 
-      <GlassCard className="p-4 md:p-8">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Rotas Cadastradas</h2>
+      {/* Tabela de Rotas */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-sm font-semibold text-gray-700">Rotas Cadastradas</h2>
+          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm">
+            {rotas.length} registros
+          </span>
+        </div>
 
         {rotas.length === 0 ? (
           <div className="text-center py-12">
-            <RouteIcon className="mx-auto text-gray-300 mb-4" size={48} />
-            <p className="text-gray-500 text-lg">Nenhuma rota cadastrada ainda.</p>
-            <p className="text-gray-400 text-sm mt-2">Clique em "Nova Rota" para criar a primeira.</p>
+            <RouteIcon className="mx-auto text-gray-300 mb-4" size={32} />
+            <p className="text-gray-500 text-sm">Nenhuma rota cadastrada ainda.</p>
+            <p className="text-gray-400 text-xs mt-2">Clique em "Nova Rota" para criar a primeira.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Seção</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Seção</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-50">
                 {rotas.map((rota) => (
-                  <tr key={rota.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${!rota.active ? 'opacity-50' : ''}`}>
-                    <td className="px-2 py-1 font-semibold text-gray-900 text-sm">{rota.codigo || 'sem código'}</td>
-                    <td className="px-2 py-1 font-medium text-gray-900 flex items-center gap-2 text-sm">
-                      <div className="p-1 bg-green-100/50 rounded-lg">
-                        <RouteIcon className="text-green-600" size={14} />
+                  <tr key={rota.id} className={`hover:bg-gray-50 transition-colors ${!rota.active ? 'opacity-50' : ''}`}>
+                    <td className="px-4 py-2 font-medium text-gray-700 text-xs">{rota.codigo || '-'}</td>
+                    <td className="px-4 py-2">
+                      <div className="flex items-center gap-2">
+                        <RouteIcon className="text-green-500" size={14} />
+                        <span className="font-medium text-gray-800 text-xs">{rota.nome}</span>
                       </div>
-                      {rota.nome}
                     </td>
-                    <td className="px-2 py-1 text-slate-600 text-sm">{getLocalidadeNome(rota.localidadeId)}</td>
-                    <td className="px-2 py-1 text-slate-600 text-sm">{getSecaoNome(rota.secaoId)}</td>
-                    <td className="px-2 py-1 text-center">
+                    <td className="px-4 py-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                        {getLocalidadeNome(rota.localidadeId)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2">
+                      <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-purple-50 text-purple-700 border border-purple-100">
+                        {getSecaoNome(rota.secaoId)}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2 text-center">
                       <button
                         onClick={() => handleToggleStatus(rota)}
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${rota.active
-                            ? 'bg-green-100 text-green-700 hover:bg-green-200'
-                            : 'bg-red-100 text-red-700 hover:bg-red-200'
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${rota.active
+                          ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
+                          : 'bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100'
                           }`}
-                        title={rota.active ? 'Clique para desativar' : 'Clique para ativar'}
+                        title={rota.active ? 'Desativar' : 'Ativar'}
                       >
-                        {rota.active ? '✓ Ativo' : '✕ Inativo'}
+                        {rota.active ? 'ATIVO' : 'INATIVO'}
                       </button>
                     </td>
-                    <td className="px-2 py-1 text-right flex justify-end gap-1">
+                    <td className="px-4 py-2 text-right">
                       <button
                         onClick={() => handleEdit(rota)}
                         disabled={!isAuthorized}
-                        className="p-1 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors disabled:opacity-50"
+                        className="p-1 text-gray-400 hover:text-emerald-600 rounded transition-colors"
                         title="Editar"
                       >
-                        <Edit2 size={16} />
+                        <Edit2 size={14} />
                       </button>
                     </td>
                   </tr>
@@ -308,7 +322,7 @@ const Rotas: React.FC = () => {
             </table>
           </div>
         )}
-      </GlassCard>
+      </div>
 
       {/* Modal */}
       < Modal

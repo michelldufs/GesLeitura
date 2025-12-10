@@ -6,20 +6,7 @@ import { Layers, Plus, Edit2, Trash2, Ban } from 'lucide-react';
 import { GlassCard, AlertBox, PageHeader, ButtonPrimary, ButtonSecondary, Modal, SelectField, InputField, Badge } from '../../components/MacOSDesign';
 import { collection, getDocs, query, where, doc, updateDoc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
-
-interface Secao {
-  id: string;
-  codigo?: string;
-  nome: string;
-  localidadeId: string;
-  active: boolean;
-}
-
-interface Localidade {
-  id: string;
-  codigo?: string;
-  nome: string;
-}
+import { Secao, Localidade } from '../../types';
 
 const Secoes: React.FC = () => {
   const { userProfile } = useAuth();
@@ -216,61 +203,69 @@ const Secoes: React.FC = () => {
       )}
 
       {!loadingSecoes && !error && (
-        <GlassCard className="p-8">
-          <h2 className="text-2xl font-semibold text-gray-900 mb-6">Seções Cadastradas</h2>
+        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+          <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+            <h2 className="text-sm font-semibold text-gray-700">Seções Cadastradas</h2>
+            <span className="text-xs font-medium text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm">
+              {secoes.length} registros
+            </span>
+          </div>
 
           {secoes.length === 0 ? (
             <div className="text-center py-12">
-              <Layers className="mx-auto text-gray-300 mb-4" size={48} />
-              <p className="text-gray-500 text-lg">Nenhuma seção cadastrada ainda.</p>
-              <p className="text-gray-400 text-sm mt-2">Clique em "Nova Seção" para criar a primeira.</p>
+              <Layers className="mx-auto text-gray-300 mb-4" size={32} />
+              <p className="text-gray-500 text-sm">Nenhuma seção cadastrada ainda.</p>
+              <p className="text-gray-400 text-xs mt-2">Clique em "Nova Seção" para criar a primeira.</p>
             </div>
           ) : (
-            <div className="overflow-x-auto rounded-xl border border-gray-200">
+            <div className="overflow-x-auto">
               <table className="w-full text-sm text-left">
                 <thead className="bg-gray-50 border-b border-gray-200">
                   <tr>
-                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
-                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
-                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
-                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
-                    <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
+                    <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
+                    <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                    <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
+                    <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
+                    <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                   </tr>
                 </thead>
-                <tbody>
+                <tbody className="divide-y divide-gray-50">
                   {secoes.map((secao) => (
-                    <tr key={secao.id} className={`border-b border-gray-100 hover:bg-gray-50 transition-colors ${!secao.active ? 'opacity-50' : ''}`}>
-                      <td className="px-2 py-1 font-semibold text-gray-900 text-sm">
-                        {secao.codigo || <span className="text-gray-400 italic">sem código</span>}
+                    <tr key={secao.id} className={`hover:bg-gray-50 transition-colors ${!secao.active ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-2 font-medium text-gray-700 text-xs">
+                        {secao.codigo || '-'}
                       </td>
-                      <td className="px-2 py-1 font-medium text-gray-900 flex items-center gap-2 text-sm">
-                        <div className="p-1 bg-purple-100/50 rounded-lg">
-                          <Layers className="text-purple-600" size={14} />
+                      <td className="px-4 py-2">
+                        <div className="flex items-center gap-2">
+                          <Layers className="text-purple-500" size={14} />
+                          <span className="font-medium text-gray-800 text-xs">{secao.nome}</span>
                         </div>
-                        {secao.nome}
                       </td>
-                      <td className="px-2 py-1 text-gray-600 text-sm">{getLocalidadeNome(secao.localidadeId)}</td>
-                      <td className="px-2 py-1 text-center">
+                      <td className="px-4 py-2">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
+                          {getLocalidadeNome(secao.localidadeId)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-center">
                         <button
                           onClick={() => handleToggleStatus(secao)}
-                          className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                            secao.active 
-                              ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                              : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                          }`}
-                          title={secao.active ? 'Clique para desativar' : 'Clique para ativar'}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${secao.active
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
+                            : 'bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100'
+                            }`}
+                          title={secao.active ? 'Desativar' : 'Ativar'}
                         >
-                          {secao.active ? '✓ Ativo' : '✕ Inativo'}
+                          {secao.active ? 'ATIVO' : 'INATIVO'}
                         </button>
                       </td>
-                      <td className="px-2 py-1 text-right flex justify-end gap-1">
+                      <td className="px-4 py-2 text-right">
                         <button
                           onClick={() => handleEdit(secao)}
                           disabled={!isAuthorized}
-                          className="p-1 text-gray-500 hover:text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors disabled:opacity-50"
+                          className="p-1 text-gray-400 hover:text-emerald-600 rounded transition-colors"
                           title="Editar"
                         >
-                          <Edit2 size={16} />
+                          <Edit2 size={14} />
                         </button>
                       </td>
                     </tr>
@@ -279,7 +274,7 @@ const Secoes: React.FC = () => {
               </table>
             </div>
           )}
-        </GlassCard>
+        </div>
       )}
 
       {/* Modal */}

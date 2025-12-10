@@ -14,30 +14,37 @@ export const GlassCard: React.FC<{
   </div>
 );
 
-// Button primário (Pílula Sólida)
+// Button primário (Pílula Sólida - Refinado)
 export const ButtonPrimary: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement>> = ({ children, className = '', ...props }) => (
   <button
-    className={`bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-gray-300 text-white font-semibold py-3 px-8 rounded-xl shadow-lg shadow-emerald-600/20 hover:shadow-xl hover:shadow-emerald-600/30 transition-all duration-200 disabled:opacity-70 disabled:shadow-none ${className}`}
+    className={`
+      bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 disabled:bg-gray-300 
+      text-white text-sm font-medium py-2.5 px-5 rounded-xl shadow-sm hover:shadow-md 
+      transition-all duration-200 disabled:opacity-70 disabled:shadow-none 
+      flex items-center justify-center gap-2
+      ${className}
+    `}
     {...props}
   >
     {children}
   </button>
 );
 
-// Button secundário (Chips / Pílula Outline)
+// Button secundário (Chips / Pílula Outline - Refinado)
 export const ButtonSecondary: React.FC<React.ButtonHTMLAttributes<HTMLButtonElement> & { icon?: React.ReactNode; active?: boolean }> = ({ children, className = '', icon, active = false, ...props }) => (
   <button
     className={`
-      flex items-center justify-center font-medium py-2 px-5 rounded-xl transition-all duration-200 border
+      flex items-center justify-center font-medium text-sm py-2.5 px-5 rounded-xl transition-all duration-200 border
       ${active
         ? 'bg-emerald-50 text-emerald-700 border-transparent font-semibold'
-        : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200 hover:border-gray-300'}
+        : 'bg-white hover:bg-gray-50 text-gray-700 border-gray-200 hover:border-gray-300'}
       disabled:opacity-50 disabled:cursor-not-allowed
+      gap-2
       ${className}
     `}
     {...props}
   >
-    {icon && <span className="mr-2 inline-flex items-center">{icon}</span>}
+    {icon && <span className="inline-flex items-center">{icon}</span>}
     {children}
   </button>
 );
@@ -57,7 +64,9 @@ export const InputField: React.FC<{
   min?: string | number;
   max?: string | number;
   step?: string | number;
-}> = ({ label, placeholder, value, onChange, type = 'text', disabled = false, icon, error, className = '', required, min, max, step }) => (
+  endIcon?: React.ReactNode;
+  onEndIconClick?: () => void;
+}> = ({ label, placeholder, value, onChange, type = 'text', disabled = false, icon, error, className = '', required, min, max, step, endIcon, onEndIconClick }) => (
   <div className={className}>
     {label && <label className="block text-sm font-medium text-gray-500 mb-2">{label}</label>}
     <div className="relative">
@@ -76,8 +85,16 @@ export const InputField: React.FC<{
         min={min}
         max={max}
         step={step}
-        className={`w-full ${icon ? 'pl-11' : 'pl-4'} pr-4 py-3 bg-gray-50 border-transparent focus:bg-white focus:ring-2 focus:ring-emerald-500 rounded-xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 disabled:opacity-60 disabled:bg-gray-100 ${error ? 'ring-2 ring-red-300 bg-red-50 focus:ring-red-500' : ''}`}
+        className={`w-full ${icon ? 'pl-11' : 'pl-4'} ${endIcon ? 'pr-11' : 'pr-4'} py-3 bg-gray-50 border-transparent focus:bg-white focus:ring-2 focus:ring-emerald-500 rounded-xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 disabled:opacity-60 disabled:bg-gray-100 ${error ? 'ring-2 ring-red-300 bg-red-50 focus:ring-red-500' : ''}`}
       />
+      {endIcon && (
+        <div
+          className={`absolute inset-y-0 right-0 pr-4 flex items-center ${onEndIconClick ? 'cursor-pointer text-gray-500 hover:text-gray-700' : 'pointer-events-none text-gray-400'}`}
+          onClick={onEndIconClick}
+        >
+          {endIcon}
+        </div>
+      )}
     </div>
     {error && <p className="text-red-500 text-xs mt-1 font-medium">{error}</p>}
   </div>

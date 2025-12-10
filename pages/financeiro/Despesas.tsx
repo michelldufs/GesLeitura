@@ -33,22 +33,27 @@ import {
   Info,
   Filter,
   Check,
-  X
+  X,
+  CreditCard,
+  Target
 } from 'lucide-react';
-import { DespesaGeral, CentroCusto, UserProfile } from '../../types.ts';
+import { DespesaGeral, CentroCusto, UserProfile, Ponto } from '../../types.ts';
 
 // Tipo unificado para exibição na tabela
 interface UnifiedDespesa extends DespesaGeral {
   origem: 'manual' | 'leitura';
   vendaId?: string;
   userNameDisplay?: string;
+  pontoId?: string; // ID do ponto se vier de leitura
 }
 
 // Filtros para as colunas
 interface ColumnFilters {
   data: string[];
   origem: string[];
-  centroCusto: string[];
+  centroCusto: string[]; // Mantendo compatibilidade ou renomeando se preferir, vou usar centroCusto para o filtro genérico antigo se sobrar, mas idealmente split
+  ponto: string[];       // Add this
+  centroCustoReal: string[]; // Add this
   usuario: string[];
 }
 
@@ -134,12 +139,17 @@ const Despesas: React.FC = () => {
   const [despesas, setDespesas] = useState<UnifiedDespesa[]>([]);
   const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [usersMap, setUsersMap] = useState<Record<string, string>>({});
+  const [pontos, setPontos] = useState<Ponto[]>([]);
+  const [pontosMap, setPontosMap] = useState<Record<string, string>>({}); // ID -> Nome
+  const [pontosCodigoMap, setPontosCodigoMap] = useState<Record<string, string>>({}); // ID -> Código
 
   // Filter States
   const [activeFilters, setActiveFilters] = useState<ColumnFilters>({
     data: [],
     origem: [],
     centroCusto: [],
+    ponto: [],
+    centroCustoReal: [],
     usuario: []
   });
   const [openFilter, setOpenFilter] = useState<string | null>(null);
@@ -204,6 +214,7 @@ const Despesas: React.FC = () => {
     if (selectedLocalidade) {
       loadData();
       loadCentrosCusto();
+      loadPontos();
     }
   }, [selectedLocalidade, usersMap]);
 
@@ -222,6 +233,27 @@ const Despesas: React.FC = () => {
     }
   };
 
+  const loadPontos = async () => {
+    if (!selectedLocalidade) return;
+    try {
+      const q = query(collection(db, 'pontos'), where('localidadeId', '==', selectedLocalidade));
+      const snapshot = await getDocs(q);
+      const nomeMap: Record<string, string> = {};
+      const codigoMap: Record<string, string> = {};
+      const lista: Ponto[] = [];
+      snapshot.forEach(doc => {
+        const data = doc.data() as Ponto;
+        data.id = doc.id;
+        lista.push(data);
+        nomeMap[doc.id] = data.nome;
+        codigoMap[doc.id] = data.codigo || 'S/C';
+      });
+      setPontos(lista);
+      setPontosMap(nomeMap);
+      setPontosCodigoMap(codigoMap);
+    } catch (e) { console.error(e); }
+  };
+
   const loadData = async () => {
     if (!selectedLocalidade) {
       setDespesas([]);
@@ -233,7 +265,7 @@ const Despesas: React.FC = () => {
 
       // 1. Buscar Despesas Gerais (Manuais)
       const despesasQuery = query(
-        collection(db, 'despesasGerais'),
+        collection(db, 'despesas_gerais'),
         where('active', '==', true),
         where('localidadeId', '==', selectedLocalidade)
       );
@@ -262,7 +294,7 @@ const Despesas: React.FC = () => {
             id: doc.id,
             data: data.data,
             valor: data.despesa,
-            descricao: 'DESPESA DE MÁQUINA (LEITURA)',
+            descricao: 'DESPESA DE MÁQUINA',
             userId: data.userId,
             localidadeId: data.localidadeId,
             tipo: 'operacional',
@@ -270,7 +302,8 @@ const Despesas: React.FC = () => {
             active: true,
             origem: 'leitura',
             vendaId: doc.id,
-            userNameDisplay: usersMap[data.userId] || 'Leiturista'
+            userNameDisplay: usersMap[data.userId] || 'Leiturista',
+            pontoId: data.pontoId // Important: Getting point ID from sale
           });
         }
       });
@@ -310,12 +343,21 @@ const Despesas: React.FC = () => {
 
   // --- FILTER LOGIC ---
 
-  const getUniqueValues = (key: keyof UnifiedDespesa | 'centroCustoNome' | 'origemFormatada') => {
+  const getUniqueValues = (key: keyof UnifiedDespesa | 'centroCustoNome' | 'origemFormatada' | 'pontoNome' | 'centroCustoReal') => {
     const values = new Set<string>();
     despesas.forEach(d => {
       let value = '';
-      if (key === 'centroCustoNome') {
-        value = getCentroCustoNome(d.centroCustoId);
+      if (key === 'pontoNome') {
+        if (d.origem === 'leitura' && d.pontoId && pontosMap[d.pontoId]) {
+          value = pontosMap[d.pontoId];
+        }
+      } else if (key === 'centroCustoReal') {
+        if (d.origem === 'manual') {
+          value = getCentroCustoNome(d.centroCustoId);
+        } else if (d.origem === 'leitura') {
+          // Leitura também tem centro de custo vindo da venda
+          value = getCentroCustoNome(d.centroCustoId);
+        }
       } else if (key === 'origemFormatada') {
         value = d.origem === 'manual' ? 'Manual' : 'Leitura';
       } else if (key === 'data') {
@@ -323,7 +365,8 @@ const Despesas: React.FC = () => {
       } else {
         value = String(d[key as keyof UnifiedDespesa] || '');
       }
-      if (value) values.add(value);
+
+      if (value && value !== '-' && value !== 'S/C') values.add(value);
     });
     return Array.from(values).sort();
   };
@@ -346,17 +389,19 @@ const Despesas: React.FC = () => {
     return despesas.filter(d => {
       const dataFormatada = new Date(d.data).toLocaleDateString('pt-BR');
       const origemFormatada = d.origem === 'manual' ? 'Manual' : 'Leitura';
+      const pontoNome = d.pontoId ? pontosMap[d.pontoId] : '';
       const ccNome = getCentroCustoNome(d.centroCustoId);
       const usuarioNome = d.userNameDisplay || '';
 
       if (activeFilters.data.length > 0 && !activeFilters.data.includes(dataFormatada)) return false;
       if (activeFilters.origem.length > 0 && !activeFilters.origem.includes(origemFormatada)) return false;
-      if (activeFilters.centroCusto.length > 0 && !activeFilters.centroCusto.includes(ccNome)) return false;
+      if (activeFilters.ponto.length > 0 && !activeFilters.ponto.includes(pontoNome)) return false;
+      if (activeFilters.centroCustoReal.length > 0 && !activeFilters.centroCustoReal.includes(ccNome)) return false;
       if (activeFilters.usuario.length > 0 && !activeFilters.usuario.includes(usuarioNome)) return false;
 
       return true;
     });
-  }, [despesas, activeFilters, centrosCusto]);
+  }, [despesas, activeFilters, centrosCusto, pontosMap]);
 
   // ---------------
 
@@ -407,7 +452,7 @@ const Despesas: React.FC = () => {
 
     try {
       if (editingId) {
-        await updateDoc(doc(db, 'despesasGerais', editingId), {
+        await updateDoc(doc(db, 'despesas_gerais', editingId), {
           data: formData.data,
           valor: valorNumerico,
           descricao: formData.descricao.toUpperCase(),
@@ -429,7 +474,7 @@ const Despesas: React.FC = () => {
           active: true
         };
 
-        await addDoc(collection(db, 'despesasGerais'), novaDespesa);
+        await addDoc(collection(db, 'despesas_gerais'), novaDespesa);
 
         setMessageType('success');
         setMessage('Despesa criada com sucesso!');
@@ -514,7 +559,7 @@ const Despesas: React.FC = () => {
     if (!confirm('Deseja realmente desativar esta despesa?')) return;
 
     try {
-      await updateDoc(doc(db, 'despesasGerais', id), { active: false });
+      await updateDoc(doc(db, 'despesas_gerais', id), { active: false });
       setMessageType('success');
       setMessage('Despesa desativada com sucesso!');
       loadData();
@@ -561,14 +606,13 @@ const Despesas: React.FC = () => {
               <FolderTree size={16} className="text-purple-600" />
               <span className="hidden sm:inline">Centro de Custos</span>
             </button>
-            <button
+            <ButtonPrimary
               onClick={handleOpenModal}
               disabled={!isAuthorized}
-              className="flex items-center gap-2 px-3 py-2 bg-emerald-600 text-white rounded-lg hover:bg-emerald-700 text-sm font-medium transition-all shadow-sm hover:shadow-md disabled:opacity-50"
             >
               <Plus size={16} />
               <span>Nova Despesa</span>
-            </button>
+            </ButtonPrimary>
           </div>
         }
       />
@@ -589,66 +633,62 @@ const Despesas: React.FC = () => {
         </div>
       )}
 
-      {/* Resumo de Despesas */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+      {/* Resumo de Despesas - Compacto */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
         {/* Total Geral */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Total Despesas</p>
-            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">R$ {totalDespesas.toFixed(2)}</h3>
-            <p className="text-gray-400 text-[10px] mt-1">Valor filtrado</p>
+            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Total</p>
+            <h3 className="text-lg font-bold text-gray-900">R$ {totalDespesas.toFixed(2)}</h3>
           </div>
-          <div className="p-3 bg-rose-50 rounded-xl text-rose-600">
-            <DollarSign size={24} />
+          <div className="p-2 bg-rose-50 rounded-lg text-rose-500">
+            <CreditCard size={18} />
           </div>
         </div>
 
         {/* Despesas Operacionais */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Operacionais</p>
-            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">R$ {despesasOperacionais.toFixed(2)}</h3>
-            <p className="text-gray-400 text-[10px] mt-1">Manutenção e serviços</p>
+            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Operacionais</p>
+            <h3 className="text-lg font-bold text-gray-900">R$ {despesasOperacionais.toFixed(2)}</h3>
           </div>
-          <div className="p-3 bg-orange-50 rounded-xl text-orange-600">
-            <div className="text-xl">🏭</div>
+          <div className="p-2 bg-orange-50 rounded-lg text-orange-500">
+            <Target size={18} />
           </div>
         </div>
 
         {/* Adiantamentos */}
-        <div className="bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
+        <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
-            <p className="text-gray-500 text-xs font-bold uppercase tracking-wider mb-1">Adiantamentos</p>
-            <h3 className="text-2xl font-bold text-gray-900 tracking-tight">R$ {despesasAdiantamento.toFixed(2)}</h3>
-            <p className="text-gray-400 text-[10px] mt-1">Valores antecipados</p>
+            <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Adiantamentos</p>
+            <h3 className="text-lg font-bold text-gray-900">R$ {despesasAdiantamento.toFixed(2)}</h3>
           </div>
-          <div className="p-3 bg-yellow-50 rounded-xl text-yellow-600">
-            <div className="text-xl">💰</div>
+          <div className="p-2 bg-yellow-50 rounded-lg text-yellow-500">
+            <DollarSign size={18} />
           </div>
         </div>
       </div>
 
       {/* Tabela de Despesas */}
-      <GlassCard className="p-8 pb-32"> {/* Added padding bottom to allow dropdown space */}
-        <h2 className="text-2xl font-semibold text-gray-900 mb-6 flex justify-between items-center">
-          <span>Despesas Cadastradas</span>
-          <span className="text-sm font-normal text-gray-500 px-3 py-1 bg-slate-100 rounded-full">
-            {filteredDespesas.length} registros encontrados
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-sm font-semibold text-gray-700">Despesas Cadastradas</h2>
+          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm">
+            {filteredDespesas.length} registros
           </span>
-        </h2>
+        </div>
 
         {despesas.length === 0 ? (
           <div className="text-center py-12">
-            <DollarSign className="mx-auto text-gray-300 mb-4" size={48} />
-            <p className="text-gray-500 text-lg">Nenhuma despesa cadastrada ainda.</p>
-            <p className="text-gray-400 text-sm mt-2">Clique em "Nova Despesa" para registrar.</p>
+            <DollarSign className="mx-auto text-gray-300 mb-4" size={32} />
+            <p className="text-gray-500 text-sm">Nenhuma despesa cadastrada.</p>
           </div>
         ) : (
-          <div className="overflow-visible rounded-xl border border-gray-200"> {/* Allows dropdown overflow */}
-            <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50 border-b border-gray-200">
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs text-left">
+              <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">
+                  <th className="px-3 py-2 font-semibold">
                     <HeaderWithFilter
                       label="Data"
                       filterKey="data"
@@ -661,7 +701,7 @@ const Despesas: React.FC = () => {
                       filterRef={filterRef}
                     />
                   </th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">
+                  <th className="px-3 py-2 font-semibold">
                     <HeaderWithFilter
                       label="Origem"
                       filterKey="origem"
@@ -674,12 +714,16 @@ const Despesas: React.FC = () => {
                       filterRef={filterRef}
                     />
                   </th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Descrição</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">
+
+                  {/* Nova Coluna: Código do Ponto */}
+                  <th className="px-3 py-2 font-semibold text-gray-600">Cód.</th>
+
+                  {/* Coluna Ponto */}
+                  <th className="px-3 py-2 font-semibold">
                     <HeaderWithFilter
-                      label="Centro de Custo"
-                      filterKey="centroCusto"
-                      values={getUniqueValues('centroCustoNome')}
+                      label="Ponto"
+                      filterKey="ponto"
+                      values={getUniqueValues('pontoNome')}
                       activeFilters={activeFilters}
                       openFilter={openFilter}
                       setOpenFilter={setOpenFilter}
@@ -688,7 +732,25 @@ const Despesas: React.FC = () => {
                       filterRef={filterRef}
                     />
                   </th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">
+
+                  {/* Coluna Centro de Custo */}
+                  <th className="px-3 py-2 font-semibold">
+                    <HeaderWithFilter
+                      label="Centro de Custo"
+                      filterKey="centroCustoReal"
+                      values={getUniqueValues('centroCustoReal')}
+                      activeFilters={activeFilters}
+                      openFilter={openFilter}
+                      setOpenFilter={setOpenFilter}
+                      toggleFilter={toggleFilter}
+                      clearFilter={clearFilter}
+                      filterRef={filterRef}
+                    />
+                  </th>
+
+                  <th className="px-3 py-2 font-semibold text-gray-600">Descrição</th>
+
+                  <th className="px-3 py-2 font-semibold">
                     <HeaderWithFilter
                       label="Usuário"
                       filterKey="usuario"
@@ -701,92 +763,97 @@ const Despesas: React.FC = () => {
                       filterRef={filterRef}
                     />
                   </th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Valor</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-3 py-2 font-semibold text-right">Valor</th>
+                  <th className="px-3 py-2 font-semibold text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody>
-                {filteredDespesas.map((despesa) => (
-                  <tr key={despesa.id} className="border-b border-gray-50 hover:bg-gray-50 transition-colors even:bg-gray-50/30">
-                    {/* Data */}
-                    <td className="px-2 py-2 font-medium text-gray-700 text-xs whitespace-nowrap">
-                      {new Date(despesa.data).toLocaleDateString('pt-BR')}
-                    </td>
+              <tbody className="divide-y divide-gray-50">
+                {filteredDespesas.map((despesa) => {
+                  const pontoCodigo = despesa.pontoId ? pontosCodigoMap[despesa.pontoId] : '-';
+                  const pontoNome = despesa.pontoId ? pontosMap[despesa.pontoId] : '-';
+                  const centroCustoNome = getCentroCustoNome(despesa.centroCustoId);
 
-                    {/* Origem */}
-                    <td className="px-2 py-2">
-                      <span className={`px-2 py-0.5 rounded text-[10px] font-medium border ${despesa.origem === 'manual'
-                          ? 'bg-blue-50 text-blue-700 border-blue-100'
-                          : 'bg-gray-50 text-gray-600 border-gray-100'
-                        }`}>
-                        {despesa.origem === 'manual' ? 'MANUAL' : 'SISTEMA'}
-                      </span>
-                    </td>
+                  return (
+                    <tr key={despesa.id} className="hover:bg-gray-50 transition-colors">
+                      {/* Data */}
+                      <td className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
+                        {new Date(despesa.data).toLocaleDateString('pt-BR')}
+                      </td>
 
-                    {/* Descrição */}
-                    <td className="px-2 py-2 text-gray-600 flex items-center gap-2 text-xs min-w-[200px]">
-                      <div className={`p-1 rounded flex-shrink-0 ${despesa.tipo === 'operacional' ? 'bg-orange-50 text-orange-600' : 'bg-yellow-50 text-yellow-600'}`}>
-                        <DollarSign size={12} />
-                      </div>
-                      <span className="truncate font-medium uppercase" title={despesa.descricao}>{despesa.descricao}</span>
-                    </td>
-
-                    {/* Centro de Custo */}
-                    <td className="px-2 py-2 text-gray-600 text-xs whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-purple-50 text-purple-700 rounded border border-purple-100 text-[10px] font-medium uppercase tracking-wide">
-                        {getCentroCustoNome(despesa.centroCustoId)}
-                      </span>
-                    </td>
-
-                    {/* Usuário */}
-                    <td className="px-2 py-2 text-gray-500 text-[10px] uppercase whitespace-nowrap">
-                      <div className="flex items-center gap-1.5">
-                        <User size={12} />
-                        {despesa.userNameDisplay}
-                      </div>
-                    </td>
-
-                    {/* Valor */}
-                    <td className="px-2 py-2 text-right font-bold text-red-600 text-sm whitespace-nowrap">
-                      - {despesa.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                    </td>
-
-                    {/* Ações */}
-                    <td className="px-2 py-2 text-right whitespace-nowrap">
-                      <div className="flex justify-end gap-1">
+                      {/* Origem */}
+                      <td className="px-3 py-2">
                         {despesa.origem === 'manual' ? (
-                          <>
-                            <button
-                              onClick={() => handleEdit(despesa)}
-                              disabled={!isAuthorized}
-                              className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors disabled:opacity-50"
-                              title="Editar"
-                            >
-                              <Edit2 size={14} />
-                            </button>
-                            <button
-                              onClick={() => handleDelete(despesa.id || '', despesa.origem)}
-                              disabled={!isAuthorized}
-                              className="p-1.5 text-gray-400 hover:text-rose-600 hover:bg-rose-50 rounded-md transition-colors disabled:opacity-50"
-                              title="Desativar"
-                            >
-                              <Trash2 size={14} />
-                            </button>
-                          </>
+                          <Badge variant="primary" className="text-[10px] px-1.5 py-0.5">MANUAL</Badge>
                         ) : (
-                          <div title="Gerenciado em Leituras" className="p-1.5 text-gray-300 cursor-not-allowed">
-                            <Info size={14} />
-                          </div>
+                          <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">LEITURA</Badge>
                         )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+
+                      {/* Cód Ponto */}
+                      <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">
+                        {pontoCodigo}
+                      </td>
+
+                      {/* Ponto */}
+                      <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]" title={pontoNome}>
+                        {pontoNome}
+                      </td>
+
+                      {/* Centro de Custo */}
+                      <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]" title={centroCustoNome}>
+                        {centroCustoNome}
+                      </td>
+
+                      {/* Descrição */}
+                      <td className="px-3 py-2 text-gray-600 max-w-[200px] truncate" title={despesa.descricao}>
+                        {despesa.descricao}
+                      </td>
+
+                      {/* Usuário */}
+                      <td className="px-3 py-2 text-gray-500 text-[10px] uppercase truncate max-w-[100px]" title={despesa.userNameDisplay}>
+                        {despesa.userNameDisplay}
+                      </td>
+
+                      {/* Valor */}
+                      <td className="px-3 py-2 text-right font-bold text-red-600 whitespace-nowrap">
+                        - {despesa.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
+                      </td>
+
+                      {/* Ações */}
+                      <td className="px-3 py-2 text-right whitespace-nowrap">
+                        <div className="flex justify-end gap-1">
+                          {despesa.origem === 'manual' ? (
+                            <>
+                              <button
+                                onClick={() => handleEdit(despesa)}
+                                disabled={!isAuthorized}
+                                className="p-1 text-slate-400 hover:text-blue-600 rounded transition-colors"
+                                title="Editar"
+                              >
+                                <Edit2 size={14} />
+                              </button>
+                              <button
+                                onClick={() => handleDelete(despesa.id!, despesa.origem)}
+                                disabled={!isAuthorized}
+                                className="p-1 text-slate-400 hover:text-red-600 rounded transition-colors"
+                                title="Excluir"
+                              >
+                                <Trash2 size={14} />
+                              </button>
+                            </>
+                          ) : (
+                            <span className="text-[10px] text-gray-400 italic px-2">Auto</span>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
-      </GlassCard>
+      </div>
 
       {/* Modal Nova Despesa */}
       <Modal

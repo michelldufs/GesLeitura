@@ -227,13 +227,12 @@ const Usuarios: React.FC = () => {
                 title="Gerenciar Usuários"
                 subtitle="Crie e gerencie todos os usuários do sistema"
                 action={
-                    <button
+                    <ButtonPrimary
                         onClick={() => setShowNewUserModal(true)}
                         disabled={!isAdmin}
-                        className="flex items-center gap-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 disabled:from-slate-400 disabled:to-slate-500 text-white font-semibold py-3 px-6 rounded-xl shadow-lg transition-all duration-300 disabled:opacity-60"
                     >
                         <Plus size={20} /> Novo Usuário
-                    </button>
+                    </ButtonPrimary>
                 }
             />
 

@@ -6,7 +6,7 @@ import ModalTrocarLocalidade from '../components/ModalTrocarLocalidade';
 import { logger } from '../utils/logger';
 import {
   Home, Layers, Route, MapPin, Users, FileText, BarChart3, Settings, LogOut, Clock,
-  ChevronRight, Circle, DollarSign
+  ChevronRight, Circle, DollarSign, PieChart
 } from 'lucide-react';
 
 interface AdminLayoutProps {
@@ -79,7 +79,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }
             <>
               <SectionTitle title="Financeiro" />
               <NavItem icon={BarChart3} label="Caixa Geral" path="/caixa-geral" />
-              <NavItem icon={Settings} label="Cotas & Sócios" path="/cotas" />
+              <NavItem icon={PieChart} label="Contas" path="/cotas" />
               <NavItem icon={DollarSign} label="Despesas" path="/despesas" />
 
               <SectionTitle title="Relatórios" />
@@ -93,6 +93,7 @@ const Sidebar = ({ isOpen, onClose }: { isOpen?: boolean; onClose?: () => void }
             <>
               <SectionTitle title="Administração" />
               <NavItem icon={Users} label="Usuários" path="/usuarios" />
+              <NavItem icon={Settings} label="Perfis" path="/perfis" />
             </>
           )}
         </nav>

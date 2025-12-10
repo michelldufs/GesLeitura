@@ -6,39 +6,7 @@ import { useLocalidade } from '../../contexts/LocalidadeContext';
 import { Cpu, Plus, Edit2, Trash2, Ban } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
 import { gerarProximoCodigoOperador, validarCodigoOperador } from '../../services/codigoValidator';
-
-interface Operador {
-  id: string;
-  codigo: string;
-  nome: string;
-  fatorConversao: number;
-  pontoId: string;
-  localidadeId: string;
-  active: boolean;
-}
-
-interface Ponto {
-  id: string;
-  codigo: string;
-  nome: string;
-  rotaId: string;
-  localidadeId: string;
-}
-
-interface Rota {
-  id: string;
-  codigo: string;
-  nome: string;
-  secaoId: string;
-  localidadeId: string;
-}
-
-interface Secao {
-  id: string;
-  codigo: string;
-  nome: string;
-  localidadeId: string;
-}
+import { Operador, Ponto, Rota, Secao } from '../../types';
 
 const Operadores: React.FC = () => {
   const { userProfile } = useAuth();
@@ -147,7 +115,7 @@ const Operadores: React.FC = () => {
           id: doc.id,
           codigo: data.codigo,
           nome: data.nome,
-          fatorConversao: data.fatorConversao,
+          fatorConversao: data.fatorConversao || 0.01,
           pontoId: data.pontoId,
           localidadeId: data.localidadeId,
           active: data.active
@@ -169,7 +137,7 @@ const Operadores: React.FC = () => {
 
     // Filtrar operadores do mesmo ponto para gerar sequência correta
     const opPonto = operadores.filter(op => op.pontoId === formData.pontoId);
-    return gerarProximoCodigoOperador(ponto.codigo, opPonto);
+    return gerarProximoCodigoOperador(ponto.codigo || '', opPonto);
   };
 
   const handleOpenModal = () => {
@@ -242,7 +210,7 @@ const Operadores: React.FC = () => {
     setFormData({
       nome: operador.nome,
       pontoId: operador.pontoId,
-      fatorConversao: operador.fatorConversao
+      fatorConversao: operador.fatorConversao || 0.01
     });
     setEditingId(operador.id);
     setShowModal(true);
@@ -269,11 +237,11 @@ const Operadores: React.FC = () => {
   const getPontoNome = (id: string) => pontos.find(p => p.id === id)?.nome || 'N/A';
   const getPontoCodigo = (id: string) => pontos.find(p => p.id === id)?.codigo || '';
 
-  const formatFator = (fator: number) => {
-    return `${(fator * 100).toFixed(0)}%`;
+  const formatFator = (fator?: number) => {
+    return `${((fator || 0) * 100).toFixed(0)}%`;
   };
 
-  const getFatorColor = (fator: number) => {
+  const getFatorColor = (fator?: number) => {
     // Cores distintas para cada fator de conversão
     if (fator === 0.01) return 'bg-blue-100 text-blue-800 border-blue-300';
     if (fator === 0.10) return 'bg-purple-100 text-purple-800 border-purple-300';
@@ -314,72 +282,85 @@ const Operadores: React.FC = () => {
         </div>
       )}
 
-      <GlassCard className="p-8">
-        <h2 className="text-2xl font-semibold text-gray-900 mb-6">Operadores Cadastrados</h2>
+      {/* Tabela de Operadores */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-sm font-semibold text-gray-700">Operadores Cadastrados</h2>
+          <span className="text-xs font-medium text-gray-500 bg-white px-2 py-0.5 rounded border border-gray-200 shadow-sm">
+            {operadores.length} registros
+          </span>
+        </div>
 
         {operadores.length === 0 ? (
           <div className="text-center py-12">
-            <Cpu className="mx-auto text-gray-300 mb-4" size={48} />
-            <p className="text-gray-500 text-lg">Nenhum operador cadastrado ainda.</p>
-            <p className="text-gray-400 text-sm mt-2">Clique em "Novo Operador" para criar o primeiro.</p>
+            <Cpu className="mx-auto text-gray-300 mb-4" size={32} />
+            <p className="text-gray-500 text-sm">Nenhum operador cadastrado ainda.</p>
+            <p className="text-gray-400 text-xs mt-2">Clique em "Novo Operador" para criar o primeiro.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
               <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Ponto</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Fator</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Código</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Ponto</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Fator</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-center">Status</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-gray-100">
-                {operadores.map((operador) => (
-                  <tr key={operador.id} className={`hover:bg-gray-50 transition-colors ${!operador.active ? 'opacity-50' : ''}`}>
-                    <td className="px-2 py-1 text-gray-600 font-medium">{operador.codigo}</td>
-                    <td className="px-2 py-1 text-gray-600">{operador.nome}</td>
-                    <td className="px-2 py-1 text-gray-600">
-                      <Badge variant="secondary">{getPontoNome(operador.pontoId)}</Badge>
-                    </td>
-                    <td className="px-2 py-1 text-gray-600">
-                      <span className={`inline-flex items-center px-1.5 py-0.5 rounded-full text-[10px] font-bold border leading-tight ${getFatorColor(operador.fatorConversao)}`}>
-                        {formatFator(operador.fatorConversao)}
-                      </span>
-                    </td>
-                    <td className="px-2 py-1 text-center">
-                      <button
-                        onClick={() => handleToggleStatus(operador)}
-                        className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold transition-all ${
-                          operador.active 
-                            ? 'bg-emerald-100 text-emerald-700 hover:bg-emerald-200' 
-                            : 'bg-rose-100 text-rose-700 hover:bg-rose-200'
-                        }`}
-                        title={operador.active ? 'Clique para desativar' : 'Clique para ativar'}
-                      >
-                        {operador.active ? '✓ Ativo' : '✕ Inativo'}
-                      </button>
-                    </td>
-                    <td className="px-2 py-1 text-right">
-                      <div className="flex items-center justify-end gap-1">
+              <tbody className="divide-y divide-gray-50">
+                {operadores.map((operador) => {
+                  const pontoNome = getPontoNome(operador.pontoId);
+                  const pontoCodigo = getPontoCodigo(operador.pontoId);
+
+                  return (
+                    <tr key={operador.id} className={`hover:bg-gray-50 transition-colors ${!operador.active ? 'opacity-50' : ''}`}>
+                      <td className="px-4 py-2 font-medium text-gray-700 text-xs">{operador.codigo}</td>
+                      <td className="px-4 py-2">
+                        <span className="font-medium text-gray-800 text-xs">{operador.nome}</span>
+                      </td>
+                      <td className="px-4 py-2">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-medium text-gray-700">{pontoNome}</span>
+                          <span className="text-[10px] text-gray-400">{pontoCodigo}</span>
+                        </div>
+                      </td>
+                      <td className="px-4 py-2">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold border ${getFatorColor(operador.fatorConversao)}`}>
+                          {formatFator(operador.fatorConversao)}
+                        </span>
+                      </td>
+                      <td className="px-4 py-2 text-center">
+                        <button
+                          onClick={() => handleToggleStatus(operador)}
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold border transition-colors ${operador.active
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100 hover:bg-emerald-100'
+                            : 'bg-rose-50 text-rose-700 border-rose-100 hover:bg-rose-100'
+                            }`}
+                          title={operador.active ? 'Desativar' : 'Ativar'}
+                        >
+                          {operador.active ? 'ATIVO' : 'INATIVO'}
+                        </button>
+                      </td>
+                      <td className="px-4 py-2 text-right">
                         <button
                           onClick={() => handleEdit(operador)}
-                          className="p-1 text-emerald-600 hover:bg-emerald-50 rounded-xl transition-colors"
+                          className="p-1 text-gray-400 hover:text-emerald-600 rounded transition-colors"
                           title="Editar"
                         >
                           <Edit2 size={14} />
                         </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
         )}
-      </GlassCard>
+      </div>
 
       {/* Modal */}
       < Modal

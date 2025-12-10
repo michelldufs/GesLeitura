@@ -41,7 +41,7 @@ const ConfiguracaoCotas = () => {
       // Carregar TODAS as cotas (ativas e inativas)
       const snapshot = await getDocs(collection(db, 'cotas'));
       const cotasList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Cota[];
-      
+
       // Debug: Ver duplicatas
       const nomesCounts: Record<string, number> = {};
       cotasList.forEach(c => {
@@ -53,9 +53,9 @@ const ConfiguracaoCotas = () => {
         console.warn('⚠️ COTAS DUPLICADAS encontradas:', duplicatas);
         console.table(cotasList.map(c => ({ id: c.id, nome: c.nome, active: c.active, porcentagem: c.porcentagem })));
       }
-      
+
       setCotas(cotasList);
-      
+
       // Calcular porcentagem total por localidade (apenas ativas)
       const totalPorLocalidade = cotasList
         .filter(c => c.active !== false)
@@ -89,20 +89,20 @@ const ConfiguracaoCotas = () => {
   const handleOpenModal = (cota?: Cota) => {
     if (cota) {
       // Modo edição
-      setFormData({ 
-        nome: cota.nome, 
-        porcentagem: cota.porcentagem, 
-        localidadeId: cota.localidadeId, 
+      setFormData({
+        nome: cota.nome,
+        porcentagem: cota.porcentagem,
+        localidadeId: cota.localidadeId,
         participaPrejuizo: cota.participaPrejuizo || false,
         observacao: (cota as any).observacao || ''
       });
       setEditingId(cota.id);
     } else {
       // Modo novo - Auto-preencher com localidade selecionada
-      setFormData({ 
-        nome: '', 
-        porcentagem: 0, 
-        localidadeId: selectedLocalidade || '', 
+      setFormData({
+        nome: '',
+        porcentagem: 0,
+        localidadeId: selectedLocalidade || '',
         participaPrejuizo: false,
         observacao: ''
       });
@@ -121,14 +121,14 @@ const ConfiguracaoCotas = () => {
 
   const onSubmit = async () => {
     if (!userProfile || !formData.nome.trim()) return;
-    
+
     // Validar se há localidade selecionada
     if (!formData.localidadeId) {
       setMessageType('error');
       setMessage('⚠️ Selecione uma localidade no topo da página antes de criar uma cota!');
       return;
     }
-    
+
     // Validar porcentagem (permitir 0% para desativar sócios)
     if (formData.porcentagem < 0 || formData.porcentagem > 100) {
       setMessageType('error');
@@ -138,15 +138,15 @@ const ConfiguracaoCotas = () => {
 
     // Calcular total de porcentagem da localidade (excluindo a cota sendo editada e apenas ATIVAS)
     const totalPorcentagemLocalidade = cotas
-      .filter(c => 
-        c.localidadeId === formData.localidadeId && 
+      .filter(c =>
+        c.localidadeId === formData.localidadeId &&
         c.id !== editingId &&
         (c.active === true || c.active === undefined) // Apenas cotas ATIVAS
       )
       .reduce((sum, c) => sum + c.porcentagem, 0);
-    
+
     const novoTotal = totalPorcentagemLocalidade + formData.porcentagem;
-    
+
     if (novoTotal > 100) {
       setMessageType('error');
       setMessage(`Erro: A soma das porcentagens desta localidade ficaria ${novoTotal.toFixed(2)}%. O máximo permitido é 100%!`);
@@ -184,7 +184,7 @@ const ConfiguracaoCotas = () => {
         setMessageType('success');
         setMessage('Cota criada com sucesso!');
       }
-      
+
       handleCloseModal();
       loadCotas();
     } catch (e: any) {
@@ -198,19 +198,19 @@ const ConfiguracaoCotas = () => {
 
   const handleDelete = async (id: string) => {
     if (!userProfile) return;
-    
+
     // Validar se a cota tem porcentagem 0%
     const cota = cotas.find(c => c.id === id);
     if (!cota) return;
-    
+
     if (cota.porcentagem > 0) {
       setMessageType('error');
       setMessage(`⚠️ Não é possível desativar esta cota! A porcentagem deve ser 0% antes de desativar. Atualmente está em ${cota.porcentagem}%.`);
       return;
     }
-    
+
     if (!window.confirm('Deseja realmente desativar esta cota?')) return;
-    
+
     try {
       await softDelete('cotas', id, userProfile.uid);
       setMessageType('success');
@@ -224,15 +224,15 @@ const ConfiguracaoCotas = () => {
 
   const limparDuplicatas = async () => {
     if (!userProfile || !window.confirm('🧹 LIMPAR DUPLICATAS?\n\nEsta ação vai remover cotas duplicadas do banco, mantendo apenas a versão mais recente de cada sócio.\n\nDeseja continuar?')) return;
-    
+
     setLoading(true);
     setMessage('Limpando duplicatas...');
     setMessageType('');
-    
+
     try {
       const snapshot = await getDocs(collection(db, 'cotas'));
       const todasCotas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Cota[];
-      
+
       // Agrupar por nome+localidade
       const grupos: { [key: string]: Cota[] } = {};
       todasCotas.forEach(cota => {
@@ -240,9 +240,9 @@ const ConfiguracaoCotas = () => {
         if (!grupos[key]) grupos[key] = [];
         grupos[key].push(cota);
       });
-      
+
       let removidos = 0;
-      
+
       // Para cada grupo com duplicatas
       for (const [key, cotasGrupo] of Object.entries(grupos)) {
         if (cotasGrupo.length > 1) {
@@ -252,13 +252,13 @@ const ConfiguracaoCotas = () => {
             if (a.active === false && (b.active === true || b.active === undefined)) return 1;
             return 0;
           });
-          
+
           // Manter a primeira (ativa se houver), remover o resto
           const manter = ordenadas[0];
           const remover = ordenadas.slice(1);
-          
+
           console.log(`Grupo ${key}: Mantendo`, manter.id, 'Removendo', remover.map(c => c.id));
-          
+
           for (const cotaRemover of remover) {
             const docRef = doc(db, 'cotas', cotaRemover.id);
             await updateDoc(docRef, { active: false, _duplicata_removida: true });
@@ -266,7 +266,7 @@ const ConfiguracaoCotas = () => {
           }
         }
       }
-      
+
       setMessageType('success');
       setMessage(`✅ Limpeza concluída! ${removidos} duplicata(s) removida(s).`);
       await loadCotas();
@@ -285,10 +285,10 @@ const ConfiguracaoCotas = () => {
       // Usar updateDoc diretamente para apenas atualizar o campo active
       const docRef = doc(db, 'cotas', id);
       await updateDoc(docRef, { active: true });
-      
+
       setMessageType('success');
       setMessage('Cota reativada com sucesso!');
-      
+
       // Forçar reload completo
       await loadCotas();
     } catch (e: any) {
@@ -302,15 +302,15 @@ const ConfiguracaoCotas = () => {
   return (
     <div className="w-full">
       <PageHeader
-        title="Configuração de Sócios e Cotas"
-        subtitle="Gerencie todas as cotas e sócios do sistema"
+        title="Gestão de Contas"
+        subtitle="Gerencie todas as contas e sócios do sistema"
         action={
           <ButtonPrimary
             onClick={() => handleOpenModal()}
             disabled={!isAuthorized}
             className="flex items-center gap-2"
           >
-            <Plus size={20} /> Nova Cota
+            <Plus size={20} /> Nova Conta
           </ButtonPrimary>
         }
       />
@@ -331,121 +331,111 @@ const ConfiguracaoCotas = () => {
         </div>
       )}
 
-      <GlassCard className="p-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-semibold text-gray-900">Sócios e Cotas</h2>
-          <div className="text-sm text-gray-600">
-            <span className="font-semibold text-green-600">{cotas.filter(c => (c.active === true || c.active === undefined) && c.porcentagem > 0).length}</span> ativos
-            <span className="mx-2">•</span>
-            <span className="font-semibold text-gray-400">{cotas.filter(c => (c.active === true || c.active === undefined) && c.porcentagem === 0).length}</span> inativos
+      {/* Tabela de Contas */}
+      <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+        <div className="px-4 py-3 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
+          <h2 className="text-sm font-semibold text-gray-700">Contas Cadastradas</h2>
+          <div className="flex gap-2">
+            <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 shadow-sm">
+              {cotas.filter(c => (c.active === true || c.active === undefined) && c.porcentagem > 0).length} ativas
+            </span>
+            <span className="text-xs font-medium text-gray-500 bg-gray-50 px-2 py-0.5 rounded border border-gray-200 shadow-sm">
+              {cotas.filter(c => (c.active === true || c.active === undefined) && c.porcentagem === 0).length} inativas
+            </span>
           </div>
         </div>
 
         {cotas.filter(c => c.active === true || c.active === undefined).length === 0 ? (
           <div className="text-center py-12">
-            <Users className="mx-auto text-gray-300 mb-4" size={48} />
-            <p className="text-gray-500 text-lg">Nenhuma cota ativa encontrada.</p>
-            <p className="text-gray-400 text-sm mt-2">Clique em "Nova Cota" para criar a primeira.</p>
+            <Users className="mx-auto text-gray-300 mb-4" size={32} />
+            <p className="text-gray-500 text-sm">Nenhuma conta cadastrada ainda.</p>
+            <p className="text-gray-400 text-xs mt-2">Clique em "Nova Conta" para criar a primeira.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto rounded-xl border border-gray-200/50">
+          <div className="overflow-x-auto">
             <table className="w-full text-sm text-left">
-              <thead className="bg-gray-50/50 border-b border-gray-200/50">
+              <thead className="bg-gray-50 border-b border-gray-200">
                 <tr>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Porcentagem</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Saldo</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Prejuízo</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
-                  <th className="px-2 py-1 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Editar</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Nome</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Localidade</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Porcentagem</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Saldo</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Prejuízo</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide">Status</th>
+                  <th className="px-4 py-2 font-semibold text-gray-600 text-xs uppercase tracking-wide text-right">Ações</th>
                 </tr>
               </thead>
-              <tbody>
+              <tbody className="divide-y divide-gray-50">
                 {cotas
                   .filter(c => c.active === true || c.active === undefined)
                   .sort((a, b) => b.porcentagem - a.porcentagem) // Ordenar: maiores % primeiro
                   .map((c: Cota) => {
-                  const localidade = localidades.find(l => l.id === c.localidadeId);
-                  const isAtiva = c.active === true || c.active === undefined;
-                  const podeDesativar = c.porcentagem === 0;
-                  return (
-                  <tr key={c.id} className="border-b border-gray-100 hover:bg-gray-50/50 transition-colors">
-                    <td className="px-2 py-1 font-medium text-gray-900 flex items-center gap-2">
-                      <div className="p-1 bg-indigo-100/50 rounded-lg">
-                        <Users className="text-indigo-600" size={16} />
-                      </div>
-                      {c.nome}
-                    </td>
-                    <td className="px-2 py-1 text-gray-600">
-                      <div className="flex items-center gap-1.5">
-                        <MapPin size={12} className="text-blue-500" />
-                        <span className="text-[10px] font-medium">{localidade?.nome || 'N/A'}</span>
-                      </div>
-                    </td>
-                    <td className="px-2 py-1 text-gray-600 font-semibold">
-                      <div className="flex items-center gap-1.5">
-                        <span className={c.porcentagem === 0 ? 'text-gray-400 line-through' : ''}>{c.porcentagem}%</span>
-                        {c.porcentagem === 0 && (
-                          <span className="text-[8px] px-1.5 py-0.5 bg-slate-100 text-gray-500 rounded">
-                            Inativo
+                    const localidade = localidades.find(l => l.id === c.localidadeId);
+                    const isAtiva = c.active === true || c.active === undefined;
+                    const podeDesativar = c.porcentagem === 0;
+                    return (
+                      <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-2 font-medium text-gray-700 text-xs">
+                          {c.nome}
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className="text-xs text-gray-600">{localidade?.nome || 'N/A'}</span>
+                        </td>
+                        <td className="px-4 py-2">
+                          <div className="flex items-center gap-1.5">
+                            <span className={`text-xs font-semibold ${c.porcentagem === 0 ? 'text-gray-400 line-through' : 'text-gray-700'}`}>{c.porcentagem}%</span>
+                            {(c as any).observacao && (
+                              <span
+                                className="text-[8px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded cursor-help font-bold"
+                                title={(c as any).observacao}
+                              >
+                                OBS
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className={`px-4 py-2 text-xs font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                          R$ {(c.saldoAcumulado || 0).toFixed(2)}
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.participaPrejuizo
+                            ? 'bg-amber-50 text-amber-700 border-amber-100'
+                            : 'bg-gray-50 text-gray-600 border-gray-200'}`}>
+                            {c.participaPrejuizo ? 'SIM' : 'NÃO'}
                           </span>
-                        )}
-                        {(c as any).observacao && (
-                          <span 
-                            className="text-[8px] px-1.5 py-0.5 bg-blue-100 text-blue-700 rounded cursor-help"
-                            title={(c as any).observacao}
+                        </td>
+                        <td className="px-4 py-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.porcentagem > 0
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-100'
+                            : 'bg-gray-50 text-gray-400 border-gray-100'
+                            }`}>
+                            {c.porcentagem > 0 ? 'ATIVO' : 'INATIVO'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2 text-right">
+                          <button
+                            onClick={() => handleOpenModal(c)}
+                            disabled={!isAuthorized}
+                            className="p-1 text-gray-400 hover:text-blue-600 rounded transition-colors"
+                            title="Editar conta"
                           >
-                            📝
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                    <td className={`px-2 py-1 font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                      R$ {(c.saldoAcumulado || 0).toFixed(2)}
-                    </td>
-                    <td className="px-2 py-1">
-                      <Badge variant={c.participaPrejuizo ? 'warning' : 'secondary'}>
-                        {c.participaPrejuizo ? 'Sim' : 'Não'}
-                      </Badge>
-                    </td>
-                    <td className="px-2 py-1">
-                      <button
-                        disabled={true}
-                        className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md font-semibold text-xs ${
-                          c.porcentagem > 0
-                            ? 'bg-green-50 text-green-700'
-                            : 'bg-slate-100 text-gray-400'
-                        } opacity-50 cursor-not-allowed`}
-                        title={c.porcentagem > 0 ? 'Cota ativa' : 'Cota inativa (0%)'}
-                      >
-                        {c.porcentagem > 0 ? '✓ Ativo' : '✕ Inativo'}
-                      </button>
-                    </td>
-                    <td className="px-2 py-1 text-right">
-                      <button
-                        onClick={() => handleOpenModal(c)}
-                        disabled={!isAuthorized}
-                        className="text-blue-500 hover:text-blue-700 transition-colors disabled:opacity-50 p-1 hover:bg-emerald-50 rounded"
-                        title="Editar cota"
-                      >
-                        <Edit2 size={16} />
-                      </button>
-                    </td>
-                  </tr>
-                  );
-                })}
+                            <Edit2 size={14} />
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
               </tbody>
             </table>
           </div>
         )}
-      </GlassCard>
+      </div>
 
       {/* Modal Compacto */}
       <Modal
         isOpen={showModal}
         onClose={handleCloseModal}
-        title={editingId ? "Editar Cota" : "Nova Cota"}
+        title={editingId ? "Editar Conta" : "Nova Conta"}
         size="sm"
         actions={
           <div className="flex gap-2">
@@ -524,14 +514,13 @@ const ConfiguracaoCotas = () => {
                 }}
                 disabled={!isAuthorized}
                 required
-                className={`w-full px-2 py-1.5 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-100 ${
-                  formData.porcentagem > 100 ? 'border-red-500 bg-red-50' : 'border-slate-300'
-                }`}
+                className={`w-full px-2 py-1.5 text-xs border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none disabled:bg-slate-100 ${formData.porcentagem > 100 ? 'border-red-500 bg-red-50' : 'border-slate-300'
+                  }`}
               />
               {formData.localidadeId && (() => {
                 const totalAtual = cotas
-                  .filter(c => 
-                    c.localidadeId === formData.localidadeId && 
+                  .filter(c =>
+                    c.localidadeId === formData.localidadeId &&
                     c.id !== editingId &&
                     (c.active === true || c.active === undefined) // Apenas cotas ATIVAS
                   )
@@ -539,9 +528,8 @@ const ConfiguracaoCotas = () => {
                 const novoTotal = totalAtual + (formData.porcentagem || 0);
                 const restante = 100 - novoTotal;
                 return (
-                  <p className={`text-[8px] mt-0.5 font-semibold ${
-                    novoTotal > 100 ? 'text-red-600' : novoTotal === 100 ? 'text-green-600' : 'text-gray-500'
-                  }`}>
+                  <p className={`text-[8px] mt-0.5 font-semibold ${novoTotal > 100 ? 'text-red-600' : novoTotal === 100 ? 'text-green-600' : 'text-gray-500'
+                    }`}>
                     Total: {novoTotal.toFixed(2)}% {restante >= 0 ? `(${restante.toFixed(2)}% disponível)` : '(EXCEDEU!)'}
                   </p>
                 );
