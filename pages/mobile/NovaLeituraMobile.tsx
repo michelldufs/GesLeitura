@@ -12,7 +12,7 @@ interface PontoComRegras extends Ponto {
 
 const NovaLeituraMobile: React.FC = () => {
   const { userProfile } = useAuth();
-  
+
   // Estados de listas
   const [operadores, setOperadores] = useState<Operador[]>([]);
   const [operadoresFiltrados, setOperadoresFiltrados] = useState<Operador[]>([]);
@@ -21,13 +21,13 @@ const NovaLeituraMobile: React.FC = () => {
   const [rotas, setRotas] = useState<Rota[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [loadingUltimaLeitura, setLoadingUltimaLeitura] = useState(false);
-  
+
   // Estados do formulário
   const [operadorId, setOperadorId] = useState('');
   const [pontoId, setPontoId] = useState('');
   const [rotaId, setRotaId] = useState('');
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
-  
+
   const [entradaAnterior, setEntradaAnterior] = useState('');
   const [entradaAtual, setEntradaAtual] = useState('');
   const [saidaAnterior, setSaidaAnterior] = useState('');
@@ -35,7 +35,7 @@ const NovaLeituraMobile: React.FC = () => {
   const [despesa, setDespesa] = useState('');
   const [comissaoPorcentagem, setComissaoPorcentagem] = useState('10');
   const [fatorConversao, setFatorConversao] = useState<number>(1);
-  
+
   const [foto, setFoto] = useState<File | null>(null);
   const [fotoPreview, setFotoPreview] = useState<string>('');
   const [loading, setLoading] = useState(false);
@@ -43,6 +43,7 @@ const NovaLeituraMobile: React.FC = () => {
   const [participaDespesa, setParticipaDespesa] = useState(true);
   const [showToast, setShowToast] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const isSubmittingRef = React.useRef(false);
 
   // Helper para evitar NaN
   const toSafeNumber = (val: any) => {
@@ -55,10 +56,10 @@ const NovaLeituraMobile: React.FC = () => {
     const totalEntrada = toSafeNumber(Number(entradaAtual) - Number(entradaAnterior));
     const totalSaida = toSafeNumber(Number(saidaAtual) - Number(saidaAnterior));
     const entradaMenosSaida = toSafeNumber(totalEntrada - totalSaida);
-    
+
     // Aplicar fator de conversão
     const liquidoDaMaquina = toSafeNumber(entradaMenosSaida * fatorConversao);
-    
+
     // Calcular comissão e lucro baseado na regra do ponto
     let valorComissao = 0;
     let totalFinal = 0;
@@ -91,7 +92,7 @@ const NovaLeituraMobile: React.FC = () => {
   useEffect(() => {
     const loadData = async () => {
       if (!userProfile?.allowedLocalidades?.[0]) return;
-      
+
       setLoadingData(true);
       try {
         const localidadeId = userProfile.allowedLocalidades[0];
@@ -219,7 +220,7 @@ const NovaLeituraMobile: React.FC = () => {
           where('active', '==', true)
         );
         const snapshot = await getDocs(ultimaLeituraQuery);
-        
+
         if (!snapshot.empty) {
           // Ordenar por timestamp e pegar a mais recente
           const vendas = snapshot.docs.map(doc => doc.data());
@@ -228,7 +229,7 @@ const NovaLeituraMobile: React.FC = () => {
             const timeB = b.timestamp?.toMillis() || 0;
             return timeB - timeA;
           });
-          
+
           const ultima = vendas[0];
           // Preencher campos "Anterior" com valores "Atual" da última leitura
           setEntradaAnterior(String(ultima.entradaAtual || 0));
@@ -260,8 +261,15 @@ const NovaLeituraMobile: React.FC = () => {
     }
   };
 
+
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Bloqueia se já estiver enviando (proteção contra duplo clique/enter)
+    if (loading || isSubmittingRef.current) return;
+
+    isSubmittingRef.current = true;
     setLoading(true);
     setMensagem('');
 
@@ -324,12 +332,12 @@ const NovaLeituraMobile: React.FC = () => {
       setMensagem('✅ Leitura salva! Pronto para próxima...');
       setIsSuccess(true);
       setShowToast(true);
-      
+
       // Resetar TODOS os campos para próxima leitura
       setTimeout(() => {
         setShowToast(false);
       }, 2000);
-      
+
       setTimeout(() => {
         setRotaId('');
         setPontoId('');
@@ -359,6 +367,7 @@ const NovaLeituraMobile: React.FC = () => {
       setTimeout(() => setShowToast(false), 3000);
     } finally {
       setLoading(false);
+      isSubmittingRef.current = false;
     }
   };
 
@@ -377,9 +386,9 @@ const NovaLeituraMobile: React.FC = () => {
           <h3 className="text-xl font-bold text-gray-800 mb-2">GesLeitura</h3>
           <p className="text-gray-600 font-medium animate-pulse">Carregando dados...</p>
           <div className="mt-4 flex justify-center gap-1">
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '0ms'}}></div>
-            <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div>
-            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
+            <div className="w-2 h-2 bg-indigo-600 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
+            <div className="w-2 h-2 bg-blue-600 rounded-full animate-bounce" style={{ animationDelay: '300ms' }}></div>
           </div>
         </div>
       </div>
@@ -392,7 +401,7 @@ const NovaLeituraMobile: React.FC = () => {
         {/* Identificação */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 p-2.5 rounded-xl border border-blue-200">
           <h2 className="font-bold text-sm mb-2 text-blue-900">📍 Identificação</h2>
-          
+
           <div className="grid grid-cols-2 gap-1.5">
             {/* Coluna Esquerda: DATA e PONTO */}
             <div className="space-y-1.5">
@@ -482,7 +491,7 @@ const NovaLeituraMobile: React.FC = () => {
           <h2 className="font-bold text-sm mb-2 text-blue-900 flex items-center gap-1.5">
             <span className="text-base">🔢</span> Leituras
           </h2>
-          
+
           <div className="grid grid-cols-2 gap-1.5">
             <div>
               <label className="block text-[10px] font-semibold text-gray-500 mb-0.5 uppercase tracking-wide flex items-center gap-1">
@@ -583,7 +592,7 @@ const NovaLeituraMobile: React.FC = () => {
         {/* Financeiro */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 p-2.5 rounded-xl border border-green-200">
           <h2 className="font-bold text-sm mb-2 text-green-900">💰 Financeiro</h2>
-          
+
           <div className="space-y-1.5">
             {/* Cards Positivos e Negativos - MOVIDOS PARA CIMA */}
             <div className="grid grid-cols-2 gap-1.5 text-[11px]">
@@ -666,14 +675,12 @@ const NovaLeituraMobile: React.FC = () => {
 
         {/* Toast Animado de Sucesso/Erro */}
         {mensagem && (
-          <div className={`fixed top-4 left-4 right-4 z-50 transform transition-all duration-500 ${
-            showToast ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
-          }`}>
-            <div className={`p-4 rounded-2xl text-center font-bold shadow-2xl backdrop-blur-sm border-2 ${
-              mensagem.includes('✅') 
-                ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-300' 
-                : 'bg-gradient-to-r from-red-500 to-rose-500 text-white border-red-300'
-            } animate-bounce`}>
+          <div className={`fixed top-4 left-4 right-4 z-50 transform transition-all duration-500 ${showToast ? 'translate-y-0 opacity-100' : '-translate-y-full opacity-0'
+            }`}>
+            <div className={`p-4 rounded-2xl text-center font-bold shadow-2xl backdrop-blur-sm border-2 ${mensagem.includes('✅')
+              ? 'bg-gradient-to-r from-green-500 to-emerald-500 text-white border-green-300'
+              : 'bg-gradient-to-r from-red-500 to-rose-500 text-white border-red-300'
+              } animate-bounce`}>
               <div className="flex items-center justify-center gap-2">
                 {mensagem.includes('✅') ? (
                   <CheckCircle size={24} className="animate-pulse" />
@@ -690,11 +697,10 @@ const NovaLeituraMobile: React.FC = () => {
         <button
           type="submit"
           disabled={loading}
-          className={`w-full py-3.5 rounded-xl text-white text-base font-extrabold shadow-lg transition-all duration-300 transform ${
-            loading 
-              ? 'bg-gradient-to-r from-gray-300 to-gray-400 opacity-70 cursor-not-allowed' 
-              : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 hover:scale-105 hover:shadow-2xl hover:-translate-y-0.5'
-          }`}
+          className={`w-full py-3.5 rounded-xl text-white text-base font-extrabold shadow-lg transition-all duration-300 transform ${loading
+            ? 'bg-gradient-to-r from-gray-300 to-gray-400 opacity-70 cursor-not-allowed'
+            : 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 active:scale-95 hover:scale-105 hover:shadow-2xl hover:-translate-y-0.5'
+            }`}
         >
           {loading ? (
             <span className="flex items-center justify-center gap-2">
