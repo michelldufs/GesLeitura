@@ -1,0 +1,42 @@
+{
+  "name": "vendingguard-saas",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@capacitor/device": "^7.0.2",
+    "@capacitor/preferences": "^7.0.2",
+    "@tanstack/react-query": "^5.90.12",
+    "date-fns": "^4.1.0",
+    "firebase": "^12.6.0",
+    "jspdf": "^3.0.4",
+    "jspdf-autotable": "^5.0.2",
+    "lucide-react": "^0.555.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "react-hook-form": "^7.67.0",
+    "react-router-dom": "^7.10.0",
+    "recharts": "^3.5.1",
+    "vite-plugin-pwa": "^1.2.0",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@capacitor/android": "^7.0.0",
+    "@capacitor/cli": "^7.0.0",
+    "@capacitor/core": "^7.0.0",
+    "@types/node": "^22.14.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vite-pwa/assets-generator": "^1.0.2",
+    "@vitejs/plugin-react": "^5.0.0",
+    "firebase-tools": "^15.0.0",
+    "typescript": "~5.8.2",
+    "vite": "^6.2.0"
+  }
+}
