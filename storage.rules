@@ -1,0 +1,16 @@
+rules_version = '2';
+
+// Storage rules for leituras uploads
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Allow authenticated users to read/write only their own uploads under leituras/{uid}/...
+    match /leituras/{userId}/{allPaths=**} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Block everything else by default
+    match /{path=**} {
+      allow read, write: if false;
+    }
+  }
+}

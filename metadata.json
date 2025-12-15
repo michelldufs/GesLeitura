@@ -1,0 +1,5 @@
+{
+  "name": "VendingGuard SaaS",
+  "description": "Operational and Financial Management System for Vending Machines with fraud protection, audit logs, and soft-delete architecture.",
+  "requestFramePermissions": []
+}

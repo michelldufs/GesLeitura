@@ -1,0 +1,21 @@
+{
+  "name": "gesleitura-functions",
+  "scripts": {
+    "build": "tsc -p .",
+    "serve": "firebase emulators:start --only functions",
+    "deploy": "firebase deploy --only functions",
+    "lint": "eslint --ext .ts src",
+    "start": "npm run build && firebase emulators:start --only functions"
+  },
+  "engines": {
+    "node": "18"
+  },
+  "main": "lib/index.js",
+  "dependencies": {
+    "firebase-admin": "^12.6.0",
+    "firebase-functions": "^4.7.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.0"
+  }
+}
