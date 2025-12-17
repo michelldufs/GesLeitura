@@ -133,6 +133,13 @@ export interface DespesaGeral {
   centroCustoId?: string; // ID do centro de custo
   cotaId?: string; // Required if adiantamento
   active: boolean;
+  // --- Novos campos para agendamento e recorrência ---
+  agendadaPara?: string; // Data futura para execução (YYYY-MM-DD)
+  recorrencia?: 'nenhuma' | 'semanal' | 'quinzenal' | 'mensal';
+  totalParcelas?: number; // Total de parcelas (se parcelada)
+  parcelaAtual?: number; // Número da parcela atual
+  idDespesaPai?: string; // Para vincular parcelas/recorrências
+  status?: 'paga' | 'pendente'; // Status do pagamento
 }
 
 export interface CentroCusto {

@@ -141,8 +141,6 @@ const HistoricoLeituras: React.FC = () => {
           dataFimQuery.setHours(23, 59, 59, 999);
       }
 
-      console.log('🔍 Carregando vendas para:', userProfile.uid);
-      console.log('📅 Período:', { dataInicioQuery, dataFimQuery });
 
       const q = query(
         collection(db, 'vendas'),
@@ -151,7 +149,6 @@ const HistoricoLeituras: React.FC = () => {
       );
 
       const snapshot = await getDocs(q);
-      console.log('📦 Total documentos:', snapshot.docs.length);
 
       // Filtrar no cliente por data
       const data = snapshot.docs
@@ -161,7 +158,7 @@ const HistoricoLeituras: React.FC = () => {
           if (!vendaDate) return false;
           return vendaDate >= dataInicioQuery && vendaDate <= dataFimQuery;
         });
-      console.log(`✅ ${data.length} vendas encontradas no período`);
+
       setVendas(data);
     } catch (error) {
       console.error('❌ Erro ao carregar histórico:', error);
@@ -221,17 +218,7 @@ const HistoricoLeituras: React.FC = () => {
       const totalGeralVenda = venda.totalGeral || (venda as any).liquidoDaMaquina || 0;
       totalBruto += totalGeralVenda;
 
-      // Debug
-      if (totalMaquinas <= 3) {
-        console.log(`Venda ${totalMaquinas}:`, {
-          totalGeral: venda.totalGeral,
-          liquidoDaMaquina: (venda as any).liquidoDaMaquina,
-          totalEntrada: venda.totalEntrada,
-          totalSaida: venda.totalSaida,
-          totalFinal: venda.totalFinal,
-          usado: totalGeralVenda
-        });
-      }
+
 
       // Comissões
       comissoesTotal += (venda.valorComissao || 0);
@@ -243,7 +230,6 @@ const HistoricoLeituras: React.FC = () => {
       lucroFinalTotal += (venda.totalFinal || 0);
     });
 
-    console.log('Totalizadores:', { totalMaquinas, totalBruto, despesasTotal, comissoesTotal, lucroFinalTotal });
 
     return {
       totalMaquinas,
@@ -278,8 +264,8 @@ const HistoricoLeituras: React.FC = () => {
           <button
             onClick={() => setFiltroData('hoje')}
             className={`flex-1 py-2 px-4 rounded-xl text-sm font-semibold transition-all ${filtroData === 'hoje'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
           >
             Hoje
@@ -287,8 +273,8 @@ const HistoricoLeituras: React.FC = () => {
           <button
             onClick={() => setFiltroData('ontem')}
             className={`flex-1 py-2 px-4 rounded-xl text-sm font-semibold transition-all ${filtroData === 'ontem'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
           >
             Ontem
@@ -296,8 +282,8 @@ const HistoricoLeituras: React.FC = () => {
           <button
             onClick={() => setFiltroData('semana')}
             className={`flex-1 py-2 px-4 rounded-xl text-sm font-semibold transition-all ${filtroData === 'semana'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
           >
             7 dias
@@ -305,8 +291,8 @@ const HistoricoLeituras: React.FC = () => {
           <button
             onClick={() => setShowPeriodoModal(true)}
             className={`flex-1 py-2 px-4 rounded-xl text-sm font-semibold transition-all ${filtroData === 'periodo'
-                ? 'bg-emerald-600 text-white shadow-md'
-                : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+              ? 'bg-emerald-600 text-white shadow-md'
+              : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
               }`}
           >
             Período

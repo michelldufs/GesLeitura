@@ -132,7 +132,7 @@ const AdminLayout: React.FC<AdminLayoutProps> = ({ children }) => {
         hour: '2-digit',
         minute: '2-digit',
         second: '2-digit'
-      });
+      }).replace(', ', '   ');
       setCurrentTime(timeString);
     };
 

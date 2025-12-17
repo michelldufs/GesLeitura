@@ -267,3 +267,37 @@ export const Badge: React.FC<{
     </span>
   );
 };
+
+// Pagination Component (Clean)
+export const Pagination: React.FC<{
+  currentPage: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+  className?: string;
+}> = ({ currentPage, totalPages, onPageChange, className = '' }) => {
+  if (totalPages <= 1) return null;
+
+  return (
+    <div className={`flex items-center justify-center gap-2 py-4 ${className}`}>
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        Anterior
+      </button>
+
+      <span className="text-sm font-medium text-gray-700 mx-2">
+        Página <span className="text-emerald-600 font-bold">{currentPage}</span> de {totalPages}
+      </span>
+
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        className="px-3 py-1.5 rounded-lg border border-gray-200 text-sm font-medium text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+      >
+        Próxima
+      </button>
+    </div>
+  );
+};

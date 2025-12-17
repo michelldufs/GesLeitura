@@ -24,6 +24,11 @@ const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
 const formatDate = (value?: string) => {
   if (!value) return '--';
+  // Handle YYYY-MM-DD string simply to avoid timezone shifts
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [year, month, day] = value.split('-');
+    return `${day}/${month}/${year}`;
+  }
   const parsed = new Date(value);
   if (Number.isNaN(parsed.getTime())) return '--';
   return parsed.toLocaleDateString('pt-BR');
