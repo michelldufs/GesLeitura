@@ -10,6 +10,7 @@ import React, { useState } from 'react';
 import { corrigirTodosOsCodigos } from '../../services/corrigirCodigosDuplicados';
 import { ButtonPrimary, ButtonSecondary, AlertBox, GlassCard, Modal } from '../../components/MacOSDesign';
 import { Zap } from 'lucide-react';
+import { formatCurrency } from '../../utils/formatters';
 
 const TelaCorrecaoCodigos: React.FC = () => {
   const [executando, setExecutando] = useState(false);
@@ -113,7 +114,7 @@ const TelaCorrecaoCodigos: React.FC = () => {
           <div className="p-4 bg-slate-50 rounded-lg border border-slate-200 mb-6">
             <p className="text-sm text-slate-700">⏱️ Tempo de Execução</p>
             <p className="text-2xl font-bold text-slate-900">
-              {(relatorio.durationMs / 1000).toFixed(2)}s
+              {formatCurrency(relatorio.durationMs / 1000)}s
             </p>
           </div>
 

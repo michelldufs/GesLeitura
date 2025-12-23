@@ -9,6 +9,7 @@ import { Operador, Venda } from '../../types';
 import { GlassCard, AlertBox, PageHeader, Modal, ButtonPrimary, ButtonSecondary } from '../../components/MacOSDesign';
 import { Plus, FileText, Eye, Camera, Edit2, ChevronDown, ChevronRight } from 'lucide-react';
 import { getTodayDateString } from '../../utils/dateUtils';
+import { formatCurrency } from '../../utils/formatters';
 
 interface Ponto {
   id: string;
@@ -65,7 +66,8 @@ const LancamentoManual: React.FC = () => {
       entradaAnterior: undefined,
       entradaAtual: undefined,
       saidaAnterior: undefined,
-      saidaAtual: undefined
+      saidaAtual: undefined,
+      descricao: ''
     }
   });
 
@@ -522,9 +524,15 @@ const LancamentoManual: React.FC = () => {
         comissaoPorcentagem: comissaoEditada,
         valorComissao: valorComissaoEditado,
         despesa: despesaEditada,
+        descricao: detalheEditado.descricao || '',
         totalFinal: totalFinalEditado,
         fatorConversao: fatorConversaoEditado,
         participaDespesa: detalheEditado.participaDespesa ?? vendaSelecionada.participaDespesa ?? true,
+
+        // Audit Trail
+        editedBy: userProfile.uid,
+        editorName: userProfile.name || userProfile.email || 'Usuário',
+        editedAt: new Date(),
         ...(detalheEditado.centroCustoId ? { centroCustoId: detalheEditado.centroCustoId } : {}),
         userName: vendaSelecionada.userName || vendaSelecionada.userDisplayName || vendaSelecionada.userId,
         userDisplayName: vendaSelecionada.userDisplayName || vendaSelecionada.userName || vendaSelecionada.userId
@@ -643,6 +651,7 @@ const LancamentoManual: React.FC = () => {
         totalSaida,
         totalGeral: liquidoDaMaquina, // Líquido da máquina (após fator)
         valorComissao,
+        descricao: data.descricao || '',
         totalFinal, // Lucro líquido (após comissão e despesa)
         status_conferencia: 'pendente' as const,
         fotoUrl: '',
@@ -831,24 +840,24 @@ const LancamentoManual: React.FC = () => {
 
                           <div className="text-right">
                             <span className="text-[10px] text-slate-500 uppercase font-semibold mr-1">Total</span>
-                            <span className="text-xs font-bold text-slate-900">R$ {totalGeralPonto.toFixed(2)}</span>
+                            <span className="text-xs font-bold text-slate-900">R$ {formatCurrency(totalGeralPonto)}</span>
                           </div>
 
                           <div className="text-right">
                             <span className="text-[10px] text-slate-500 uppercase font-semibold mr-1">Comissão</span>
-                            <span className="text-xs font-bold text-yellow-700">R$ {totalComissaoPonto.toFixed(2)}</span>
+                            <span className="text-xs font-bold text-yellow-700">R$ {formatCurrency(totalComissaoPonto)}</span>
                           </div>
 
                           <div className="text-right">
                             <span className="text-[10px] text-slate-500 uppercase font-semibold mr-1">Despesa</span>
                             <span className="text-xs font-bold text-red-600">
-                              {totalDespesaPonto > 0 ? `- R$ ${totalDespesaPonto.toFixed(2)}` : '-'}
+                              {totalDespesaPonto > 0 ? `- R$ ${formatCurrency(totalDespesaPonto)}` : '-'}
                             </span>
                           </div>
 
                           <div className="text-right">
                             <span className="text-[10px] text-slate-500 uppercase font-semibold mr-1">Lucro</span>
-                            <span className="text-xs font-bold text-green-600">R$ {totalLucroPonto.toFixed(2)}</span>
+                            <span className="text-xs font-bold text-green-600">R$ {formatCurrency(totalLucroPonto)}</span>
                           </div>
 
                           <div className="text-right">
@@ -869,6 +878,8 @@ const LancamentoManual: React.FC = () => {
                                 <th className="px-3 py-1.5 text-right text-[9px] font-bold text-slate-600 uppercase">Despesa</th>
                                 <th className="px-3 py-1.5 text-right text-[9px] font-bold text-slate-600 uppercase text-green-700">Lucro</th>
                                 <th className="px-3 py-1.5 text-left text-[9px] font-bold text-slate-600 uppercase">Coletor</th>
+                                <th className="px-3 py-1.5 text-center text-[9px] font-bold text-slate-600 uppercase">Centro de Custo</th>
+                                <th className="px-3 py-1.5 text-left text-[9px] font-bold text-slate-600 uppercase">Descrição</th>
                                 <th className="px-3 py-1.5 text-center text-[9px] font-bold text-slate-600 uppercase">Ações</th>
                               </tr>
                             </thead>
@@ -889,13 +900,13 @@ const LancamentoManual: React.FC = () => {
                                           const entrada = toSafeNumber(venda.totalEntrada || 0);
                                           const saida = toSafeNumber(venda.totalSaida || 0);
                                           const fator = toSafeNumber(venda.fatorConversao || 1);
-                                          return ((entrada - saida) * fator).toFixed(2);
+                                          return formatCurrency((entrada - saida) * fator);
                                         }
-                                        return (venda.totalGeral || 0).toFixed(2);
+                                        return formatCurrency(venda.totalGeral || 0);
                                       })()}
                                     </td>
                                     <td className="px-3 py-1.5 whitespace-nowrap text-right font-mono text-yellow-700 font-bold text-[10px]">
-                                      R$ {(venda.valorComissao || 0).toFixed(2)}
+                                      R$ {formatCurrency(venda.valorComissao || 0)}
                                     </td>
                                     <td className="px-3 py-1.5 text-right text-[10px]">
                                       {venda.despesa > 0 ? (
@@ -903,27 +914,44 @@ const LancamentoManual: React.FC = () => {
                                           className="font-mono text-red-600 font-bold text-[10px] cursor-help"
                                           title={centroCusto ? `Centro de Custo: ${centroCusto.nome}` : 'Sem centro de custo'}
                                         >
-                                          - R$ {venda.despesa.toFixed(2)}
+                                          - R$ {formatCurrency(venda.despesa)}
                                         </span>
                                       ) : (
                                         <span className="font-mono text-slate-400 text-[10px]">-</span>
                                       )}
                                     </td>
                                     <td className="px-3 py-1.5 whitespace-nowrap text-right font-mono font-bold text-green-600 text-[10px]">
-                                      R$ {(venda.totalFinal || 0).toFixed(2)}
+                                      R$ {formatCurrency(venda.totalFinal || 0)}
                                     </td>
                                     <td className="px-3 py-1.5 text-[10px] text-slate-600 font-medium max-w-[80px] truncate" title={venda.coletorNome || 'N/A'}>
                                       {venda.coletorNome || 'N/A'}
                                     </td>
+                                    <td className="px-3 py-1.5 text-[10px] text-slate-600 text-center">
+                                      {centroCusto ? (
+                                        <span className="bg-orange-100 text-orange-700 px-1.5 py-0.5 rounded text-[9px] font-bold border border-orange-200" title={centroCusto.nome}>
+                                          {centroCusto.nome.length > 15 ? centroCusto.nome.substring(0, 15) + '...' : centroCusto.nome}
+                                        </span>
+                                      ) : '-'}
+                                    </td>
+                                    <td className="px-3 py-1.5 text-[10px] text-slate-500 max-w-[150px] truncate" title={venda.descricao || ''}>
+                                      {venda.descricao || '-'}
+                                    </td>
                                     <td className="px-3 py-1.5 whitespace-nowrap text-center">
-                                      <button
-                                        onClick={() => handleAbrirDetalhe(venda)}
-                                        className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors text-[10px] font-bold"
-                                        title="Detalhes"
-                                      >
-                                        <Eye size={12} />
-                                        Ver
-                                      </button>
+                                      <div className="flex items-center justify-center gap-1.5">
+                                        {venda.fotoUrl && (
+                                          <div className="text-blue-500" title="Possui foto">
+                                            <Camera size={14} />
+                                          </div>
+                                        )}
+                                        <button
+                                          onClick={() => handleAbrirDetalhe(venda)}
+                                          className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-blue-50 text-blue-700 hover:bg-blue-100 hover:text-blue-800 transition-colors text-[10px] font-bold"
+                                          title="Detalhes"
+                                        >
+                                          <Eye size={12} />
+                                          Ver
+                                        </button>
+                                      </div>
                                     </td>
                                   </tr>
                                 );
@@ -949,16 +977,36 @@ const LancamentoManual: React.FC = () => {
         size="xl"
         actions={
           <>
-            <ButtonSecondary onClick={handleCloseModal} disabled={loading}>
-              Cancelar
+            <ButtonSecondary onClick={handleFecharDetalhe}>
+              Fechar
             </ButtonSecondary>
-            <ButtonPrimary
-              type="submit"
-              form="form-nova-leitura"
-              disabled={loading}
-            >
-              {loading ? 'Salvando...' : 'Salvar'}
-            </ButtonPrimary>
+            {/* Logic for Edit Permission */}
+            {(() => {
+              const canEdit =
+                // Admin/Gerente/Financeiro can always edit
+                ['admin', 'gerente', 'financeiro'].includes(userProfile?.role || '') ||
+                // Coleta/User can only edit if they created it AND it is pending
+                ((userProfile?.role === 'coleta') &&
+                  vendaSelecionada.userId === userProfile.uid &&
+                  vendaSelecionada.status_conferencia === 'pendente');
+
+              if (canEdit) {
+                return (
+                  <ButtonPrimary onClick={() => setEditandoDetalhe(true)} className="bg-orange-500 hover:bg-orange-600 text-white border-orange-600">
+                    <Edit2 size={16} className="mr-2" />
+                    Editar
+                  </ButtonPrimary>
+                );
+              }
+              return (
+                <div title="Edição permitida apenas para o autor (se pendente) ou administradores." className="cursor-not-allowed opacity-50">
+                  <ButtonPrimary disabled className="bg-slate-400 border-slate-400">
+                    <Edit2 size={16} className="mr-2" />
+                    Editar
+                  </ButtonPrimary>
+                </div>
+              );
+            })()}
           </>
         }
       >
@@ -1136,7 +1184,7 @@ const LancamentoManual: React.FC = () => {
                 <div className="bg-slate-50 border border-slate-200 rounded p-2">
                   <label className="block text-xs font-semibold text-slate-600 mb-0.5">Líquido</label>
                   <div className={`text-sm font-bold font-mono ${totalGeral < 0 ? 'text-red-600' : 'text-slate-900'}`}>
-                    R$ {totalGeral.toFixed(2)}
+                    R$ {formatCurrency(totalGeral)}
                   </div>
                 </div>
 
@@ -1156,7 +1204,7 @@ const LancamentoManual: React.FC = () => {
                 <div className="bg-yellow-50 border border-yellow-200 rounded p-2">
                   <label className="block text-xs font-semibold text-slate-600 mb-0.5">Comissão</label>
                   <div className="text-sm font-bold font-mono text-yellow-700">
-                    R$ {valorComissao.toFixed(2)}
+                    R$ {formatCurrency(valorComissao)}
                   </div>
                 </div>
 
@@ -1208,12 +1256,26 @@ const LancamentoManual: React.FC = () => {
                 <div className="flex items-center justify-between gap-2">
                   <span className="text-sm font-bold text-slate-700">💰 Lucro Líquido</span>
                   <div className={`text-lg font-bold font-mono ${totalFinal < 0 ? 'text-red-600' : 'text-emerald-600'}`}>
-                    R$ {totalFinal.toFixed(2)}
+                    R$ {formatCurrency(totalFinal)}
                   </div>
                 </div>
               </div>
             </GlassCard>
           )}
+
+          {/* Descrição / Observação */}
+          <div className="bg-white border border-slate-200 rounded-lg p-3">
+            <label className="block text-xs font-semibold text-slate-600 mb-1">
+              📝 Descrição / Observação (Opcional)
+            </label>
+            <input
+              type="text"
+              {...register('descricao')}
+              disabled={!isAuthorized}
+              placeholder="Ex: Pagamento de aluguel, Manutenção de peça..."
+              className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-xs sm:text-sm text-slate-900 focus:ring-2 focus:ring-blue-500 outline-none disabled:bg-slate-50 transition-all font-medium shadow-sm"
+            />
+          </div>
 
           {/* File Upload - Responsivo */}
           <div className="border border-dashed border-slate-300 rounded p-2 sm:p-3 bg-slate-50/50 hover:bg-slate-100/50 transition-colors cursor-pointer">
@@ -1245,9 +1307,18 @@ const LancamentoManual: React.FC = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <h2 className="text-lg font-bold text-slate-900">Detalhes da Leitura</h2>
-                  <p className="text-xs text-slate-500 mt-0.5">
-                    {new Date(vendaSelecionada.data).toLocaleDateString('pt-BR')} • {pontos.find(p => p.id === vendaSelecionada.pontoId)?.nome}
-                  </p>
+                  <div className="flex flex-col">
+                    <p className="text-xs text-slate-500 mt-0.5">
+                      {new Date(vendaSelecionada.data).toLocaleDateString('pt-BR')} • {pontos.find(p => p.id === vendaSelecionada.pontoId)?.nome}
+                    </p>
+                    {/* Audit Info Display */}
+                    {vendaSelecionada.editedBy && (
+                      <p className="text-[10px] text-slate-400 mt-1 italic flex items-center gap-1">
+                        <Edit2 size={10} />
+                        Última edição por <b>{vendaSelecionada.editorName || 'Desconhecido'}</b> em {vendaSelecionada.editedAt?.toDate ? new Date(vendaSelecionada.editedAt.toDate()).toLocaleString('pt-BR') : new Date(vendaSelecionada.editedAt).toLocaleString('pt-BR')}
+                      </p>
+                    )}
+                  </div>
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${vendaSelecionada.status_conferencia === 'conferido' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
@@ -1280,7 +1351,7 @@ const LancamentoManual: React.FC = () => {
                 </div>
                 <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                   <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mb-1">Fator</div>
-                  <p className="text-xs font-bold text-slate-900">{(vendaSelecionada.fatorConversao ?? 1).toFixed(2)}</p>
+                  <p className="text-xs font-bold text-slate-900">{toSafeNumber(vendaSelecionada.fatorConversao ?? 1).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
                 </div>
                 <div className="bg-slate-50 rounded-lg p-3 border border-slate-200">
                   <div className="text-[9px] font-bold text-slate-500 uppercase tracking-wide mb-1">Coletor</div>
@@ -1351,7 +1422,7 @@ const LancamentoManual: React.FC = () => {
                     </div>
                     <div className="pt-2 border-t border-green-200">
                       <div className="text-[8px] text-green-600 mb-0.5">Total</div>
-                      <div className="text-base font-bold text-green-700">R$ {(vendaSelecionada.totalEntrada || 0).toFixed(2)}</div>
+                      <div className="text-base font-bold text-green-700">R$ {formatCurrency(vendaSelecionada.totalEntrada || 0)}</div>
                     </div>
                   </div>
                   <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3">
@@ -1368,7 +1439,7 @@ const LancamentoManual: React.FC = () => {
                     </div>
                     <div className="pt-2 border-t border-red-200">
                       <div className="text-[8px] text-red-600 mb-0.5">Total</div>
-                      <div className="text-base font-bold text-red-700">R$ {(vendaSelecionada.totalSaida || 0).toFixed(2)}</div>
+                      <div className="text-base font-bold text-red-700">R$ {formatCurrency(vendaSelecionada.totalSaida || 0)}</div>
                     </div>
                   </div>
                 </div>
@@ -1379,7 +1450,7 @@ const LancamentoManual: React.FC = () => {
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                   <div className="bg-blue-50 rounded-lg p-4">
                     <label className="text-xs font-semibold text-slate-600">Total Geral (calculado)</label>
-                    <p className="text-lg font-bold text-blue-700 mt-1">R$ {(detalheEditado.totalGeral || 0).toFixed(2)}</p>
+                    <p className="text-lg font-bold text-blue-700 mt-1">R$ {formatCurrency(detalheEditado.totalGeral || 0)}</p>
                   </div>
                   <div className="bg-yellow-50 rounded-lg p-4">
                     <label className="text-xs font-semibold text-slate-600">Comissão %</label>
@@ -1393,7 +1464,7 @@ const LancamentoManual: React.FC = () => {
                   </div>
                   <div className="bg-yellow-50 rounded-lg p-4">
                     <label className="text-xs font-semibold text-slate-600">Comissão (calculada)</label>
-                    <p className="text-lg font-bold text-yellow-700 mt-1">R$ {(detalheEditado.valorComissao || 0).toFixed(2)}</p>
+                    <p className="text-lg font-bold text-yellow-700 mt-1">R$ {formatCurrency(detalheEditado.valorComissao || 0)}</p>
                   </div>
                   <div className="bg-orange-50 rounded-lg p-4">
                     <label className="text-xs font-semibold text-slate-600">Despesa</label>
@@ -1412,6 +1483,18 @@ const LancamentoManual: React.FC = () => {
                       R$ {(detalheEditado.totalFinal || 0).toFixed(2)}{(detalheEditado.totalFinal || 0) < 0 ? ' (negativo)' : ''}
                     </p>
                   </div>
+
+                  {/* Descrição Editável */}
+                  <div className="bg-slate-50 border border-slate-200 rounded-lg p-4 mt-4 md:col-span-3">
+                    <label className="text-xs font-semibold text-slate-600 block mb-2">Descrição / Observação</label>
+                    <input
+                      type="text"
+                      value={detalheEditado.descricao || ''}
+                      onChange={(e) => setDetalheEditado({ ...detalheEditado, descricao: e.target.value })}
+                      placeholder="Adicione uma observação..."
+                      className="w-full bg-white border border-slate-300 rounded px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    />
+                  </div>
                 </div>
               ) : (
                 <div className="bg-slate-50 rounded-lg p-4 border border-slate-200">
@@ -1425,18 +1508,18 @@ const LancamentoManual: React.FC = () => {
                           const entrada = toSafeNumber(vendaSelecionada.totalEntrada || 0);
                           const saida = toSafeNumber(vendaSelecionada.totalSaida || 0);
                           const fator = toSafeNumber(vendaSelecionada.fatorConversao || 1);
-                          return ((entrada - saida) * fator).toFixed(2);
+                          return formatCurrency((entrada - saida) * fator);
                         }
-                        return (vendaSelecionada.totalGeral || 0).toFixed(2);
+                        return formatCurrency(vendaSelecionada.totalGeral || 0);
                       })()}</div>
                     </div>
                     <div className="bg-white rounded-lg p-2 border border-yellow-100">
                       <div className="text-[8px] text-yellow-600 mb-0.5">Comissão</div>
-                      <div className="text-sm font-bold text-yellow-700">R$ {(vendaSelecionada.valorComissao || 0).toFixed(2)}</div>
+                      <div className="text-sm font-bold text-yellow-700">R$ {formatCurrency(vendaSelecionada.valorComissao || 0)}</div>
                     </div>
                     <div className="bg-white rounded-lg p-2 border border-orange-100">
                       <div className="text-[8px] text-orange-600 mb-0.5">Despesa</div>
-                      <div className="text-sm font-bold text-orange-700">R$ {(vendaSelecionada.despesa || 0).toFixed(2)}</div>
+                      <div className="text-sm font-bold text-orange-700">R$ {formatCurrency(vendaSelecionada.despesa || 0)}</div>
                     </div>
                     <div className={`rounded-lg p-2 border-2 ${(vendaSelecionada.totalFinal || 0) < 0
                       ? 'bg-red-50 border-red-300'
@@ -1446,7 +1529,7 @@ const LancamentoManual: React.FC = () => {
                         (vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-600' : 'text-green-600'
                       }">Lucro Líquido</div>
                       <div className={`text-base font-bold ${(vendaSelecionada.totalFinal || 0) < 0 ? 'text-red-700' : 'text-green-700'
-                        }`}>R$ {(vendaSelecionada.totalFinal || 0).toFixed(2)}</div>
+                        }`}>R$ {formatCurrency(vendaSelecionada.totalFinal || 0)}</div>
                     </div>
                   </div>
                 </div>
@@ -1478,6 +1561,34 @@ const LancamentoManual: React.FC = () => {
                     <p className="text-base font-bold text-orange-900 mt-2">{centrosCusto.find(c => c.id === vendaSelecionada.centroCustoId)?.nome || 'Não informado'}</p>
                   </div>
                 )
+              )}
+
+              {/* Seção de Foto/Comprovante - Exibida se existir fotoUrl */}
+              {vendaSelecionada.fotoUrl && (
+                <div className="mt-8 pt-6 border-t border-slate-200">
+                  <div className="text-[10px] font-bold text-slate-600 uppercase tracking-wide mb-3 flex items-center gap-2">
+                    <Camera size={14} className="text-blue-500" />
+                    Comprovante da Leitura
+                  </div>
+                  <div className="relative group w-full max-w-[400px] overflow-hidden rounded-xl border border-slate-200 shadow-lg bg-slate-50 transition-all hover:shadow-xl">
+                    <img
+                      src={vendaSelecionada.fotoUrl}
+                      alt="Comprovante"
+                      className="w-full h-auto max-h-[300px] object-contain transition-transform duration-500 group-hover:scale-105"
+                    />
+                    <a
+                      href={vendaSelecionada.fotoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 opacity-0 group-hover:opacity-100 transition-all duration-300 backdrop-blur-[2px]"
+                    >
+                      <div className="bg-white text-slate-900 px-5 py-2.5 rounded-full text-xs font-bold shadow-2xl flex items-center gap-2 transform translate-y-4 group-hover:translate-y-0 transition-transform">
+                        <Eye size={18} />
+                        Ver foto completa
+                      </div>
+                    </a>
+                  </div>
+                </div>
               )}
 
               {/* Botões de Ação */}

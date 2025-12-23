@@ -1,5 +1,5 @@
 import {
-  collection, query, where, getDocs, addDoc, updateDoc, doc,
+  collection, query, where, getDocs, addDoc, updateDoc, doc, getDoc,
   serverTimestamp, runTransaction, orderBy, limit
 } from "firebase/firestore";
 import { db } from "./firebaseConfig";
@@ -105,6 +105,22 @@ export const saveVenda = async (venda: Omit<Venda, 'id' | 'timestamp'>, userId: 
  */
 export const updateVenda = async (vendaId: string, updates: Partial<Omit<Venda, 'id' | 'timestamp'>>, userId: string) => {
   const docRef = doc(db, "vendas", vendaId);
+
+  // Verify period before update
+  const snapshot = await getDoc(docRef);
+  if (snapshot.exists()) {
+    const currentData = snapshot.data() as Venda;
+    await verificarPeriodoFechado(currentData.data, currentData.localidadeId);
+
+    // If updating date or location, check the target period too
+    if (updates.data || updates.localidadeId) {
+      await verificarPeriodoFechado(
+        updates.data || currentData.data,
+        updates.localidadeId || currentData.localidadeId
+      );
+    }
+  }
+
   await updateDoc(docRef, {
     ...updates,
     active: true
@@ -137,7 +153,7 @@ export const fecharMes = async (
   localidadeId: string,
   mes: number,
   ano: number,
-  valorRetido: number,
+  valorDistribuido: number,
   userId: string,
   cotas: Cota[],
   resumoFinanceiro: { lucroLiquido: number }
@@ -145,53 +161,39 @@ export const fecharMes = async (
   const dateStr = `${ano}-${String(mes).padStart(2, '0')}-01`;
   await verificarPeriodoFechado(dateStr, localidadeId);
 
+  // Read data needed for transaction outside if it's complex, 
+  // or inside if simple. Firestore transaction requires reads before writes.
+  const startDate = new Date(ano, mes - 1, 1);
+  const endDate = new Date(ano, mes, 0, 23, 59, 59);
+  const startStr = startDate.toISOString().split('T')[0];
+  const endStr = endDate.toISOString().split('T')[0];
+
+  const adiantamentosQuery = query(
+    collection(db, "despesas_gerais"),
+    where("localidadeId", "==", localidadeId),
+    where("active", "==", true),
+    where("tipo", "==", "adiantamento"),
+    where("data", ">=", startStr),
+    where("data", "<=", endStr)
+  );
+
+  const adiantamentosSnapshot = await getDocs(adiantamentosQuery);
+  const adiantamentosMap: Record<string, number> = {};
+
+  adiantamentosSnapshot.docs.forEach(doc => {
+    const data = doc.data() as DespesaGeral;
+    if (data.cotaId) {
+      adiantamentosMap[data.cotaId] = (adiantamentosMap[data.cotaId] || 0) + (data.valor || 0);
+    }
+  });
+
   await runTransaction(db, async (transaction) => {
     // 1. Calculate Base for Distribution
-    const baseRateio = resumoFinanceiro.lucroLiquido - valorRetido;
+    const baseRateio = valorDistribuido;
+    const valorRetido = resumoFinanceiro.lucroLiquido - valorDistribuido; // Capital de Giro
     const detalhesRateio: DetalheRateio[] = [];
 
-    // 2. Fetch Advances (Adiantamentos) for this month/location
-    const startDate = new Date(ano, mes - 1, 1);
-    const endDate = new Date(ano, mes, 0, 23, 59, 59);
-    const startStr = startDate.toISOString().split('T')[0];
-    const endStr = endDate.toISOString().split('T')[0];
-
-    // NOTE: Firestore Transactions require reads to come before writes.
-    // However, for complex queries like this inside a transaction, it's often better/easier 
-    // to fetch them outside if we accept a tiny risk of race condition, OR use runTransaction carefully.
-    // Given the structure, we'll fetch them inside but we need to pass the query info.
-    // Actually, 'getDocs' inside transaction is not directly supported like 'transaction.get'.
-    // To keep it simple and robust, we will fetch adiantamentos BEFORE the transaction block starts
-    // and pass it in. BUT since we are already inside the function, let's refactor slightly to fetch before.
-    // Wait, refactoring the whole function signature is risky.
-    // Let's do the read for ALL adiantamentos of that month before the loop.
-
-    // We can't do broad queries inside transaction easily. 
-    // Standard practice: Read outside, validate inside if needed. 
-    // For this use case (closing month), slight read skew is acceptable vs complexity.
-    // Let's fetch adiantamentos here (conceptually wrong for strict ACID but functional).
-    // BETTER APPROACH: READ ALL ADIANTAMENTOS BEFORE TRANSACTION in the code block below.
-
-    const adiantamentosQuery = query(
-      collection(db, "despesas_gerais"),
-      where("localidadeId", "==", localidadeId),
-      where("active", "==", true),
-      where("tipo", "==", "adiantamento"),
-      where("data", ">=", startStr),
-      where("data", "<=", endStr)
-    );
-
-    const adiantamentosSnapshot = await getDocs(adiantamentosQuery);
-    const adiantamentosMap: Record<string, number> = {};
-
-    adiantamentosSnapshot.docs.forEach(doc => {
-      const data = doc.data() as DespesaGeral;
-      if (data.cotaId) {
-        adiantamentosMap[data.cotaId] = (adiantamentosMap[data.cotaId] || 0) + (data.valor || 0);
-      }
-    });
-
-    // We iterate quotas to calculate final values
+    // 2. We iterate quotas to calculate final values
     for (const cota of cotas) {
       // Logic: Share
       let parteSocio = baseRateio * (cota.porcentagem / 100);
@@ -232,7 +234,7 @@ export const fecharMes = async (
       localidadeId,
       lucroLiquidoTotal: resumoFinanceiro.lucroLiquido,
       valorRetido,
-      valorDistribuido: baseRateio, // effectively distributed math
+      valorDistribuido: baseRateio,
       detalhesRateio,
       fechadoPor: userId,
       timestamp: serverTimestamp()

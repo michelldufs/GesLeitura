@@ -23,6 +23,7 @@ import {
   doc
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
+import { formatCurrency } from '../utils/formatters';
 
 interface DocumentoComCodigo {
   id: string;
@@ -410,7 +411,7 @@ export async function corrigirTodosOsCodigos(): Promise<RelatorioExecucao> {
   console.log(`✅ Rotas corrigidas: ${rotasProcessadas}`);
   console.log(`✅ Pontos corrigidos: ${pontosProcessados}`);
   console.log(`✅ Operadores corrigidos: ${operadoresProcessados}`);
-  console.log(`\n⏱️ Tempo total: ${(duracao / 1000).toFixed(2)}s`);
+  console.log(`\n⏱️ Tempo total: ${formatCurrency(duracao / 1000)}s`);
 
   if (todosOsErros.length > 0) {
     console.log(`\n⚠️ Avisos/Erros: ${todosOsErros.length}`);

@@ -86,6 +86,33 @@
   }
 }
 
+/* Glassmorphism & Responsive Table */
+.glass-panel {
+  @apply bg-white/80 backdrop-blur-md border border-white/40 shadow-xl rounded-2xl;
+}
+
+@media (max-width: 768px) {
+  .table-responsive {
+    display: block;
+    width: 100%;
+  }
+  .table-responsive thead { display: none; }
+  .table-responsive tbody, .table-responsive tr, .table-responsive td {
+    display: block;
+    width: 100%;
+  }
+  .table-responsive tr {
+    @apply mb-4 border-b-2 border-slate-100 bg-white;
+  }
+  .table-responsive td {
+    @apply py-3 px-4 flex justify-between items-center text-right border-b border-slate-50;
+  }
+  .table-responsive td::before {
+    content: attr(data-label);
+    @apply font-bold text-slate-500 text-left mr-4 uppercase text-[10px] tracking-wider;
+  }
+}
+
 /* Scrollbar Customization */
 ::-webkit-scrollbar {
   width: 8px;

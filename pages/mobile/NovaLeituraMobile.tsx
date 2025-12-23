@@ -1,10 +1,13 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { collection, addDoc, Timestamp, query, where, getDocs } from 'firebase/firestore';
-import { db } from '../../services/firebaseConfig';
+import { db, storage } from '../../services/firebaseConfig';
+import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { formatCurrency } from '../../utils/formatters';
+import { compressImage } from '../../utils/compressor';
 import { Camera, Upload, CheckCircle, Loader2 } from 'lucide-react';
-import { Operador, Ponto, Rota } from '../../types';
+import { NumericFormat } from 'react-number-format';
+import { Operador, Ponto, Rota, CentroCusto } from '../../types';
 
 interface PontoComRegras extends Ponto {
   comissao?: number;
@@ -20,6 +23,7 @@ const NovaLeituraMobile: React.FC = () => {
   const [pontos, setPontos] = useState<PontoComRegras[]>([]);
   const [pontosFiltrados, setPontosFiltrados] = useState<PontoComRegras[]>([]);
   const [rotas, setRotas] = useState<Rota[]>([]);
+  const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [loadingUltimaLeitura, setLoadingUltimaLeitura] = useState(false);
 
@@ -27,6 +31,7 @@ const NovaLeituraMobile: React.FC = () => {
   const [operadorId, setOperadorId] = useState('');
   const [pontoId, setPontoId] = useState('');
   const [rotaId, setRotaId] = useState('');
+  const [centroCustoId, setCentroCustoId] = useState('');
   const [data, setData] = useState(new Date().toISOString().split('T')[0]);
 
   const [entradaAnterior, setEntradaAnterior] = useState('');
@@ -127,6 +132,16 @@ const NovaLeituraMobile: React.FC = () => {
         const operadoresSnap = await getDocs(operadoresQuery);
         const operadoresData = operadoresSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as Operador));
         setOperadores(operadoresData);
+
+        // Carregar centros de custo
+        const ccQuery = query(
+          collection(db, 'centrosCusto'),
+          where('localidadeId', '==', localidadeId),
+          where('active', '==', true)
+        );
+        const ccSnap = await getDocs(ccQuery);
+        const ccData = ccSnap.docs.map(doc => ({ id: doc.id, ...doc.data() } as CentroCusto));
+        setCentrosCusto(ccData);
       } catch (error) {
         console.error('Erro ao carregar dados:', error);
         setMensagem('❌ Erro ao carregar dados');
@@ -292,8 +307,51 @@ const NovaLeituraMobile: React.FC = () => {
 
       console.log('Validações OK. Salvando no Firestore...');
 
-      // Foto desativada temporariamente para reduzir custos
-      const fotoUrl = foto ? 'foto_pendente' : '';
+      // Processar foto se existir (com compressão)
+      let fotoUrl = '';
+      if (foto) {
+        try {
+          setMensagem('⏳ Preparando imagem...');
+          console.log('[DEBUG] Foto original:', { name: foto.name, size: foto.size, type: foto.type });
+
+          setMensagem('⏳ Comprimindo...');
+          const compressedBlob = await compressImage(foto);
+
+          // Garantir que temos um objeto File com nome válido para o Storage
+          // browser-image-compression às vezes retorna um Blob puro sem o nome original
+          const fileName = foto.name ? `compressed_${foto.name}` : `foto_${Date.now()}.jpg`;
+          const compressedFile = new File([compressedBlob], fileName, { type: 'image/jpeg' });
+
+          setMensagem('⏳ Enviando ao servidor...');
+          console.log(`[DEBUG] Upload iniciando: ${fileName} (${(compressedFile.size / 1024).toFixed(2)} KB)`);
+
+          const storagePath = `leituras/${userProfile?.uid || 'anonimo'}/${Date.now()}_${fileName}`;
+          console.log(`[DEBUG] Upload iniciando no path: ${storagePath}`);
+          const storageRef = ref(storage, storagePath);
+
+          const uploadResult = await uploadBytes(storageRef, compressedFile);
+          fotoUrl = await getDownloadURL(uploadResult.ref);
+
+          console.log('[DEBUG] Upload finalizado com sucesso:', fotoUrl);
+        } catch (err: any) {
+          console.error('[DEBUG] FALHA NO UPLOAD:', {
+            message: err.message,
+            code: err.code,
+            name: err.name,
+            stack: err.stack
+          });
+
+          const erroMsg = err.message?.toLowerCase().includes('permission')
+            ? 'Erro: Sem permissão no Storage'
+            : 'Erro no envio da foto';
+
+          setMensagem(`⚠️ ${erroMsg}`);
+          // Pausa para o usuário ver o erro antes de seguir para o salvamento
+          await new Promise(resolve => setTimeout(resolve, 2500));
+        }
+      }
+
+      setMensagem('⏳ Salvando leitura no banco...');
 
       // Salvar leitura no Firestore
       const vendaData = {
@@ -317,6 +375,7 @@ const NovaLeituraMobile: React.FC = () => {
         comissaoPorcentagem: Number(comissaoPorcentagem),
         valorComissao,
         despesa: Number(despesa || 0),
+        centroCustoId: Number(despesa || 0) > 0 ? centroCustoId : '',
         totalFinal,
         status_conferencia: 'pendente' as const,
         fotoUrl,
@@ -348,6 +407,7 @@ const NovaLeituraMobile: React.FC = () => {
         setSaidaAnterior('');
         setSaidaAtual('');
         setDespesa('');
+        setCentroCustoId('');
         setComissaoPorcentagem('10');
         setFatorConversao(1);
         setParticipaDespesa(true);
@@ -514,11 +574,15 @@ const NovaLeituraMobile: React.FC = () => {
               <label className="block text-[10px] font-semibold text-green-700 mb-0.5 uppercase tracking-wide flex items-center gap-1">
                 <span>⬇️</span> Entrada Atual
               </label>
-              <input
-                type="number"
+              <NumericFormat
                 value={entradaAtual}
-                onChange={(e) => setEntradaAtual(e.target.value)}
-                className="w-full p-1.5 border-2 border-green-400 rounded-lg text-xs font-mono font-bold bg-white focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all"
+                onValueChange={(values) => setEntradaAtual(values.value)}
+                thousandSeparator="."
+                decimalSeparator=","
+                decimalScale={2}
+                fixedDecimalScale={false}
+                allowNegative={false}
+                className="w-full p-1.5 border-2 border-green-400 rounded-lg text-xs font-mono font-bold bg-white focus:border-green-500 focus:ring-2 focus:ring-green-200 transition-all outline-none"
                 placeholder="0"
                 required
               />
@@ -542,11 +606,15 @@ const NovaLeituraMobile: React.FC = () => {
               <label className="block text-[10px] font-semibold text-red-700 mb-0.5 uppercase tracking-wide flex items-center gap-1">
                 <span>⬆️</span> Saída Atual
               </label>
-              <input
-                type="number"
+              <NumericFormat
                 value={saidaAtual}
-                onChange={(e) => setSaidaAtual(e.target.value)}
-                className="w-full p-1.5 border-2 border-red-400 rounded-lg text-xs font-mono font-bold bg-white focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all"
+                onValueChange={(values) => setSaidaAtual(values.value)}
+                thousandSeparator="."
+                decimalSeparator=","
+                decimalScale={2}
+                fixedDecimalScale={false}
+                allowNegative={false}
+                className="w-full p-1.5 border-2 border-red-400 rounded-lg text-xs font-mono font-bold bg-white focus:border-red-500 focus:ring-2 focus:ring-red-200 transition-all outline-none"
                 placeholder="0"
                 required
               />
@@ -632,14 +700,33 @@ const NovaLeituraMobile: React.FC = () => {
             {/* Campo Despesas - MOVIDO PARA BAIXO */}
             <div>
               <label className="block text-[10px] font-semibold text-gray-700 mb-0.5 uppercase tracking-wide">Despesas (R$)</label>
-              <input
-                type="number"
+              <NumericFormat
                 value={despesa}
-                onChange={(e) => setDespesa(e.target.value)}
-                className="w-full p-1.5 border-2 border-orange-300 rounded-lg text-xs font-semibold focus:border-orange-500 focus:ring-2 focus:ring-orange-200"
-                placeholder="0.00"
-                step="0.01"
+                onValueChange={(values) => setDespesa(values.value)}
+                thousandSeparator="."
+                decimalSeparator=","
+                decimalScale={2}
+                fixedDecimalScale={false}
+                allowNegative={false}
+                className="w-full p-1.5 border-2 border-orange-300 rounded-lg text-xs font-semibold focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none"
+                placeholder="0,00"
               />
+
+              {Number(despesa) > 0 && (
+                <div className="mt-2 animate-in slide-in-from-top-2 duration-300">
+                  <label className="block text-[10px] font-semibold text-gray-700 mb-0.5 uppercase tracking-wide">Centro de Custo</label>
+                  <select
+                    value={centroCustoId}
+                    onChange={(e) => setCentroCustoId(e.target.value)}
+                    className="w-full p-1.5 border-2 border-orange-300 rounded-lg text-xs font-semibold bg-white focus:border-orange-500 focus:ring-2 focus:ring-orange-200 outline-none"
+                  >
+                    <option value="">Selecione...</option>
+                    {centrosCusto.map(cc => (
+                      <option key={cc.id} value={cc.id || ''}>{cc.nome}</option>
+                    ))}
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* Informações Compactas - SÓ VALORES */}
@@ -667,11 +754,49 @@ const NovaLeituraMobile: React.FC = () => {
           </div>
         </div>
 
-        {/* Foto Desativada - Ultra Compacto */}
-        <div className="text-center py-1">
-          <p className="text-[10px] text-gray-400">
-            📸 Foto desativada
-          </p>
+        {/* Foto da Leitura */}
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-2.5 rounded-xl border border-purple-200">
+          <h2 className="font-bold text-sm mb-2 text-purple-900 flex items-center gap-1.5">
+            <Camera size={16} /> Foto da Leitura
+          </h2>
+
+          <div className="flex items-center gap-3">
+            <label className="flex-1 flex flex-col items-center justify-center h-14 border-2 border-dashed border-purple-300 rounded-lg bg-white cursor-pointer hover:bg-purple-50 transition-colors relative overflow-hidden">
+              {fotoPreview ? (
+                <img
+                  src={fotoPreview}
+                  alt="Preview"
+                  className="absolute inset-0 w-full h-full object-cover"
+                />
+              ) : (
+                <div className="text-center flex items-center gap-2">
+                  <Camera className="text-purple-400" size={18} />
+                  <span className="text-[10px] font-medium text-purple-600">Tirar Foto</span>
+                </div>
+              )}
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                onChange={handleFotoChange}
+                className="hidden"
+              />
+            </label>
+
+            {fotoPreview && (
+              <button
+                type="button"
+                onClick={() => {
+                  setFoto(null);
+                  setFotoPreview('');
+                }}
+                className="p-2 bg-red-100 text-red-600 rounded-xl hover:bg-red-200 transition-colors"
+                title="Remover foto"
+              >
+                <span className="text-xs font-bold">✕</span>
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Toast Animado de Sucesso/Erro */}

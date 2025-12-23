@@ -117,6 +117,10 @@ export interface Venda {
 
   status_conferencia: 'pendente' | 'conferido';
   fotoUrl: string; // URL da foto no Firebase Storage
+  descricao?: string; // Observação ou descrição da despesa/leitura
+  editedBy?: string; // ID do usuário que fez a última edição
+  editorName?: string; // Nome do usuário que fez a última edição
+  editedAt?: any; // Data da última edição
   userId: string;
   active: boolean;
 }

@@ -3,6 +3,7 @@ import { HashRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { AuthProvider } from './contexts/AuthContext';
 import { LocalidadeProvider } from './contexts/LocalidadeContext';
+import { OperacionalProvider } from './contexts/OperacionalContext';
 import AppRoutes from './routes/AppRoutes';
 import ErrorBoundary from './components/ErrorBoundary';
 
@@ -24,9 +25,11 @@ const App: React.FC = () => {
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
           <LocalidadeProvider>
-            <HashRouter>
-              <AppRoutes />
-            </HashRouter>
+            <OperacionalProvider>
+              <HashRouter>
+                <AppRoutes />
+              </HashRouter>
+            </OperacionalProvider>
           </LocalidadeProvider>
         </AuthProvider>
       </QueryClientProvider>

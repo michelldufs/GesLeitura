@@ -3,6 +3,7 @@
  * Focado em inputs arredondados, botões pílula e estética clean.
  */
 import React from 'react';
+import { NumericFormat } from 'react-number-format';
 
 // Glass Card com efeito suave e mais arredondado
 export const GlassCard: React.FC<{
@@ -66,7 +67,8 @@ export const InputField: React.FC<{
   step?: string | number;
   endIcon?: React.ReactNode;
   onEndIconClick?: () => void;
-}> = ({ label, placeholder, value, onChange, type = 'text', disabled = false, icon, error, className = '', required, min, max, step, endIcon, onEndIconClick }) => (
+  isCurrency?: boolean;
+}> = ({ label, placeholder, value, onChange, type = 'text', disabled = false, icon, error, className = '', required, min, max, step, endIcon, onEndIconClick, isCurrency }) => (
   <div className={className}>
     {label && <label className="block text-sm font-medium text-gray-500 mb-2">{label}</label>}
     <div className="relative">
@@ -75,18 +77,40 @@ export const InputField: React.FC<{
           {icon}
         </div>
       )}
-      <input
-        type={type}
-        placeholder={placeholder}
-        value={value}
-        onChange={onChange}
-        disabled={disabled}
-        required={required}
-        min={min}
-        max={max}
-        step={step}
-        className={`w-full ${icon ? 'pl-11' : 'pl-4'} ${endIcon ? 'pr-11' : 'pr-4'} py-3 bg-gray-50 border-transparent focus:bg-white focus:ring-2 focus:ring-emerald-500 rounded-xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 disabled:opacity-60 disabled:bg-gray-100 ${error ? 'ring-2 ring-red-300 bg-red-50 focus:ring-red-500' : ''}`}
-      />
+
+      {isCurrency ? (
+        <NumericFormat
+          value={value}
+          onValueChange={(values) => {
+            // Mocking an event object to maintain compatibility with standard onChange handlers
+            if (onChange) {
+              onChange({ target: { value: values.floatValue } });
+            }
+          }}
+          thousandSeparator="."
+          decimalSeparator=","
+          decimalScale={2}
+          fixedDecimalScale
+          prefix="R$ "
+          placeholder={placeholder}
+          disabled={disabled}
+          className={`w-full ${icon ? 'pl-11' : 'pl-4'} ${endIcon ? 'pr-11' : 'pr-4'} py-3 bg-gray-50 border-transparent focus:bg-white focus:ring-2 focus:ring-emerald-500 rounded-xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 disabled:opacity-60 disabled:bg-gray-100 ${error ? 'ring-2 ring-red-300 bg-red-50 focus:ring-red-500' : ''}`}
+        />
+      ) : (
+        <input
+          type={type}
+          placeholder={placeholder}
+          value={value}
+          onChange={onChange}
+          disabled={disabled}
+          required={required}
+          min={min}
+          max={max}
+          step={step}
+          className={`w-full ${icon ? 'pl-11' : 'pl-4'} ${endIcon ? 'pr-11' : 'pr-4'} py-3 bg-gray-50 border-transparent focus:bg-white focus:ring-2 focus:ring-emerald-500 rounded-xl text-gray-700 placeholder-gray-400 outline-none transition-all duration-200 disabled:opacity-60 disabled:bg-gray-100 ${error ? 'ring-2 ring-red-300 bg-red-50 focus:ring-red-500' : ''}`}
+        />
+      )}
+
       {endIcon && (
         <div
           className={`absolute inset-y-0 right-0 pr-4 flex items-center ${onEndIconClick ? 'cursor-pointer text-gray-500 hover:text-gray-700' : 'pointer-events-none text-gray-400'}`}

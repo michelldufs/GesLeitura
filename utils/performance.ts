@@ -3,6 +3,7 @@
  */
 
 import { logger } from './logger';
+import { formatCurrency } from './formatters';
 
 interface PerformanceMetric {
   name: string;
@@ -25,29 +26,29 @@ const metrics: PerformanceMetric[] = [];
  */
 export const measurePerformance = (name: string) => {
   const startTime = performance.now();
-  
+
   const metric: PerformanceMetric = {
     name,
     startTime
   };
-  
+
   metrics.push(metric);
 
   return {
     end: () => {
       const endTime = performance.now();
       const duration = endTime - startTime;
-      
+
       metric.endTime = endTime;
       metric.duration = duration;
-      
-      logger.info(`⏱️ ${name}: ${duration.toFixed(2)}ms`);
-      
+
+      logger.info(`⏱️ ${name}: ${formatCurrency(duration)}ms`);
+
       // Avisar se performance estiver ruim
       if (duration > 3000) {
         logger.warn(`⚠️ ${name} levou mais de 3 segundos!`);
       }
-      
+
       return duration;
     }
   };

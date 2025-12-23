@@ -3,61 +3,18 @@ import { collection, addDoc, getDocs, query, where, updateDoc, doc } from 'fireb
 import { db } from '../../services/firebaseConfig';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
+import { useOperacional } from '../../contexts/OperacionalContext';
 import { MapPin, Plus, Edit2, Trash2, Ban, Users } from 'lucide-react';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, SelectField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
 import { gerarProximoCodigoPonto, validarCodigoPonto } from '../../services/codigoValidator';
 
-interface Ponto {
-  id: string;
-  codigo: string;
-  nome: string;
-  rotaId: string;
-  localidadeId: string;
-  comissao: number;
-  participaDespesa: boolean;
-  endereco?: string;
-  telefone?: string;
-  qtdEquipamentos: number;
-  coletoresVinculados?: string[];
-  active: boolean;
-}
-
-interface Rota {
-  id: string;
-  codigo: string;
-  nome: string;
-  secaoId: string;
-  localidadeId: string;
-}
-
-interface Secao {
-  id: string;
-  codigo: string;
-  nome: string;
-  localidadeId: string;
-}
-
-interface Localidade {
-  id: string;
-  codigo: string;
-  nome: string;
-}
-
-interface Operador {
-  id: string;
-  codigo: string;
-  nome: string;
-  pontoId: string;
-}
+import { Ponto, Rota, Secao, Localidade, Operador } from '../../types';
 
 const Pontos: React.FC = () => {
   const { userProfile } = useAuth();
-  const { selectedLocalidade } = useLocalidade();
-  const [pontos, setPontos] = useState<Ponto[]>([]);
-  const [rotas, setRotas] = useState<Rota[]>([]);
-  const [secoes, setSecoes] = useState<Secao[]>([]);
-  const [localidades, setLocalidades] = useState<Localidade[]>([]);
-  const [operadores, setOperadores] = useState<Operador[]>([]);
+  const { selectedLocalidade, localidades } = useLocalidade();
+  const { pontos, rotas, secoes, operadores, refreshData } = useOperacional();
+
   const [coletores, setColetores] = useState<Array<{ uid: string; name: string }>>([]);
   const [showModal, setShowModal] = useState(false);
   const [showColetoresModal, setShowColetoresModal] = useState(false);
@@ -80,121 +37,8 @@ const Pontos: React.FC = () => {
   const [filterRotaId, setFilterRotaId] = useState('');
 
   useEffect(() => {
-    loadData();
     loadColetores();
   }, [selectedLocalidade]);
-
-  const loadData = async () => {
-    try {
-      // Carregar localidades
-      const locQuery = query(collection(db, 'localidades'), where('active', '==', true));
-      const locSnapshot = await getDocs(locQuery);
-      const locData = locSnapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          codigo: data.codigo,
-          nome: data.nome
-        } as Localidade;
-      });
-      setLocalidades(locData);
-
-      // Todos os usuários (inclusive admin) veem apenas dados da localidade logada
-      if (!selectedLocalidade) {
-        setPontos([]);
-        setRotas([]);
-        setSecoes([]);
-        return;
-      }
-
-      // Carregar seções
-      const secQuery = query(
-        collection(db, 'secoes'),
-        where('active', '==', true),
-        where('localidadeId', '==', selectedLocalidade)
-      );
-
-      const secSnapshot = await getDocs(secQuery);
-      const secoesData = secSnapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          codigo: data.codigo,
-          nome: data.nome,
-          localidadeId: data.localidadeId
-        } as Secao;
-      });
-      setSecoes(secoesData);
-
-      // Carregar rotas
-      const rotQuery = query(
-        collection(db, 'rotas'),
-        where('active', '==', true),
-        where('localidadeId', '==', selectedLocalidade)
-      );
-
-      const rotSnapshot = await getDocs(rotQuery);
-      const rotasData = rotSnapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          codigo: data.codigo,
-          nome: data.nome,
-          secaoId: data.secaoId,
-          localidadeId: data.localidadeId
-        } as Rota;
-      });
-      setRotas(rotasData);
-
-      // Carregar pontos (ativos e inativos)
-      const pontosQuery = query(
-        collection(db, 'pontos'),
-        where('localidadeId', '==', selectedLocalidade)
-      );
-
-      const pontosSnapshot = await getDocs(pontosQuery);
-      const pontosData = pontosSnapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          codigo: data.codigo,
-          nome: data.nome,
-          rotaId: data.rotaId,
-          localidadeId: data.localidadeId,
-          comissao: data.comissao,
-          endereco: data.endereco,
-          telefone: data.telefone,
-          qtdEquipamentos: data.qtdEquipamentos || 0,
-          coletoresVinculados: data.coletoresVinculados || [],
-          participaDespesa: data.participaDespesa !== false,
-          active: data.active
-        } as Ponto;
-      });
-      // Ordenar por código crescente
-      pontosData.sort((a, b) => (a.codigo || '').localeCompare(b.codigo || ''));
-      setPontos(pontosData);
-
-      // Carregar operadores
-      const opQuery = query(
-        collection(db, 'operadores'),
-        where('active', '==', true),
-        where('localidadeId', '==', selectedLocalidade)
-      );
-      const opSnapshot = await getDocs(opQuery);
-      const opData = opSnapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          codigo: data.codigo,
-          nome: data.nome,
-          pontoId: data.pontoId
-        } as Operador;
-      });
-      setOperadores(opData);
-    } catch (error) {
-      console.error('Erro ao carregar dados:', error);
-    }
-  };
 
   const loadColetores = async () => {
     try {
@@ -222,7 +66,7 @@ const Pontos: React.FC = () => {
 
     // Filtrar pontos da mesma rota para gerar sequência correta
     const pontosRota = pontos.filter(p => p.rotaId === formData.rotaId);
-    return gerarProximoCodigoPonto(rota.codigo, pontosRota);
+    return gerarProximoCodigoPonto(rota.codigo || '00', pontosRota);
   };
 
   const handleOpenModal = () => {
@@ -288,7 +132,7 @@ const Pontos: React.FC = () => {
         setMessage('Ponto criado com sucesso!');
       }
       handleCloseModal();
-      loadData();
+      refreshData();
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
       setMessageType('error');
@@ -302,7 +146,7 @@ const Pontos: React.FC = () => {
     setFormData({
       nome: ponto.nome,
       rotaId: ponto.rotaId,
-      comissao: ponto.comissao,
+      comissao: ponto.comissao || 0,
       participaDespesa: ponto.participaDespesa ?? true,
       endereco: ponto.endereco || '',
       telefone: ponto.telefone || ''
@@ -320,7 +164,7 @@ const Pontos: React.FC = () => {
       await updateDoc(doc(db, 'pontos', ponto.id), { active: novoStatus });
       setMessageType('success');
       setMessage(`Ponto ${novoStatus ? 'ativado' : 'desativado'} com sucesso!`);
-      loadData();
+      refreshData();
     } catch (error: any) {
       console.error(`Erro ao ${acao}:`, error);
       setMessageType('error');
@@ -347,7 +191,7 @@ const Pontos: React.FC = () => {
       });
 
       setPontoSelecionado({ ...pontoSelecionado, coletoresVinculados: novaLista });
-      loadData();
+      refreshData();
     } catch (error: any) {
       setMessageType('error');
       setMessage(error?.message || 'Erro ao atualizar coletores');
@@ -453,8 +297,8 @@ const Pontos: React.FC = () => {
                           <button
                             onClick={() => setPontoExpandido(isExpanded ? null : ponto.id)}
                             className={`flex items-center gap-1.5 px-2 py-1 rounded-lg text-[10px] font-medium transition-all border ${operadoresDoPonto.length > 0
-                                ? 'bg-purple-50 text-purple-700 border-purple-100 hover:bg-purple-100'
-                                : 'bg-gray-50 text-gray-400 border-gray-100'
+                              ? 'bg-purple-50 text-purple-700 border-purple-100 hover:bg-purple-100'
+                              : 'bg-gray-50 text-gray-400 border-gray-100'
                               }`}
                             disabled={operadoresDoPonto.length === 0}
                           >
@@ -649,8 +493,8 @@ const Pontos: React.FC = () => {
                   <label
                     key={coletor.uid}
                     className={`flex items-center gap-3 p-3 rounded-xl border-2 cursor-pointer transition-all ${isVinculado
-                        ? 'border-emerald-500 bg-emerald-50'
-                        : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-emerald-500 bg-emerald-50'
+                      : 'border-gray-200 hover:border-gray-300 hover:bg-gray-50'
                       }`}
                   >
                     <input

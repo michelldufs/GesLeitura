@@ -9,6 +9,7 @@ import { useLocation } from 'react-router-dom';
 import { Cota } from '../../types.ts';
 import { GlassCard, ButtonPrimary, ButtonSecondary, InputField, AlertBox, Modal, PageHeader, Badge } from '../../components/MacOSDesign';
 import { Plus, Edit2, Trash2, Users, MapPin } from 'lucide-react';
+import { formatCurrency } from '../../utils/formatters';
 
 interface CotaForm {
   nome: string;
@@ -395,7 +396,7 @@ const ConfiguracaoCotas = () => {
                           </div>
                         </td>
                         <td className={`px-4 py-2 text-xs font-semibold ${c.saldoAcumulado < 0 ? 'text-red-600' : 'text-green-600'}`}>
-                          R$ {(c.saldoAcumulado || 0).toFixed(2)}
+                          R$ {formatCurrency(c.saldoAcumulado || 0)}
                         </td>
                         <td className="px-4 py-2">
                           <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold border ${c.participaPrejuizo
@@ -530,7 +531,7 @@ const ConfiguracaoCotas = () => {
                 return (
                   <p className={`text-[8px] mt-0.5 font-semibold ${novoTotal > 100 ? 'text-red-600' : novoTotal === 100 ? 'text-green-600' : 'text-gray-500'
                     }`}>
-                    Total: {novoTotal.toFixed(2)}% {restante >= 0 ? `(${restante.toFixed(2)}% disponível)` : '(EXCEDEU!)'}
+                    Total: {formatCurrency(novoTotal)}% {restante >= 0 ? `(${formatCurrency(restante)}% disponível)` : '(EXCEDEU!)'}
                   </p>
                 );
               })()}

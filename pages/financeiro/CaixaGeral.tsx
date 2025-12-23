@@ -12,26 +12,21 @@ import autoTable from 'jspdf-autotable';
 import { formatCurrency } from '../../utils/formatters';
 
 import { useLocalidade } from '../../contexts/LocalidadeContext';
+import { useOperacional } from '../../contexts/OperacionalContext';
 import { getResumoFinanceiro } from '../../services/financeiroService';
 
 const CaixaGeral: React.FC = () => {
   const { userProfile } = useAuth();
   const { localidades, selectedLocalidade } = useLocalidade();
 
-  // State
-  const [mes, setMes] = useState(new Date().getMonth() + 1);
-  const [ano, setAno] = useState(new Date().getFullYear());
-  const [localidadeId, setLocalidadeId] = useState(selectedLocalidade || '');
-
-  const [cotas, setCotas] = useState<Cota[]>([]);
-  const [pontosMap, setPontosMap] = useState<Record<string, string>>({});
-  const [ccMap, setCcMap] = useState<Record<string, string>>({});
+  const { pontosMap, centrosCustoMap: ccMap, cotas } = useOperacional();
 
   const [vendasTotal, setVendasTotal] = useState(0);
   const [despesasOp, setDespesasOp] = useState(0);
   const [adiantamentosTotal, setAdiantamentosTotal] = useState(0);
-  const [valorRetido, setValorRetido] = useState(0);
+  const [valorDistribuir, setValorDistribuir] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [isClosed, setIsClosed] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
 
@@ -55,34 +50,15 @@ const CaixaGeral: React.FC = () => {
   });
   const [adiantamentosMap, setAdiantamentosMap] = useState<Record<string, number>>({});
 
+  // Filters state
+  const [mes, setMes] = useState(new Date().getMonth() + 1);
+  const [ano, setAno] = useState(new Date().getFullYear());
+  const [localidadeId, setLocalidadeId] = useState(selectedLocalidade || '');
+
   // Calculated
   const lucroLiquido = vendasTotal - despesasOp;
-  const baseRateio = lucroLiquido - valorRetido;
-
-  // Load Data
-  useEffect(() => {
-    // Load Cotas
-    getActiveCollection<Cota>('cotas').then(data => {
-      // Filtrar apenas cotas ativas, garantindo que sócios desativados não apareçam
-      setCotas(data.filter(c => c.active !== false));
-    });
-
-    // Load Pontos Map
-    getActiveCollection<Ponto>('pontos').then(data => {
-      const map: Record<string, string> = {};
-      data.forEach(p => {
-        map[p.id] = p.codigo ? `${p.codigo} - ${p.nome}` : p.nome;
-      });
-      setPontosMap(map);
-    });
-
-    // Load Centro Custos Map
-    getActiveCollection<CentroCusto>('centrosCusto').then(data => {
-      const map: Record<string, string> = {};
-      data.forEach(cc => map[cc.id || ''] = cc.nome);
-      setCcMap(map);
-    });
-  }, []);
+  const baseRateio = valorDistribuir; // O valor digitado AGORA é o que será distribuído
+  const capitalGiro = lucroLiquido - valorDistribuir; // O que sobra vira capital de giro
 
   // Update localidadeId when global selection changes
   useEffect(() => {
@@ -169,12 +145,41 @@ const CaixaGeral: React.FC = () => {
   useEffect(() => {
     if (localidadeId) {
       calcularPrevia();
+      verificarStatusFechamento();
     }
   }, [mes, ano, localidadeId]);
 
+  const verificarStatusFechamento = async () => {
+    try {
+      const q = query(
+        collection(db, "fechamentos_mensais"),
+        where("localidadeId", "==", localidadeId),
+        where("mes", "==", mes),
+        where("ano", "==", ano)
+      );
+      const snapshot = await getDocs(q);
+      setIsClosed(!snapshot.empty);
+      if (!snapshot.empty) {
+        const data = snapshot.docs[0].data();
+        setValorDistribuir(data.valorDistribuido || 0);
+      } else {
+        setValorDistribuir(0);
+      }
+    } catch (error) {
+      console.error("Erro ao verificar fechamento:", error);
+    }
+  };
+
   const handleFecharMes = async () => {
     if (!userProfile) return;
-    if (!window.confirm('ATENÇÃO: Isso irá bloquear edições para este período. Confirmar?')) return;
+
+    if (valorDistribuir > lucroLiquido) {
+      setMessage('⚠️ SEGURANÇA: O valor p/ distribuição não pode ser maior que o Lucro Líquido!');
+      setMessageType('error');
+      return;
+    }
+
+    if (!window.confirm(`ATENÇÃO: Você está prestes a distribuir R$ ${formatCurrency(valorDistribuir)}.\n\nO restante (R$ ${formatCurrency(capitalGiro)}) ficará como Capital de Giro.\n\nIsso irá bloquear edições para este período. Confirmar?`)) return;
 
     setLoading(true);
     setMessage('');
@@ -182,11 +187,12 @@ const CaixaGeral: React.FC = () => {
 
     try {
       await fecharMes(
-        localidadeId, mes, ano, valorRetido, userProfile.uid, cotas,
+        localidadeId, mes, ano, valorDistribuir, userProfile.uid, cotas,
         { lucroLiquido }
       );
       setMessage('Mês fechado com sucesso!');
       setMessageType('success');
+      setIsClosed(true);
     } catch (e: any) {
       setMessage(e?.message || 'Erro ao fechar mês');
       setMessageType('error');
@@ -322,19 +328,19 @@ const CaixaGeral: React.FC = () => {
 
     const finalYResumo = (doc as any).lastAutoTable.finalY;
 
-    // --- 4. Tabela Inferior (Totais / Retenção) ---
+    // --- 4. Tabela Inferior (Totais / Rateio) ---
     // Posicionar abaixo da maior tabela
     let bottomY = Math.max(finalYRateio, finalYResumo) + 5;
 
     // Tabela Totais
     const totaisData = [[
-      `R$ ${formatCurrency(valorRetido)}`,
-      `R$ ${formatCurrency(baseRateio)}`
+      `R$ ${formatCurrency(baseRateio)}`,
+      `R$ ${formatCurrency(capitalGiro)}`
     ]];
 
     autoTable(doc, {
       startY: bottomY,
-      head: [['VALOR RETIDO', 'BASE DE RATEIO']],
+      head: [['VALOR DISTRIBUÍDO', 'CAPITAL DE GIRO']],
       body: totaisData,
       theme: 'plain',
       tableWidth: halfWidth, // Alinhado com a tabela da esquerda
@@ -435,9 +441,12 @@ const CaixaGeral: React.FC = () => {
                 </button>
                 <button
                   onClick={handleFecharMes}
-                  disabled={!isAuthorized || loading || !localidadeId}
-                  className="p-2 text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 rounded-lg transition-colors border border-rose-100 disabled:opacity-50"
-                  title="Fechar Mês"
+                  disabled={!isAuthorized || loading || !localidadeId || isClosed}
+                  className={`p-2 rounded-lg transition-colors border ${isClosed
+                    ? 'text-emerald-600 bg-emerald-50 border-emerald-100'
+                    : 'text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border-rose-100 disabled:opacity-50'
+                    }`}
+                  title={isClosed ? "Período Encerrado" : "Fechar Mês"}
                 >
                   <Lock size={16} />
                 </button>
@@ -566,7 +575,7 @@ const CaixaGeral: React.FC = () => {
                                 <div className="leading-tight">{item.descricao}</div>
                                 {(item.pontoId || item.centroCustoId) && (
                                   <div className="text-[10px] text-gray-400 uppercase font-semibold mt-0.5">
-                                    {item.pontoId ? (pontosMap[item.pontoId] || 'Ponto não encontrado') : (ccMap[item.centroCustoId || ''] || 'Sem C.Custo')}
+                                    {item.pontoId ? (pontosMap[item.pontoId]?.nome || 'Ponto não encontrado') : (ccMap[item.centroCustoId || '']?.nome || 'Sem C.Custo')}
                                   </div>
                                 )}
                               </td>
@@ -626,26 +635,52 @@ const CaixaGeral: React.FC = () => {
                 </span>
               </div>
 
-              {/* Retenção Input */}
+              {/* Distribuição Input */}
               <div className="mt-4 px-1">
-                <div className="flex items-center gap-3 bg-yellow-50/50 border border-yellow-100 rounded-lg p-3">
-                  <label className="text-xs font-bold text-yellow-700 uppercase whitespace-nowrap">Retenção (Giro)</label>
+                <div className={`flex items-center gap-3 border rounded-lg p-3 transition-colors ${isClosed ? 'bg-gray-50 border-gray-200' :
+                  valorDistribuir > lucroLiquido
+                    ? 'bg-red-50 border-red-200 animate-pulse'
+                    : 'bg-blue-50/50 border-blue-100'
+                  }`}>
+                  <label className={`text-xs font-bold uppercase whitespace-nowrap ${isClosed ? 'text-gray-500' :
+                    valorDistribuir > lucroLiquido ? 'text-red-700' : 'text-blue-700'
+                    }`}>
+                    {isClosed ? 'Valor Distribuído (Fixo)' : 'Valor p/ Distribuição (Rateio)'}
+                  </label>
                   <input
                     type="number"
-                    value={valorRetido || ''}
-                    onChange={e => setValorRetido(Number(e.target.value))}
-                    disabled={!isAuthorized}
-                    className="w-full bg-transparent border-b border-yellow-200 text-right font-bold text-gray-800 focus:outline-none focus:border-yellow-500 text-sm py-1 placeholder-yellow-300/50"
+                    value={valorDistribuir || ''}
+                    onChange={e => {
+                      const val = Number(e.target.value);
+                      setValorDistribuir(val);
+                      if (val > lucroLiquido) {
+                        setMessageType('error');
+                        setMessage('⚠️ SEGURANÇA: Valor de distribuição maior que o lucro líquido!');
+                      } else {
+                        setMessage('');
+                      }
+                    }}
+                    disabled={!isAuthorized || isClosed}
+                    className={`w-full bg-transparent border-b text-right font-bold focus:outline-none text-sm py-1 placeholder-gray-300 ${isClosed ? 'border-transparent text-gray-500' :
+                      valorDistribuir > lucroLiquido
+                        ? 'border-red-300 text-red-700 focus:border-red-500'
+                        : 'border-blue-200 text-gray-800 focus:border-blue-500'
+                      }`}
                     placeholder="R$ 0,00"
                   />
                 </div>
+                {valorDistribuir > lucroLiquido && (
+                  <p className="text-[10px] text-red-600 font-bold mt-1 ml-1 flex items-center gap-1">
+                    <span>❌</span> Excedeu Lucro Líquido em R$ {formatCurrency(valorDistribuir - lucroLiquido)}
+                  </p>
+                )}
               </div>
 
-              {/* Base Rateio */}
+              {/* Capital de Giro */}
               <div className="flex justify-between pt-4 px-3">
-                <span className="text-gray-500 text-sm font-medium">Base p/ Rateio</span>
-                <span className="text-purple-600 font-bold text-lg">
-                  R$ {formatCurrency(baseRateio)}
+                <span className="text-gray-500 text-sm font-medium">Capital de Giro (P/ Próximo Mês)</span>
+                <span className={`font-bold text-lg ${capitalGiro < 0 ? 'text-red-500' : 'text-emerald-600'}`}>
+                  R$ {formatCurrency(capitalGiro)}
                 </span>
               </div>
 

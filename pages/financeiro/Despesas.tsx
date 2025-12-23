@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useLocalidade } from '../../contexts/LocalidadeContext';
+import { useOperacional } from '../../contexts/OperacionalContext';
 import { db } from '../../services/firebaseConfig';
 import {
   collection,
@@ -9,8 +10,10 @@ import {
   getDocs,
   addDoc,
   updateDoc,
-  doc
+  doc,
+  getDoc
 } from 'firebase/firestore';
+import { verificarPeriodoFechado } from '../../services/financeiroService';
 import {
   GlassCard,
   AlertBox,
@@ -47,6 +50,7 @@ import {
 } from 'lucide-react';
 import { DespesaGeral, CentroCusto, UserProfile, Ponto } from '../../types.ts';
 import { addDays, addMonths, addWeeks, differenceInDays, parseISO } from 'date-fns';
+import { formatCurrency } from '../../utils/formatters';
 
 const isDateLocked = (dateString: string) => {
   const today = new Date();
@@ -80,6 +84,7 @@ interface ColumnFilters {
   ponto: string[];       // Add this
   centroCustoReal: string[]; // Add this
   usuario: string[];
+  status: string[]; // Added status filter
 }
 
 // Helper Header Filter Component - Moved outside to prevent re-creation
@@ -160,13 +165,11 @@ const Despesas: React.FC = () => {
   const { userProfile } = useAuth();
   const { selectedLocalidade } = useLocalidade();
 
+  const { pontosMap, centrosCusto, refreshData, centrosCustoMap } = useOperacional();
+
   // States
   const [despesas, setDespesas] = useState<UnifiedDespesa[]>([]);
-  const [centrosCusto, setCentrosCusto] = useState<CentroCusto[]>([]);
   const [usersMap, setUsersMap] = useState<Record<string, string>>({});
-  const [pontos, setPontos] = useState<Ponto[]>([]);
-  const [pontosMap, setPontosMap] = useState<Record<string, string>>({}); // ID -> Nome
-  const [pontosCodigoMap, setPontosCodigoMap] = useState<Record<string, string>>({}); // ID -> Código
 
   // Filter States
   const [activeFilters, setActiveFilters] = useState<ColumnFilters>({
@@ -175,7 +178,8 @@ const Despesas: React.FC = () => {
     centroCusto: [],
     ponto: [],
     centroCustoReal: [],
-    usuario: []
+    usuario: [],
+    status: []
   });
   const [openFilter, setOpenFilter] = useState<string | null>(null);
 
@@ -187,7 +191,7 @@ const Despesas: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState('');
   const [messageType, setMessageType] = useState<'success' | 'error' | ''>('');
-  const [notification, setNotification] = useState<{ message: string, count: number } | null>(null);
+  const [notification, setNotification] = useState<{ message: string, count: number, items: UnifiedDespesa[] } | null>(null);
 
   const [formData, setFormData] = useState<{
     data: string;
@@ -245,8 +249,6 @@ const Despesas: React.FC = () => {
   useEffect(() => {
     if (selectedLocalidade) {
       loadData();
-      loadCentrosCusto();
-      loadPontos();
     }
   }, [selectedLocalidade, usersMap]);
 
@@ -265,26 +267,6 @@ const Despesas: React.FC = () => {
     }
   };
 
-  const loadPontos = async () => {
-    if (!selectedLocalidade) return;
-    try {
-      const q = query(collection(db, 'pontos'), where('localidadeId', '==', selectedLocalidade));
-      const snapshot = await getDocs(q);
-      const nomeMap: Record<string, string> = {};
-      const codigoMap: Record<string, string> = {};
-      const lista: Ponto[] = [];
-      snapshot.forEach(doc => {
-        const data = doc.data() as Ponto;
-        data.id = doc.id;
-        lista.push(data);
-        nomeMap[doc.id] = data.nome;
-        codigoMap[doc.id] = data.codigo || 'S/C';
-      });
-      setPontos(lista);
-      setPontosMap(nomeMap);
-      setPontosCodigoMap(codigoMap);
-    } catch (e) { console.error(e); }
-  };
 
   const loadData = async () => {
     if (!selectedLocalidade) {
@@ -355,8 +337,9 @@ const Despesas: React.FC = () => {
 
       if (despesasVencendo.length > 0) {
         setNotification({
-          message: `Atenção: Você tem ${despesasVencendo.length} despesa(s) vencendo nos próximos 2 dias.`,
-          count: despesasVencendo.length
+          message: `Você tem ${despesasVencendo.length} despesa(s) vencendo nos próximos 2 dias.`,
+          count: despesasVencendo.length,
+          items: despesasVencendo.slice(0, 3) // Mostrar apenas as 3 primeiras para não poluir
         });
       } else {
         setNotification(null);
@@ -369,28 +352,6 @@ const Despesas: React.FC = () => {
     }
   };
 
-  const loadCentrosCusto = async () => {
-    if (!selectedLocalidade) return;
-
-    try {
-      const ccQuery = query(
-        collection(db, 'centrosCusto'),
-        where('active', '==', true),
-        where('localidadeId', '==', selectedLocalidade)
-      );
-
-      const snapshot = await getDocs(ccQuery);
-      const ccData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      } as CentroCusto));
-
-      ccData.sort((a, b) => (a.nome || '').localeCompare(b.nome || ''));
-      setCentrosCusto(ccData);
-    } catch (error) {
-      console.error('Erro ao carregar centros de custo:', error);
-    }
-  };
 
   // --- FILTER LOGIC ---
 
@@ -400,7 +361,7 @@ const Despesas: React.FC = () => {
       let value = '';
       if (key === 'pontoNome') {
         if (d.origem === 'leitura' && d.pontoId && pontosMap[d.pontoId]) {
-          value = pontosMap[d.pontoId];
+          value = pontosMap[d.pontoId]?.nome || '';
         }
       } else if (key === 'centroCustoReal') {
         if (d.origem === 'manual') {
@@ -440,7 +401,7 @@ const Despesas: React.FC = () => {
     return despesas.filter(d => {
       const dataFormatada = new Date(d.data).toLocaleDateString('pt-BR');
       const origemFormatada = d.origem === 'manual' ? 'Manual' : 'Leitura';
-      const pontoNome = d.pontoId ? pontosMap[d.pontoId] : '';
+      const pontoNome = d.pontoId ? (pontosMap[d.pontoId]?.nome || '') : '';
       const ccNome = getCentroCustoNome(d.centroCustoId);
       const usuarioNome = d.userNameDisplay || '';
 
@@ -449,6 +410,7 @@ const Despesas: React.FC = () => {
       if (activeFilters.ponto.length > 0 && !activeFilters.ponto.includes(pontoNome)) return false;
       if (activeFilters.centroCustoReal.length > 0 && !activeFilters.centroCustoReal.includes(ccNome)) return false;
       if (activeFilters.usuario.length > 0 && !activeFilters.usuario.includes(usuarioNome)) return false;
+      if (activeFilters.status.length > 0 && !activeFilters.status.includes(d.status || 'pendente')) return false;
 
       return true;
     });
@@ -537,6 +499,9 @@ const Despesas: React.FC = () => {
     setMessageType('');
 
     try {
+      // Verificar se o período está fechado
+      await verificarPeriodoFechado(formData.data, selectedLocalidade);
+
       if (editingId) {
         // Edit flow (Single update for now - simplified)
         await updateDoc(doc(db, 'despesas_gerais', editingId), {
@@ -639,7 +604,7 @@ const Despesas: React.FC = () => {
         setMessage('Centro de custo criado com sucesso!');
       }
       handleCloseCCModal();
-      loadCentrosCusto();
+      refreshData();
     } catch (error: any) {
       console.error('Erro ao salvar:', error);
       setMessageType('error');
@@ -659,6 +624,9 @@ const Despesas: React.FC = () => {
     }
 
     try {
+      // Verificar se o período está fechado
+      await verificarPeriodoFechado(despesa.data, despesa.localidadeId);
+
       await updateDoc(doc(db, 'despesas_gerais', despesa.id!), {
         status: novoStatus
       });
@@ -706,6 +674,13 @@ const Despesas: React.FC = () => {
     if (!confirm('Deseja realmente desativar esta despesa?')) return;
 
     try {
+      // Buscar dados da despesa para verificar data e localidade
+      const snap = await getDoc(doc(db, 'despesas_gerais', id));
+      if (snap.exists()) {
+        const d = snap.data();
+        await verificarPeriodoFechado(d.data, d.localidadeId);
+      }
+
       await updateDoc(doc(db, 'despesas_gerais', id), { active: false });
       setMessageType('success');
       setMessage('Despesa desativada com sucesso!');
@@ -724,7 +699,7 @@ const Despesas: React.FC = () => {
       await updateDoc(doc(db, 'centrosCusto', id), { active: false });
       setMessageType('success');
       setMessage('Centro de custo desativado com sucesso!');
-      loadCentrosCusto();
+      refreshData();
     } catch (error: any) {
       console.error('Erro ao desativar:', error);
       setMessageType('error');
@@ -837,22 +812,59 @@ const Despesas: React.FC = () => {
       )}
 
       {notification && (
-        <div className="mb-6 animate-pulse">
-          <AlertBox
-            type="warning"
-            message={notification.message}
-          />
+        <div className="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+          <div className="bg-white/95 backdrop-blur-md border border-orange-100 shadow-xl rounded-xl p-3 flex flex-col gap-2.5 max-w-[280px]">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <div className="p-1.5 bg-orange-100 text-orange-600 rounded-lg">
+                  <AlertTriangle size={14} />
+                </div>
+                <h4 className="font-bold text-gray-900 text-[12px] tracking-tight">Vencimentos</h4>
+              </div>
+              <button
+                onClick={() => setNotification(null)}
+                className="text-gray-400 hover:text-gray-600 p-1 hover:bg-gray-100 rounded-md transition-colors"
+              >
+                <X size={14} />
+              </button>
+            </div>
+
+            <div className="space-y-1.5 px-1">
+              {notification.items.map((item, idx) => (
+                <div key={item.id || idx} className="flex items-center justify-between gap-4 text-[11px]">
+                  <p className="text-gray-600 truncate capitalize flex-1">{item.descricao.toLowerCase()}</p>
+                  <span className="font-bold text-rose-500 whitespace-nowrap">
+                    - R$ {formatCurrency(item.valor)}
+                  </span>
+                </div>
+              ))}
+              {notification.count > 3 && (
+                <p className="text-[10px] text-gray-400 italic pt-1 border-t border-gray-50 text-right">
+                  + {notification.count - 3} itens...
+                </p>
+              )}
+            </div>
+
+            <button
+              onClick={() => toggleFilter('status', 'pendente')}
+              className="w-full py-1.5 bg-orange-500 hover:bg-orange-600 text-white rounded-lg text-[11px] font-bold transition-all shadow-sm shadow-orange-100"
+            >
+              Ver Tudo
+            </button>
+          </div>
         </div>
       )}
 
-      {message && (
-        <div className="mb-6">
-          <AlertBox
-            type={messageType as 'success' | 'error' | 'warning' | 'info'}
-            message={message}
-          />
-        </div>
-      )}
+      {
+        message && (
+          <div className="mb-6">
+            <AlertBox
+              type={messageType as 'success' | 'error' | 'warning' | 'info'}
+              message={message}
+            />
+          </div>
+        )
+      }
 
       {/* Resumo de Despesas - Compacto */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
@@ -860,7 +872,7 @@ const Despesas: React.FC = () => {
         <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Total Realizado</p>
-            <h3 className="text-lg font-bold text-gray-900">R$ {totalDespesas.toFixed(2)}</h3>
+            <h3 className="text-lg font-bold text-gray-900">R$ {formatCurrency(totalDespesas)}</h3>
           </div>
           <div className="p-2 bg-rose-50 rounded-lg text-rose-500">
             <CreditCard size={18} />
@@ -871,7 +883,7 @@ const Despesas: React.FC = () => {
         <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow border-l-4 border-l-purple-400">
           <div>
             <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Agendado (Futuro)</p>
-            <h3 className="text-lg font-bold text-gray-900">R$ {totalPendente.toFixed(2)}</h3>
+            <h3 className="text-lg font-bold text-gray-900">R$ {formatCurrency(totalPendente)}</h3>
           </div>
           <div className="p-2 bg-purple-50 rounded-lg text-purple-500">
             <Calendar size={18} />
@@ -882,7 +894,7 @@ const Despesas: React.FC = () => {
         <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Operacionais</p>
-            <h3 className="text-lg font-bold text-gray-900">R$ {despesasOperacionais.toFixed(2)}</h3>
+            <h3 className="text-lg font-bold text-gray-900">R$ {formatCurrency(despesasOperacionais)}</h3>
           </div>
           <div className="p-2 bg-orange-50 rounded-lg text-orange-500">
             <Target size={18} />
@@ -893,7 +905,7 @@ const Despesas: React.FC = () => {
         <div className="bg-white rounded-lg p-3 shadow-sm border border-gray-100 flex items-center justify-between hover:shadow-md transition-shadow">
           <div>
             <p className="text-gray-400 text-[10px] font-bold uppercase tracking-wider">Adiantamentos</p>
-            <h3 className="text-lg font-bold text-gray-900">R$ {despesasAdiantamento.toFixed(2)}</h3>
+            <h3 className="text-lg font-bold text-gray-900">R$ {formatCurrency(despesasAdiantamento)}</h3>
           </div>
           <div className="p-2 bg-yellow-50 rounded-lg text-yellow-500">
             <DollarSign size={18} />
@@ -974,7 +986,7 @@ const Despesas: React.FC = () => {
                             <tr key={despesa.id} className="bg-purple-50/30 hover:bg-purple-50 border-l-4 border-l-purple-400">
                               <td className="px-3 py-2 pl-8 font-medium text-gray-600 whitespace-nowrap text-xs">
                                 {despesa.data.split('-').reverse().join('/')}
-                                {isLocked && <Lock size={10} className="inline ml-1 text-gray-400" title="Data fechada (Passado)" />}
+                                {isLocked && <span title="Data fechada (Passado)" className="inline ml-1"><Lock width={10} height={10} className="text-gray-400" /></span>}
                               </td>
                               <td className="px-3 py-2 text-xs text-gray-500 text-center">-</td>
                               <td className="px-3 py-2 text-xs text-gray-500 text-center">-</td>
@@ -1051,7 +1063,7 @@ const Despesas: React.FC = () => {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-xs text-left">
+            <table className="w-full text-xs text-left table-responsive">
               <thead className="bg-gray-50 text-gray-500 border-b border-gray-200">
                 <tr>
                   <th className="px-3 py-2 font-semibold">
@@ -1130,7 +1142,19 @@ const Despesas: React.FC = () => {
                     />
                   </th>
                   <th className="px-3 py-2 font-semibold text-right">Valor</th>
-                  <th className="px-3 py-2 font-semibold text-center">Status</th>
+                  <th className="px-3 py-2 font-semibold text-center">
+                    <HeaderWithFilter
+                      label="Status"
+                      filterKey="status"
+                      values={['paga', 'pendente']}
+                      activeFilters={activeFilters}
+                      openFilter={openFilter}
+                      setOpenFilter={setOpenFilter}
+                      toggleFilter={toggleFilter}
+                      clearFilter={clearFilter}
+                      filterRef={filterRef}
+                    />
+                  </th>
                   <th className="px-3 py-2 font-semibold text-right">Ações</th>
                 </tr>
               </thead>
@@ -1148,38 +1172,38 @@ const Despesas: React.FC = () => {
                     <>
                       {paginated.map((item) => {
                         const despesa = item.data as UnifiedDespesa;
-                        const pontoCodigo = despesa.pontoId ? pontosCodigoMap[despesa.pontoId] : '-';
-                        const pontoNome = despesa.pontoId ? pontosMap[despesa.pontoId] : '-';
+                        const pontoCodigo = despesa.pontoId ? (pontosMap[despesa.pontoId]?.codigo || '—') : '—';
+                        const pontoNome = despesa.pontoId ? (pontosMap[despesa.pontoId]?.nome || '—') : '—';
                         const centroCustoNome = getCentroCustoNome(despesa.centroCustoId);
                         const isLocked = isDateLocked(despesa.data);
 
                         return (
                           <tr key={despesa.id} className="hover:bg-gray-50 transition-colors">
-                            <td className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
+                            <td data-label="Data" className="px-3 py-2 font-medium text-gray-700 whitespace-nowrap">
                               {despesa.data.split('-').reverse().join('/')}
-                              {isLocked && <Lock size={12} className="inline ml-1 text-gray-400" title="Data fechada (Passado)" />}
+                              {isLocked && <span title="Data fechada (Passado)" className="inline ml-1"><Lock width={12} height={12} className="text-gray-400" /></span>}
                             </td>
-                            <td className="px-3 py-2">
+                            <td data-label="Origem" className="px-3 py-2">
                               {despesa.origem === 'manual' ? (
                                 <Badge variant="primary" className="text-[10px] px-1.5 py-0.5">MANUAL</Badge>
                               ) : (
                                 <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5">LEITURA</Badge>
                               )}
                             </td>
-                            <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">{pontoCodigo}</td>
-                            <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]" title={pontoNome}>{pontoNome}</td>
-                            <td className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]" title={centroCustoNome}>{centroCustoNome}</td>
-                            <td className="px-3 py-2 text-gray-600 max-w-[200px] truncate" title={despesa.descricao}>{despesa.descricao}</td>
-                            <td className="px-3 py-2 text-gray-500 text-[10px] uppercase truncate max-w-[100px]" title={despesa.userNameDisplay}>{despesa.userNameDisplay}</td>
-                            <td className="px-3 py-2 text-right font-bold text-red-600 whitespace-nowrap">
+                            <td data-label="Cod" className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap">{pontoCodigo}</td>
+                            <td data-label="Ponto" className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]" title={pontoNome}>{pontoNome}</td>
+                            <td data-label="C. Custo" className="px-3 py-2 text-gray-700 font-medium whitespace-nowrap overflow-hidden text-ellipsis max-w-[150px]" title={centroCustoNome}>{centroCustoNome}</td>
+                            <td data-label="Descrição" className="px-3 py-2 text-gray-600 max-w-[200px] truncate" title={despesa.descricao}>{despesa.descricao}</td>
+                            <td data-label="Usuário" className="px-3 py-2 text-gray-500 text-[10px] uppercase truncate max-w-[100px]" title={despesa.userNameDisplay}>{despesa.userNameDisplay}</td>
+                            <td data-label="Valor" className="px-3 py-2 text-right font-bold text-red-600 whitespace-nowrap">
                               - {despesa.valor.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
                             </td>
-                            <td className="px-3 py-2 text-center whitespace-nowrap">
+                            <td data-label="Status" className="px-3 py-2 text-center whitespace-nowrap">
                               <button
                                 onClick={() => handleToggleStatus(despesa)}
                                 className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-xs font-medium border transition-all ${despesa.status === 'pendente'
-                                    ? 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 cursor-pointer'
-                                    : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 cursor-pointer'
+                                  ? 'bg-orange-50 text-orange-700 border-orange-200 hover:bg-orange-100 cursor-pointer'
+                                  : 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100 cursor-pointer'
                                   }`}
                                 title="Clique para alterar o status"
                               >
@@ -1190,7 +1214,7 @@ const Despesas: React.FC = () => {
                                 )}
                               </button>
                             </td>
-                            <td className="px-3 py-2 text-right whitespace-nowrap">
+                            <td data-label="Ações" className="px-3 py-2 text-right whitespace-nowrap">
                               <div className="flex justify-end gap-1">
                                 {despesa.origem === 'manual' ? (
                                   isLocked ? (
@@ -1256,15 +1280,13 @@ const Despesas: React.FC = () => {
               required
             />
             <InputField
-              label="Valor (R$)"
-              type="number"
-              step="0.01"
-              min="0"
+              label="Valor"
               value={formData.valor}
               onChange={(e) => setFormData({ ...formData, valor: e.target.value })}
               disabled={!isAuthorized}
               required
-              placeholder="0.00"
+              placeholder="0,00"
+              isCurrency
             />
           </div>
 
@@ -1431,7 +1453,7 @@ const Despesas: React.FC = () => {
           )}
         </form>
       </Modal>
-    </div>
+    </div >
   );
 };
 

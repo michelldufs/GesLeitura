@@ -4,9 +4,11 @@ import { collection, getDocs, limit, query, where, orderBy } from 'firebase/fire
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, LineChart, Line, PieChart, Pie, Cell } from 'recharts';
 import { useAuth } from '../contexts/AuthContext';
 import { useLocalidade } from '../contexts/LocalidadeContext';
+import { useOperacional } from '../contexts/OperacionalContext';
 import { db } from '../services/firebaseConfig';
 import { Operador, Ponto, Rota, Venda } from '../types';
 import { GlassCard, InputField, ButtonSecondary, Badge, ButtonPrimary } from '../components/MacOSDesign';
+import { formatCurrency } from '../utils/formatters';
 
 type Indexed<T> = Record<string, T>;
 
@@ -16,9 +18,6 @@ const toSafeNumber = (val: any) => {
   const num = Number(val ?? 0);
   return Number.isFinite(num) ? num : 0;
 };
-
-const formatCurrency = (value: number) =>
-  value.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' });
 
 const formatPercent = (value: number) => `${value.toFixed(1)}%`;
 
@@ -37,22 +36,18 @@ const formatDate = (value?: string) => {
 const Dashboard: React.FC = () => {
   const { userProfile } = useAuth();
   const { selectedLocalidade, selectedLocalidadeName } = useLocalidade();
+  const { pontosMap: pontosIndex, rotasMap: rotasIndex, operadoresMap: operadoresIndex } = useOperacional();
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [vendas, setVendas] = useState<VendaDoc[]>([]);
-  const [pontosIndex, setPontosIndex] = useState<Indexed<Ponto>>({});
-  const [rotasIndex, setRotasIndex] = useState<Indexed<Rota>>({});
-  const [operadoresIndex, setOperadoresIndex] = useState<Indexed<Operador>>({});
   const [search, setSearch] = useState('');
   const [filtroTipo, setFiltroTipo] = useState<'hoje' | 'semana' | 'mes'>('hoje');
+  const [lastLocalidade, setLastLocalidade] = useState<string | null>(null);
 
   useEffect(() => {
     if (!selectedLocalidade) {
       setVendas([]);
-      setPontosIndex({});
-      setRotasIndex({});
-      setOperadoresIndex({});
       return;
     }
     loadDashboardData(selectedLocalidade);
@@ -83,12 +78,7 @@ const Dashboard: React.FC = () => {
     setError(null);
 
     try {
-      const [vendasData, pontosSnap, rotasSnap, operadoresSnap] = await Promise.all([
-        fetchVendas(localidadeId),
-        getDocs(query(collection(db, 'pontos'), where('active', '==', true), where('localidadeId', '==', localidadeId))),
-        getDocs(query(collection(db, 'rotas'), where('active', '==', true), where('localidadeId', '==', localidadeId))),
-        getDocs(query(collection(db, 'operadores'), where('active', '==', true), where('localidadeId', '==', localidadeId)))
-      ]);
+      const vendasData = await fetchVendas(localidadeId);
 
       // Filtrar vendas por período
       const hoje = new Date();
@@ -104,34 +94,13 @@ const Dashboard: React.FC = () => {
         dataInicio.setHours(0, 0, 0, 0);
       }
 
-      const vendasFiltradas = vendasData.filter(venda => {
+      const vendasFiltradas = vendasData.filter((venda: VendaDoc) => {
         const vendaDate = venda.timestamp?.toDate ? venda.timestamp.toDate() : new Date(venda.data);
         return vendaDate >= dataInicio;
       });
 
-      vendasFiltradas.sort((a, b) => new Date(b.data || 0).getTime() - new Date(a.data || 0).getTime());
+      vendasFiltradas.sort((a: VendaDoc, b: VendaDoc) => new Date(b.data || 0).getTime() - new Date(a.data || 0).getTime());
       setVendas(vendasFiltradas);
-
-      const pontosMap: Indexed<Ponto> = {};
-      pontosSnap.docs.forEach(doc => {
-        const data = doc.data() as Ponto;
-        pontosMap[doc.id] = { ...data, id: doc.id };
-      });
-      setPontosIndex(pontosMap);
-
-      const rotasMap: Indexed<Rota> = {};
-      rotasSnap.docs.forEach(doc => {
-        const data = doc.data() as Rota;
-        rotasMap[doc.id] = { ...data, id: doc.id };
-      });
-      setRotasIndex(rotasMap);
-
-      const operadoresMap: Indexed<Operador> = {};
-      operadoresSnap.docs.forEach(doc => {
-        const data = doc.data() as Operador;
-        operadoresMap[doc.id] = { ...data, id: doc.id };
-      });
-      setOperadoresIndex(operadoresMap);
     } catch (err: any) {
       console.error('Erro ao carregar dashboard:', err);
       setError(err?.message || 'Erro ao carregar dados do dashboard.');
@@ -441,7 +410,7 @@ const Dashboard: React.FC = () => {
         </div>
 
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className="w-full text-sm table-responsive">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
                 {['Data', 'Código', 'Nome do Ponto', 'Rota', 'Entrada', 'Saída', 'Líquido', 'Comissão', 'Despesa', 'Lucro'].map((h) => (
@@ -454,20 +423,20 @@ const Dashboard: React.FC = () => {
             <tbody className="divide-y divide-gray-100 bg-white">
               {filteredRecentes.map((item, idx) => (
                 <tr key={item.id || idx} className="hover:bg-emerald-50/30 transition-colors even:bg-gray-50/30">
-                  <td className="px-3 py-2 text-gray-700 font-medium text-xs whitespace-nowrap">{formatDate(item.data)}</td>
-                  <td className="px-3 py-2 text-gray-800 font-bold text-xs font-mono">{getPontoCodigo(item.pontoId)}</td>
-                  <td className="px-3 py-2 text-gray-900 font-medium text-xs whitespace-nowrap">{getPontoNome(item.pontoId)}</td>
-                  <td className="px-3 py-2">
+                  <td data-label="Data" className="px-3 py-2 text-gray-700 font-medium text-xs whitespace-nowrap">{formatDate(item.data)}</td>
+                  <td data-label="Código" className="px-3 py-2 text-gray-800 font-bold text-xs font-mono">{getPontoCodigo(item.pontoId)}</td>
+                  <td data-label="Nome do Ponto" className="px-3 py-2 text-gray-900 font-medium text-xs whitespace-nowrap">{getPontoNome(item.pontoId)}</td>
+                  <td data-label="Rota" className="px-3 py-2">
                     <Badge variant="secondary" className="text-[10px] px-1.5 py-0.5 h-auto">
                       {getRotaNome(item.rotaId)}
                     </Badge>
                   </td>
-                  <td className="px-3 py-2 text-emerald-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalEntrada))}</td>
-                  <td className="px-3 py-2 text-amber-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalSaida))}</td>
-                  <td className="px-3 py-2 text-blue-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalGeral))}</td>
-                  <td className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.valorComissao))}</td>
-                  <td className="px-3 py-2 text-rose-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.despesa))}</td>
-                  <td className="px-3 py-2 text-emerald-700 font-black text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalFinal))}</td>
+                  <td data-label="Entrada" className="px-3 py-2 text-emerald-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalEntrada))}</td>
+                  <td data-label="Saída" className="px-3 py-2 text-amber-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalSaida))}</td>
+                  <td data-label="Líquido" className="px-3 py-2 text-blue-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalGeral))}</td>
+                  <td data-label="Comissão" className="px-3 py-2 text-gray-500 text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.valorComissao))}</td>
+                  <td data-label="Despesa" className="px-3 py-2 text-rose-600 font-bold text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.despesa))}</td>
+                  <td data-label="Lucro" className="px-3 py-2 text-emerald-700 font-black text-xs whitespace-nowrap">{formatCurrency(toSafeNumber(item.totalFinal))}</td>
                 </tr>
               ))}
               {filteredRecentes.length === 0 && (
