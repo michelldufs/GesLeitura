@@ -38,9 +38,16 @@ const ConfiguracaoCotas = () => {
   const { register, handleSubmit, reset, formState: { errors }, watch, setValue } = useForm<any>();
 
   const loadCotas = async () => {
+    if (!selectedLocalidade) return;
+
     try {
-      // Carregar TODAS as cotas (ativas e inativas)
-      const snapshot = await getDocs(collection(db, 'cotas'));
+      // Filtrar por localidade selecionada
+      const q = query(
+        collection(db, 'cotas'),
+        where('localidadeId', '==', selectedLocalidade)
+      );
+
+      const snapshot = await getDocs(q);
       const cotasList = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Cota[];
 
       // Debug: Ver duplicatas
@@ -83,9 +90,11 @@ const ConfiguracaoCotas = () => {
   };
 
   useEffect(() => {
-    loadCotas();
-    loadLocalidades();
-  }, []);
+    if (selectedLocalidade) {
+      loadCotas();
+      loadLocalidades();
+    }
+  }, [selectedLocalidade]);
 
   const handleOpenModal = (cota?: Cota) => {
     if (cota) {
@@ -231,7 +240,11 @@ const ConfiguracaoCotas = () => {
     setMessageType('');
 
     try {
-      const snapshot = await getDocs(collection(db, 'cotas'));
+      const q = query(
+        collection(db, 'cotas'),
+        where('localidadeId', '==', selectedLocalidade)
+      );
+      const snapshot = await getDocs(q);
       const todasCotas = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })) as Cota[];
 
       // Agrupar por nome+localidade
