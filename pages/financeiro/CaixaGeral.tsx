@@ -4,7 +4,7 @@ import { getActiveCollection } from '../../services/operacionalService';
 import { fecharMes } from '../../services/financeiroService';
 import { Cota, Ponto, CentroCusto } from '../../types';
 import { GlassCard, AlertBox, PageHeader, Badge, ButtonPrimary, ButtonSecondary, SelectField, InputField, Modal } from '../../components/MacOSDesign';
-import { Lock, Calculator, Download, TrendingUp, Wallet, Plus, Printer, ChevronDown, ChevronRight, ListFilter } from 'lucide-react';
+import { Lock, Calculator, Download, TrendingUp, Wallet, Plus, Printer, ChevronDown, ChevronRight, ListFilter, MapPin } from 'lucide-react';
 import { collection, query, where, getDocs, addDoc } from 'firebase/firestore';
 import { db } from '../../services/firebaseConfig';
 import jsPDF from 'jspdf';
@@ -53,19 +53,12 @@ const CaixaGeral: React.FC = () => {
   // Filters state
   const [mes, setMes] = useState(new Date().getMonth() + 1);
   const [ano, setAno] = useState(new Date().getFullYear());
-  const [localidadeId, setLocalidadeId] = useState(selectedLocalidade || '');
 
   // Calculated
   const lucroLiquido = vendasTotal - despesasOp;
   const baseRateio = valorDistribuir; // O valor digitado AGORA é o que será distribuído
   const capitalGiro = lucroLiquido - valorDistribuir; // O que sobra vira capital de giro
 
-  // Update localidadeId when global selection changes
-  useEffect(() => {
-    if (selectedLocalidade) {
-      setLocalidadeId(selectedLocalidade);
-    }
-  }, [selectedLocalidade]);
 
   const handleSalvarAdiantamento = async () => {
     if (!novoAdiantamento.cotaId || !novoAdiantamento.valor || !novoAdiantamento.data) {
@@ -81,7 +74,7 @@ const CaixaGeral: React.FC = () => {
         valor: parseFloat(novoAdiantamento.valor),
         tipo: 'adiantamento',
         cotaId: novoAdiantamento.cotaId,
-        localidadeId,
+        localidadeId: selectedLocalidade as string,
         active: true,
         origem: 'sistema',
         userId: userProfile?.uid
@@ -110,8 +103,8 @@ const CaixaGeral: React.FC = () => {
   };
 
   const calcularPrevia = async () => {
-    if (!localidadeId) {
-      setMessage('Selecione uma localidade');
+    if (!selectedLocalidade) {
+      setMessage('Selecione uma localidade no topo da página');
       setMessageType('error');
       return;
     }
@@ -120,7 +113,7 @@ const CaixaGeral: React.FC = () => {
     setMessage('');
 
     try {
-      const resumo = await getResumoFinanceiro(localidadeId, mes, ano);
+      const resumo = await getResumoFinanceiro(selectedLocalidade, mes, ano);
       setVendasTotal(resumo.vendasTotal);
       setDespesasOp(resumo.despesasOp);
       setAdiantamentosTotal(resumo.totalAdiantamentos || 0);
@@ -143,17 +136,17 @@ const CaixaGeral: React.FC = () => {
 
   // Recalcular automaticamente quando mudar filtros
   useEffect(() => {
-    if (localidadeId) {
+    if (selectedLocalidade) {
       calcularPrevia();
       verificarStatusFechamento();
     }
-  }, [mes, ano, localidadeId]);
+  }, [mes, ano, selectedLocalidade]);
 
   const verificarStatusFechamento = async () => {
     try {
       const q = query(
         collection(db, "fechamentos_mensais"),
-        where("localidadeId", "==", localidadeId),
+        where("localidadeId", "==", selectedLocalidade),
         where("mes", "==", mes),
         where("ano", "==", ano)
       );
@@ -187,7 +180,7 @@ const CaixaGeral: React.FC = () => {
 
     try {
       await fecharMes(
-        localidadeId, mes, ano, valorDistribuir, userProfile.uid, cotas,
+        selectedLocalidade as string, mes, ano, valorDistribuir, userProfile.uid, cotas,
         { lucroLiquido }
       );
       setMessage('Mês fechado com sucesso!');
@@ -248,7 +241,7 @@ const CaixaGeral: React.FC = () => {
     // Linha 2 (Divisória)
     doc.line(marginX, subHeaderY + 6, marginX + contentWidth, subHeaderY + 6);
 
-    const localidadeNome = localidades.find(l => l.id === localidadeId)?.nome || 'Todas';
+    const localidadeNome = localidades.find(l => l.id === selectedLocalidade)?.nome || 'Todas';
     doc.text(`MES: ${mes}`, marginX + 2, subHeaderY + 10);
     doc.text(`ANO: ${ano}`, marginX + 40, subHeaderY + 10); // Ajuste manual X
     doc.text(`LOCALIDADE: ${localidadeNome.toUpperCase()}`, marginX + 80, subHeaderY + 10); // Ajuste manual X
@@ -402,16 +395,11 @@ const CaixaGeral: React.FC = () => {
           </div>
 
           <div className="flex items-center gap-2 min-w-[200px]">
-            <span className="text-xs font-semibold text-gray-500 uppercase">Local</span>
-            <select
-              value={localidadeId}
-              onChange={e => setLocalidadeId(e.target.value)}
-              disabled={!isAuthorized}
-              className="bg-gray-50 border border-gray-200 text-gray-800 text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block w-full p-2 outline-none"
-            >
-              <option value="">Selecione...</option>
-              {localidades.map(loc => <option key={loc.id} value={loc.id}>{loc.nome}</option>)}
-            </select>
+            <span className="text-xs font-semibold text-gray-500 uppercase">Local Selecionado</span>
+            <div className="bg-emerald-50 border border-emerald-100 text-emerald-700 text-sm font-bold rounded-lg px-3 py-2 flex items-center gap-2">
+              <MapPin size={14} className="text-emerald-500" />
+              {localidades.find(loc => loc.id === selectedLocalidade)?.nome || selectedLocalidade || 'Nenhum'}
+            </div>
           </div>
         </div>
 
@@ -441,7 +429,7 @@ const CaixaGeral: React.FC = () => {
                 </button>
                 <button
                   onClick={handleFecharMes}
-                  disabled={!isAuthorized || loading || !localidadeId || isClosed}
+                  disabled={!isAuthorized || loading || !selectedLocalidade || isClosed}
                   className={`p-2 rounded-lg transition-colors border ${isClosed
                     ? 'text-emerald-600 bg-emerald-50 border-emerald-100'
                     : 'text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border-rose-100 disabled:opacity-50'
@@ -514,7 +502,7 @@ const CaixaGeral: React.FC = () => {
               </div>
               <button
                 onClick={() => setShowAdiantamentoModal(true)}
-                disabled={!isAuthorized || !localidadeId}
+                disabled={!isAuthorized || !selectedLocalidade}
                 className="flex items-center gap-2 px-3 py-1.5 bg-orange-50 hover:bg-orange-100 text-orange-700 rounded-full text-xs font-bold transition-colors border border-orange-100"
               >
                 <Plus size={14} /> NOVO VALE
